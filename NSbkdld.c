@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <wininet.h>
 #ifdef PLUGIN_DEBUG
-	#include <Shlwapi.h>	/// for wvnsprintf
+	#include <Shlwapi.h>			/// for wvnsprintf
 #endif
 #include "nsiswapi/pluginapi.h"
 
@@ -43,6 +43,21 @@ VOID TRACE( __in LPCTSTR pszFormat, ... )
 #endif
 
 
+//++ NsisMessageCallback
+UINT_PTR __cdecl NsisMessageCallback(enum NSPIM iMessage)
+{
+	switch (iMessage) 
+	{
+	case NSPIM_UNLOAD:
+		/// TODO: Cancel downloads
+		break;
+	case NSPIM_GUIUNLOAD:
+		break;
+	}
+	return 0;
+}
+
+
 //++ Download
 EXTERN_C __declspec(dllexport)
 void __cdecl Download(
@@ -54,8 +69,13 @@ void __cdecl Download(
 	)
 {
 	EXDLL_INIT();
+
+	// Validate NSIS version
 	if ( !IsCompatibleApiVersion())
 		return;
+
+	// Request unload notification
+	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
 	TRACE( _T("Download: TODO\n"));
 }
