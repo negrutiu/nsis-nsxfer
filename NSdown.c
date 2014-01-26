@@ -12,7 +12,7 @@
 #include "nsiswapi/pluginapi.h"
 
 
-#define USERAGENT _T("NSIS NSbkdld (WinInet)")
+#define USERAGENT _T("NSdown (WinInet)")
 HINSTANCE g_hInst = NULL;
 
 //

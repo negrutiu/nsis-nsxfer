@@ -9,22 +9,22 @@
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 
-# The folder where NSbkdld.dll is
+# The folder where NSdown.dll is
 !ifdef NSIS_UNICODE
-	!if /FileExists "..\ReleaseW\NSbkdld.dll"
+	!if /FileExists "..\ReleaseW\NSdown.dll"
 		!AddPluginDir "..\ReleaseW"
-	!else if /FileExists "..\DebugW\NSbkdld.dll"
+	!else if /FileExists "..\DebugW\NSdown.dll"
 		!AddPluginDir "..\DebugW"
 	!else
-		!error "NSbkdld.dll (Unicode) not found. Have you built it?"
+		!error "NSdown.dll (Unicode) not found. Have you built it?"
 	!endif
 !else
-	!if /FileExists "..\Release\NSbkdld.dll"
+	!if /FileExists "..\Release\NSdown.dll"
 		!AddPluginDir "..\ReleaseA"
-	!else if /FileExists "..\DebugA\NSbkdld.dll"
+	!else if /FileExists "..\DebugA\NSdown.dll"
 		!AddPluginDir "..\DebugA"
 	!else
-		!error "NSbkdld.dll (ANSI) not found. Have you built it?"
+		!error "NSdown.dll (ANSI) not found. Have you built it?"
 	!endif
 !endif
 
@@ -49,11 +49,11 @@
 
 # Installer details
 !ifdef NSIS_UNICODE
-	Name "NSbkdldW"
-	OutFile "NSbkdldW.exe"
+	Name "NSdownW"
+	OutFile "NSdownW.exe"
 !else
-	Name "NSbkdldA"
-	OutFile "NSbkdldA.exe"
+	Name "NSdownA"
+	OutFile "NSdownA.exe"
 !endif
 
 XPStyle on
@@ -84,26 +84,26 @@ FunctionEnd
 !define FILE3 "$EXEDIR\SysinternalsSuite.zip"
 
 Section "-Test"
-	DetailPrint 'NSbkdld::Download "${LINK1}" "${FILE1}"'
+	DetailPrint 'NSdown::Download "${LINK1}" "${FILE1}"'
 	Push "/END"
 	Push "${FILE1}"
 	Push "${LINK1}"
-	CallInstDLL "$EXEDIR\..\DebugW\NSbkdld.dll" "Download"
-	;NSbkdld::Download "${LINK1}" "${FILE1}" /END
+	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
+	;NSdown::Download "${LINK1}" "${FILE1}" /END
 
-	DetailPrint 'NSbkdld::Download "${LINK2}" "${FILE2}"'
+	DetailPrint 'NSdown::Download "${LINK2}" "${FILE2}"'
 	Push "/END"
 	Push "${FILE2}"
 	Push "${LINK2}"
-	CallInstDLL "$EXEDIR\..\DebugW\NSbkdld.dll" "Download"
-;	NSbkdld::Download "${LINK2}" "${FILE2}" /END
+	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
+;	NSdown::Download "${LINK2}" "${FILE2}" /END
 
-	DetailPrint 'NSbkdld::Download "${LINK3}" "${FILE3}"'
+	DetailPrint 'NSdown::Download "${LINK3}" "${FILE3}"'
 	Push "/END"
 	Push "${FILE3}"
 	Push "${LINK3}"
-	CallInstDLL "$EXEDIR\..\DebugW\NSbkdld.dll" "Download"
-;	NSbkdld::Download "${LINK3}" "${FILE3}" /END
+	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
+;	NSdown::Download "${LINK3}" "${FILE3}" /END
 
 
 /*	; Wait a few seconds...
@@ -114,8 +114,8 @@ Section "-Test"
 		; $2 = Remaining files
 		; $3 = Number of downloaded bytes for the current file
 		; $4 = Size of current file (Empty string if the size is unknown)
-		CallInstDLL "$EXEDIR\..\DebugW\NSbkdld.dll" "GetStats"
-		;NSbkdld::GetStats
+		CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "GetStats"
+		;NSdown::GetStats
 		DetailPrint "Waiting($5/$6): HTTP status == $0, Completed files == $1, Remaining files == $2, Recv bytes (last file) == $3, Total bytes (last file) == $4"
 		${If} $2 = 0		; No remaining requests
 		;${OrIf} $0 >= 300	; HTTP error codes

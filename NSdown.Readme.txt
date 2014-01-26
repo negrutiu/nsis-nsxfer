@@ -1,4 +1,4 @@
-NSbkdld::Download	/URL url [/FILE path]
+NSdown::Download	/URL url [/FILE path]
 					[/RETRYCOUNT count] [/RETRYDELAY msec]
 					[/CONNECTRETRIES count] [/CONNECTTIMEOUT msec] [/RECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
@@ -15,4 +15,4 @@ NSbkdld::Download	/URL url [/FILE path]
 /PROXYPASS pass				| Not implemented yet. The default proxy settings are used
 
 Examples:
-NSbkdld::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /FILE "$EXEDIR\SysinternalsSuite.zip" /RETRYCOUNT 5 /RETRYDELAY 5000
+NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /FILE "$EXEDIR\SysinternalsSuite.zip" /RETRYCOUNT 5 /RETRYDELAY 5000
