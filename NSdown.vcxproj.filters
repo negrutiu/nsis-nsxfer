@@ -18,15 +18,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NSdown.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="nsiswapi\pluginapi.c">
       <Filter>nsiswapi</Filter>
     </ClCompile>
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="NSdown.rc">
+    <ResourceCompile Include="resource.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
