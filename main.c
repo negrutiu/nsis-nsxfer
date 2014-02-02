@@ -1,92 +1,67 @@
 
-#if DBG || _DEBUG || DEBUG
-	#define PLUGIN_DEBUG
-#endif
-
-#define _WIN32_WINNT 0x0400
-#include <windows.h>
-#include <wininet.h>
-#ifdef PLUGIN_DEBUG
-	#include <Shlwapi.h>			/// for wvnsprintf
-#endif
-#include "nsiswapi/pluginapi.h"
-
+#include "main.h"
+#include "utils.h"
 
 #define USERAGENT _T("NSdown (WinInet)")
 HINSTANCE g_hInst = NULL;
-
-//
-// Download queue stuff.
-//
-typedef enum {
-	ITEM_STATUS_WAITING,			/// The item is waiting in queue. Not downloaded yet
-	ITEM_STATUS_DOWNLOADING,		/// The item is being downloaded
-	ITEM_STATUS_DONE				/// The item has been downloaded (successful or not)
-} ITEM_STATUS;
-
-typedef struct _QUEUE_ITEM {
-
-	struct _QUEUE_ITEM *pNext;		/// Singly linked list
-
-	ULONG iId;						/// Unique download ID
-	ITEM_STATUS iStatus;
-
-	TCHAR szURL[1024];
-	TCHAR szFile[1024];
-	ULONG iRetryCount;				/// 0 if not used
-	ULONG iRetryDelay;				/// 0 if not used
-
-	BOOL bErrorCodeHTTP;			/// TRUE == HTTP status code, FALSE == Win32 error code
-	ULONG iErrorCode;
-
-	struct {
-		FILETIME tmEnqueue;			/// Enqueue time
-		FILETIME tmDownloadStart;	/// Download startup time
-		FILETIME tmDownloadEnd;		/// Download startup time
-		ULONG64 iFileSize;			/// File size or -1 if not available
-		ULONG64 iRecvSize;			/// Received bytes
-	} Stats;
-
-} QUEUE_ITEM;
+BOOL g_bInitialized = FALSE;
 
 
-//++ TRACE
-#ifdef PLUGIN_DEBUG
-VOID TRACE( __in LPCTSTR pszFormat, ... )
+/// Forward declarations
+UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage );
+
+
+//++ PluginInit
+BOOL PluginInit()
 {
-	DWORD err = ERROR_SUCCESS;
-	if ( pszFormat && *pszFormat ) {
+	BOOL bRet = TRUE;
+	if ( !g_bInitialized ) {
 
-		TCHAR szStr[1024];
-		int iLen;
-		va_list args;
+		TRACE( _T( "NSdown: PluginInit\n" ) );
 
-		va_start(args, pszFormat);
-		iLen = wvnsprintf( szStr, (int)ARRAYSIZE(szStr), pszFormat, args );
-		if ( iLen > 0 ) {
+		// TODO: Init the queue
+		// TODO: Init threads
 
-			if ( iLen < ARRAYSIZE(szStr))
-				szStr[iLen] = 0;	/// The string is not guaranteed to be null terminated. We'll add the terminator ourselves
-
-			OutputDebugString( szStr );
+		if ( TRUE ) {
+			g_bInitialized = TRUE;
 		}
-		va_end(args);
+		else {
+			bRet = FALSE;
+		}
 	}
+	return bRet;
 }
-#else
-	#define TRACE(...)
-#endif
+
+
+//++ PluginUninit
+BOOL PluginUninit()
+{
+	BOOL bRet = FALSE;
+	if ( g_bInitialized ) {
+
+		TRACE( _T( "NSdown: PluginUninit\n" ) );
+
+		// TODO: Cancel downloads
+		// TODO: Terminate threads
+		// TODO: Destroy the queue
+
+		g_bInitialized = FALSE;
+		bRet = TRUE;
+	}
+	return bRet;
+}
 
 
 //++ NsisMessageCallback
-UINT_PTR __cdecl NsisMessageCallback(enum NSPIM iMessage)
+UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage )
 {
-	switch (iMessage) 
+	switch ( iMessage )
 	{
 	case NSPIM_UNLOAD:
-		/// TODO: Cancel downloads
 		TRACE( _T( "NSdown: NSPIM_UNLOAD\n" ) );
+		PluginUninit();
 		break;
+
 	case NSPIM_GUIUNLOAD:
 		TRACE( _T( "NSdown: NSPIM_GUIUNLOAD\n" ) );
 		break;
@@ -128,7 +103,10 @@ BOOL WINAPI _DllMainCRTStartup(
 {
 	if ( iReason == DLL_PROCESS_ATTACH ) {
 		g_hInst = hInst;
-		/// TODO: Initializations
+		PluginInit();
+	}
+	else if ( iReason == DLL_PROCESS_DETACH ) {
+		PluginUninit();
 	}
 	return TRUE;
 }

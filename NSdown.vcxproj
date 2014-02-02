@@ -82,6 +82,8 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="nsiswapi\pluginapi.c" />
+    <ClCompile Include="queue.c" />
+    <ClCompile Include="utils.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -90,9 +92,12 @@
     <Text Include="NSdown.Readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="main.h" />
     <ClInclude Include="nsiswapi\api.h" />
     <ClInclude Include="nsiswapi\nsis_tchar.h" />
     <ClInclude Include="nsiswapi\pluginapi.h" />
+    <ClInclude Include="queue.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
