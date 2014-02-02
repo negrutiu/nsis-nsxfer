@@ -85,8 +85,10 @@ UINT_PTR __cdecl NsisMessageCallback(enum NSPIM iMessage)
 	{
 	case NSPIM_UNLOAD:
 		/// TODO: Cancel downloads
+		TRACE( _T( "NSdown: NSPIM_UNLOAD\n" ) );
 		break;
 	case NSPIM_GUIUNLOAD:
+		TRACE( _T( "NSdown: NSPIM_GUIUNLOAD\n" ) );
 		break;
 	}
 	return 0;
