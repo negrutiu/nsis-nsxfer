@@ -20,7 +20,7 @@ BOOL PluginInit()
 
 		TRACE( _T( "PluginInit\n" ) );
 
-		QueueInitialize();
+		QueueInitialize( &g_Queue );
 		// TODO: Init threads
 
 		if ( TRUE ) {
@@ -44,7 +44,7 @@ BOOL PluginUninit()
 
 		// TODO: Cancel downloads
 		// TODO: Terminate threads
-		QueueDestroy();
+		QueueDestroy( &g_Queue );
 
 		g_bInitialized = FALSE;
 		bRet = TRUE;
@@ -166,10 +166,10 @@ void __cdecl Download(
 	}
 
 	// Add to the download queue
-	QueueLock();
-	QueueAdd( pszUrl, iLocalType, pszFile, iRetryCount, iRetryDelay, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
+	QueueLock( &g_Queue );
+	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iRetryCount, iRetryDelay, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
-	QueueUnlock();
+	QueueUnlock( &g_Queue );
 
 	MyFree( psz );
 	MyFree( pszUrl );

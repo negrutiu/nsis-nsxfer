@@ -66,27 +66,35 @@ typedef struct _QUEUE_ITEM {
 } QUEUE_ITEM, *PQUEUE_ITEM;
 
 
+typedef struct _QUEUE {
+	CRITICAL_SECTION csLock;
+	PQUEUE_ITEM pHead;
+	ULONG iLastId;
+} QUEUE, *PQUEUE;
+
+
 // Initializing
-VOID QueueInitialize();
-VOID QueueDestroy();
+VOID QueueInitialize( _Inout_ PQUEUE pQueue );
+VOID QueueDestroy( _Inout_ PQUEUE pQueue );
 
 // Queue locking
-VOID QueueLock();
-VOID QueueUnlock();
+VOID QueueLock( _Inout_ PQUEUE pQueue );
+VOID QueueUnlock( _Inout_ PQUEUE pQueue );
 
 
 // Clear the queue, destroy everything
 // The queue must be locked
-BOOL QueueReset();
+BOOL QueueReset( _Inout_ PQUEUE pQueue );
 
 // Find an item in the queue
 // The queue must be locked
-PQUEUE_ITEM QueueFind( _In_ ULONG iItemID );	/// ...by ID
-PQUEUE_ITEM QueueFindFirstWaiting();			/// ...by status
+PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID );	/// ...by ID
+PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
 
 // Add a new queue item
 // The queue must be locked
 BOOL QueueAdd(
+	_Inout_ PQUEUE pQueue,
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
@@ -100,8 +108,12 @@ BOOL QueueAdd(
 
 // Remove an item from the queue and destroys the item
 // The queue must be locked
-BOOL QueueRemove( _In_ PQUEUE_ITEM pItem );
+BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
 
 // Retrieve the queue size
 // The queue must be locked
-ULONG QueueSize();
+ULONG QueueSize( _Inout_ PQUEUE pQueue );
+
+
+// Global queue
+extern QUEUE g_Queue;

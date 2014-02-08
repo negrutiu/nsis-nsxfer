@@ -2,61 +2,69 @@
 #include "queue.h"
 #include "utils.h"
 
-PQUEUE_ITEM g_pQueue = NULL;
-CRITICAL_SECTION g_csQueue = { 0 };
-ULONG g_iLastItemId = 0;
 
-VOID QueueInitialize()
+// The global download queue
+QUEUE g_Queue = { 0 };
+
+
+VOID QueueInitialize( _Inout_ PQUEUE pQueue )
 {
+	assert( pQueue );
 	TRACE( _T( "  QueueInitialize()\n" ) );
-	InitializeCriticalSectionAndSpinCount( &g_csQueue, 3000 );
+	InitializeCriticalSectionAndSpinCount( &pQueue->csLock, 3000 );
 }
 
-VOID QueueDestroy()
+VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 {
-	QueueLock();
-	QueueReset();
-	DeleteCriticalSection( &g_csQueue );
+	assert( pQueue );
+	QueueLock( pQueue );
+	QueueReset( pQueue );
+	DeleteCriticalSection( &pQueue->csLock );
 	TRACE( _T( "  QueueDestroy()\n" ) );
 }
 
-VOID QueueLock()
+VOID QueueLock( _Inout_ PQUEUE pQueue )
 {
-	if ( !TryEnterCriticalSection( &g_csQueue ) )
-		EnterCriticalSection( &g_csQueue );
+	assert( pQueue );
+	if ( !TryEnterCriticalSection( &pQueue->csLock ) )
+		EnterCriticalSection( &pQueue->csLock );
 	TRACE( _T( "  QueueLock()\n" ) );
 }
 
-VOID QueueUnlock()
+VOID QueueUnlock( _Inout_ PQUEUE pQueue )
 {
-	LeaveCriticalSection( &g_csQueue );
+	assert( pQueue );
+	LeaveCriticalSection( &pQueue->csLock );
 	TRACE( _T( "  QueueUnlock()\n" ) );
 }
 
-BOOL QueueReset()
+BOOL QueueReset( _Inout_ PQUEUE pQueue )
 {
 	BOOL bRet = TRUE;
+	assert( pQueue );
 	TRACE( _T( "  QueueReset()\n" ) );
-	while ( g_pQueue )
-		bRet = bRet && QueueRemove( g_pQueue );
+	while ( pQueue->pHead )
+		bRet = bRet && QueueRemove( pQueue, pQueue->pHead );
 	return bRet;
 }
 
-PQUEUE_ITEM QueueFind( _In_ ULONG iItemID )
+PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID )
 {
 	PQUEUE_ITEM pItem;
-	for ( pItem = g_pQueue; pItem && pItem->iId != iItemID; pItem = pItem->pNext );
+	assert( pQueue );
+	for ( pItem = pQueue->pHead; pItem && pItem->iId != iItemID; pItem = pItem->pNext );
 	TRACE( _T( "  QueueFind(ID:%u) == 0x%p\n" ), iItemID, pItem );
 	return pItem;
 }
 
-PQUEUE_ITEM QueueFindFirstWaiting()
+PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 {
 	// New items are always added to the front of our queue
 	// Therefore, the first (chronologically) waiting item is the last in the queue
 
 	PQUEUE_ITEM pItem, pLastWaitingItem;
-	for ( pItem = g_pQueue, pLastWaitingItem = NULL; pItem; pItem = pItem->pNext )
+	assert( pQueue );
+	for ( pItem = pQueue->pHead, pLastWaitingItem = NULL; pItem; pItem = pItem->pNext )
 		if ( pItem->iStatus == ITEM_STATUS_WAITING )
 			pLastWaitingItem = pItem;
 	TRACE( _T( "  QueueFindFirstWaiting() == ID:%u, 0x%p\n" ), pLastWaitingItem ? pLastWaitingItem->iId : 0, pLastWaitingItem );
@@ -64,6 +72,7 @@ PQUEUE_ITEM QueueFindFirstWaiting()
 }
 
 BOOL QueueAdd(
+	_Inout_ PQUEUE pQueue,
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
@@ -76,12 +85,13 @@ BOOL QueueAdd(
 	)
 {
 	BOOL bRet = TRUE;
-	if ( pszURL && *pszURL && ((iLocalType != ITEM_LOCAL_FILE) || (pszLocalFile && *pszLocalFile))) {
+	assert( pQueue );
+	if ( pszURL && *pszURL && ((iLocalType != ITEM_LOCAL_FILE) || (pszLocalFile && *pszLocalFile)) ) {
 
 		PQUEUE_ITEM pItem = (PQUEUE_ITEM)MyAlloc( sizeof(QUEUE_ITEM) );
 		if ( pItem ) {
 
-			pItem->iId = ++g_iLastItemId;
+			pItem->iId = ++pQueue->iLastId;
 			pItem->iStatus = ITEM_STATUS_WAITING;
 			MyStrDup( pItem->pszURL, pszURL );
 
@@ -123,8 +133,8 @@ BOOL QueueAdd(
 			pItem->iErrorCode = ERROR_SUCCESS;
 
 			// Add in front
-			pItem->pNext = g_pQueue;
-			g_pQueue = pItem;
+			pItem->pNext = pQueue->pHead;
+			pQueue->pHead = pItem;
 
 			// Return
 			if ( ppItem )
@@ -148,9 +158,10 @@ BOOL QueueAdd(
 }
 
 
-BOOL QueueRemove( _In_ PQUEUE_ITEM pItem )
+BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 {
 	BOOL bRet = TRUE;
+	assert( pQueue );
 	if ( pItem ) {
 
 		TRACE(
@@ -180,12 +191,12 @@ BOOL QueueRemove( _In_ PQUEUE_ITEM pItem )
 		// Remove from list
 		{
 			PQUEUE_ITEM pPrevItem;
-			for ( pPrevItem = g_pQueue; (pPrevItem != NULL) && (pPrevItem->pNext != pItem); pPrevItem = pPrevItem->pNext );
+			for ( pPrevItem = pQueue->pHead; (pPrevItem != NULL) && (pPrevItem->pNext != pItem); pPrevItem = pPrevItem->pNext );
 			if ( pPrevItem ) {
 				pPrevItem->pNext = pItem->pNext;
 			}
 			else {
-				g_pQueue = pItem->pNext;
+				pQueue->pHead = pItem->pNext;
 			}
 		}
 
@@ -198,11 +209,12 @@ BOOL QueueRemove( _In_ PQUEUE_ITEM pItem )
 	return bRet;
 }
 
-ULONG QueueSize()
+ULONG QueueSize( _Inout_ PQUEUE pQueue )
 {
 	PQUEUE_ITEM pItem;
 	ULONG iSize;
-	for ( pItem = g_pQueue, iSize = 0; pItem; pItem = pItem->pNext, iSize++ );
+	assert( pQueue );
+	for ( pItem = pQueue->pHead, iSize = 0; pItem; pItem = pItem->pNext, iSize++ );
 	TRACE( _T( "  QueueSize() == %u\n" ), iSize );
 	return iSize;
 }
