@@ -17,7 +17,7 @@ BOOL PluginInit()
 	BOOL bRet = TRUE;
 	if ( !g_bInitialized ) {
 
-		TRACE( _T( "NSdown: PluginInit\n" ) );
+		TRACE( _T( "PluginInit\n" ) );
 
 		// TODO: Init the queue
 		// TODO: Init threads
@@ -39,7 +39,7 @@ BOOL PluginUninit()
 	BOOL bRet = FALSE;
 	if ( g_bInitialized ) {
 
-		TRACE( _T( "NSdown: PluginUninit\n" ) );
+		TRACE( _T( "PluginUninit\n" ) );
 
 		// TODO: Cancel downloads
 		// TODO: Terminate threads
@@ -58,12 +58,12 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage )
 	switch ( iMessage )
 	{
 	case NSPIM_UNLOAD:
-		TRACE( _T( "NSdown: NSPIM_UNLOAD\n" ) );
+		TRACE( _T( "NSPIM_UNLOAD\n" ) );
 		PluginUninit();
 		break;
 
 	case NSPIM_GUIUNLOAD:
-		TRACE( _T( "NSdown: NSPIM_GUIUNLOAD\n" ) );
+		TRACE( _T( "NSPIM_GUIUNLOAD\n" ) );
 		break;
 	}
 	return 0;

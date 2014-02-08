@@ -3,25 +3,27 @@
 #include "utils.h"
 
 //++ TRACE
-#ifdef PLUGIN_DEBUG
+#ifdef _DEBUG
 VOID TRACE( __in LPCTSTR pszFormat, ... )
 {
 	DWORD err = ERROR_SUCCESS;
 	if ( pszFormat && *pszFormat ) {
 
 		TCHAR szStr[1024];
-		int iLen;
+		int iLen1, iLen2;
 		va_list args;
 
+		iLen1 = wnsprintf( szStr, (int)ARRAYSIZE( szStr ), _T( "[NSdown.th%x] " ), GetCurrentThreadId() );
+
 		va_start( args, pszFormat );
-		iLen = wvnsprintf( szStr, (int)ARRAYSIZE( szStr ), pszFormat, args );
-		if ( iLen > 0 ) {
-
-			if ( iLen < ARRAYSIZE( szStr ) )
-				szStr[iLen] = 0;	/// The string is not guaranteed to be null terminated. We'll add the terminator ourselves
-
-			OutputDebugString( szStr );
+		iLen2 = wvnsprintf( szStr + iLen1, (int)ARRAYSIZE( szStr ) - iLen1, pszFormat, args );
+		if ( iLen2 > 0 ) {
+			if ( iLen1 + iLen2 < ARRAYSIZE( szStr ) )
+				szStr[iLen1 + iLen2] = 0;	/// The string is not guaranteed to be null terminated
+		} else {
+			szStr[ARRAYSIZE( szStr ) - 1] = 0;
 		}
+		OutputDebugString( szStr );
 		va_end( args );
 	}
 }

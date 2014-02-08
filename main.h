@@ -1,13 +1,15 @@
 #pragma once
 
-#if DBG || _DEBUG || DEBUG
-	#define PLUGIN_DEBUG
+#ifndef _DEBUG
+	#if DBG || DEBUG
+		#define _DEBUG
+	#endif
 #endif
 
 #define _WIN32_WINNT 0x0400
 #include <windows.h>
 #include <wininet.h>
-#ifdef PLUGIN_DEBUG
+#ifdef _DEBUG
 	#include <Shlwapi.h>			/// for wvnsprintf
 #endif
 #include "nsiswapi/pluginapi.h"

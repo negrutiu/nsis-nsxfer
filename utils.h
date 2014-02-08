@@ -1,7 +1,7 @@
 #pragma once
 
 //+ TRACE
-#ifdef PLUGIN_DEBUG
+#ifdef _DEBUG
 VOID TRACE( __in LPCTSTR pszFormat, ... );
 #else
 #define TRACE(...)
