@@ -34,7 +34,10 @@ typedef struct _QUEUE_ITEM {
 	// Destination
 	ITEM_LOCAL_TYPE iLocalType;
 	union {
-		LPTSTR pszFile;				/// Valid for ITEM_LOCAL_FILE
+		struct {
+			LPTSTR pszFile;			/// Valid for ITEM_LOCAL_FILE
+			HANDLE hFile;
+		};
 		LPBYTE pMemory;				/// Valid for ITEM_LOCAL_MEMORY. The buffer size will be iFileSize
 	} LocalData;
 
@@ -58,6 +61,10 @@ typedef struct _QUEUE_ITEM {
 } QUEUE_ITEM, *PQUEUE_ITEM;
 
 
+// Initializing
+VOID QueueInitialize();
+VOID QueueDestroy();
+
 // Queue locking
 VOID QueueLock();
 VOID QueueUnlock();
@@ -76,11 +83,12 @@ PQUEUE_ITEM QueueFindFirstWaiting();			/// ...by status
 // The queue must be locked
 BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
-	_In_opt_ LPCTSTR pszFile,
-	_Outptr_opt_ PQUEUE_ITEM pItem
+	_In_ ITEM_LOCAL_TYPE iLocalType,
+	_In_opt_ LPCTSTR pszLocalFile,
+	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	);
 
-// Remove an item from the queue
+// Remove an item from the queue and destroys the item
 // The queue must be locked
 BOOL QueueRemove( _In_ PQUEUE_ITEM pItem );
 

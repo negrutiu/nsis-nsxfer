@@ -1,6 +1,7 @@
 
 #include "main.h"
 #include "utils.h"
+#include "queue.h"
 
 #define USERAGENT _T("NSdown (WinInet)")
 HINSTANCE g_hInst = NULL;
@@ -19,7 +20,7 @@ BOOL PluginInit()
 
 		TRACE( _T( "PluginInit\n" ) );
 
-		// TODO: Init the queue
+		QueueInitialize();
 		// TODO: Init threads
 
 		if ( TRUE ) {
@@ -43,7 +44,7 @@ BOOL PluginUninit()
 
 		// TODO: Cancel downloads
 		// TODO: Terminate threads
-		// TODO: Destroy the queue
+		QueueDestroy();
 
 		g_bInitialized = FALSE;
 		bRet = TRUE;
@@ -80,6 +81,8 @@ void __cdecl Download(
 	extra_parameters *extra
 	)
 {
+	PQUEUE_ITEM pItem;
+
 	EXDLL_INIT();
 
 	// Validate NSIS version
@@ -90,6 +93,15 @@ void __cdecl Download(
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
 	TRACE( _T("Download: TODO\n"));
+
+	QueueLock();
+	QueueAdd( _T( "MyURL" ), ITEM_LOCAL_NONE, _T( "adf" ), &pItem );
+	QueueAdd( _T( "MyURL" ), ITEM_LOCAL_FILE, _T( "fdsa" ), &pItem );
+	QueueAdd( _T( "MyURL" ), ITEM_LOCAL_MEMORY, _T( "fdsa" ), &pItem );
+	QueueSize();
+	QueueFindFirstWaiting();
+	QueueReset();
+	QueueUnlock();
 }
 
 
