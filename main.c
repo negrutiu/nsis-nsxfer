@@ -2,6 +2,7 @@
 #include "main.h"
 #include "utils.h"
 #include "queue.h"
+#include "thread.h"
 
 #define USERAGENT _T("NSdown (WinInet)")
 HINSTANCE g_hInst = NULL;
@@ -21,7 +22,7 @@ BOOL PluginInit()
 		TRACE( _T( "PluginInit\n" ) );
 
 		QueueInitialize( &g_Queue );
-		// TODO: Init threads
+		ThreadInitialize( &g_Thread );
 
 		if ( TRUE ) {
 			g_bInitialized = TRUE;
@@ -42,8 +43,7 @@ BOOL PluginUninit()
 
 		TRACE( _T( "PluginUninit\n" ) );
 
-		// TODO: Cancel downloads
-		// TODO: Terminate threads
+		ThreadDestroy( &g_Thread, 10000 );
 		QueueDestroy( &g_Queue );
 
 		g_bInitialized = FALSE;
@@ -170,6 +170,7 @@ void __cdecl Download(
 	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iRetryCount, iRetryDelay, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
+	ThreadWake( &g_Thread );
 
 	MyFree( psz );
 	MyFree( pszUrl );

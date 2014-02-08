@@ -13,7 +13,7 @@ VOID TRACE( __in LPCTSTR pszFormat, ... )
 		int iLen1, iLen2;
 		va_list args;
 
-		iLen1 = wnsprintf( szStr, (int)ARRAYSIZE( szStr ), _T( "[NSdown.th%x] " ), GetCurrentThreadId() );
+		iLen1 = wnsprintf( szStr, (int)ARRAYSIZE( szStr ), _T( "[NSdown.th%04x] " ), GetCurrentThreadId() );
 
 		va_start( args, pszFormat );
 		iLen2 = wvnsprintf( szStr + iLen1, (int)ARRAYSIZE( szStr ) - iLen1, pszFormat, args );

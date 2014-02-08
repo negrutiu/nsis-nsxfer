@@ -83,6 +83,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="nsiswapi\pluginapi.c" />
     <ClCompile Include="queue.c" />
+    <ClCompile Include="thread.c" />
     <ClCompile Include="utils.c" />
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +98,7 @@
     <ClInclude Include="nsiswapi\nsis_tchar.h" />
     <ClInclude Include="nsiswapi\pluginapi.h" />
     <ClInclude Include="queue.h" />
+    <ClInclude Include="thread.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
