@@ -10,6 +10,8 @@
 	- QueueClear(...) will empty the queue. All past downloads will be forgotten.
 */
 
+#define DEFAULT_VALUE				((ULONG)-1)
+
 typedef enum {
 	ITEM_STATUS_WAITING,			/// The item is waiting in queue. Not downloaded yet
 	ITEM_STATUS_DOWNLOADING,		/// The item is being downloaded
@@ -42,8 +44,11 @@ typedef struct _QUEUE_ITEM {
 	} LocalData;
 
 	// Download options
-	ULONG iRetryCount;				/// (optional)
-	ULONG iRetryDelay;				/// (optional)
+	ULONG iRetryCount;				/// The number of InternetOpenUrl calls. Default is 1
+	ULONG iRetryDelay;				/// Delay between two InternetOpenUrl calls. Default is 0
+	ULONG iConnectRetries;			/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
+	ULONG iConnectTimeout;			/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
+	ULONG iReceiveTimeout;			/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 
 	// Runtime statistics
 	FILETIME tmEnqueue;				/// Enqueue time
@@ -85,6 +90,11 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
+	_In_opt_ ULONG iRetryCount,					/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iRetryDelay,					/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iConnectRetries,				/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iConnectTimeout,				/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iReceiveTimeout,				/// can be DEFAULT_VALUE
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	);
 

@@ -52,8 +52,9 @@ PQUEUE_ITEM QueueFind( _In_ ULONG iItemID )
 
 PQUEUE_ITEM QueueFindFirstWaiting()
 {
-	// New items are always added in the front of our queue
-	// Therefore, the first waiting item (chronologically) is the last waiting item found in the queue
+	// New items are always added to the front of our queue
+	// Therefore, the first (chronologically) waiting item is the last in the queue
+
 	PQUEUE_ITEM pItem, pLastWaitingItem;
 	for ( pItem = g_pQueue, pLastWaitingItem = NULL; pItem; pItem = pItem->pNext )
 		if ( pItem->iStatus == ITEM_STATUS_WAITING )
@@ -66,6 +67,11 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
+	_In_opt_ ULONG iRetryCount,
+	_In_opt_ ULONG iRetryDelay,
+	_In_opt_ ULONG iConnectRetries,
+	_In_opt_ ULONG iConnectTimeout,
+	_In_opt_ ULONG iReceiveTimeout,
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	)
 {
@@ -80,7 +86,8 @@ BOOL QueueAdd(
 			MyStrDup( pItem->pszURL, pszURL );
 
 			pItem->iLocalType = iLocalType;
-			switch ( iLocalType ) {
+			switch ( iLocalType )
+			{
 			case ITEM_LOCAL_NONE:
 				pItem->LocalData.pszFile = NULL;
 				///pItem->LocalData.pMemory = NULL;
@@ -93,11 +100,14 @@ BOOL QueueAdd(
 				pItem->LocalData.pMemory = NULL;	/// The memory buffer will be allocated later, when we'll know the file size
 				break;
 			default:
-				TRACE( _T( "ERROR: Unknown queue item type %d\n" ), (int)iLocalType );
+				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
 			}
 
-			pItem->iRetryCount = 2;
-			pItem->iRetryDelay = 1000;
+			pItem->iRetryCount = iRetryCount;
+			pItem->iRetryDelay = iRetryDelay;
+			pItem->iConnectRetries = iConnectRetries;
+			pItem->iConnectTimeout = iConnectTimeout;
+			pItem->iReceiveTimeout = iReceiveTimeout;
 
 			{
 				SYSTEMTIME st;
@@ -155,7 +165,8 @@ BOOL QueueRemove( _In_ PQUEUE_ITEM pItem )
 		// Free item's content
 		MyFree( pItem->pszURL );
 
-		switch ( pItem->iLocalType ) {
+		switch ( pItem->iLocalType )
+		{
 		case ITEM_LOCAL_FILE:
 			MyFree( pItem->LocalData.pszFile );
 			if ( pItem->LocalData.hFile != NULL && pItem->LocalData.hFile != INVALID_HANDLE_VALUE )
