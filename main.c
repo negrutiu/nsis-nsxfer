@@ -81,7 +81,13 @@ void __cdecl Download(
 	extra_parameters *extra
 	)
 {
-	PQUEUE_ITEM pItem;
+	LPTSTR psz = NULL;
+	LPTSTR pszUrl = NULL, pszFile = NULL;
+	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
+	ULONG iRetryCount = DEFAULT_VALUE, iRetryDelay = DEFAULT_VALUE;
+	ULONG iConnectRetries = DEFAULT_VALUE, iConnectTimeout = DEFAULT_VALUE, iRecvTimeout = DEFAULT_VALUE;
+	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
+	PQUEUE_ITEM pItem = NULL;
 
 	EXDLL_INIT();
 
@@ -92,16 +98,85 @@ void __cdecl Download(
 	// Request unload notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
-	TRACE( _T("Download: TODO\n"));
+	TRACE( _T("NSdown!Download\n"));
 
+	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
+	for ( ;; )
+	{
+		if ( popstring( psz ) != 0 )
+			break;
+
+		if ( lstrcmpi( psz, _T( "/URL" )) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				MyFree( pszUrl );
+				MyStrDup( pszUrl, psz );
+			}
+		}
+		else if ( lstrcmpi( psz, _T( "/LOCAL" ) ) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				MyFree( pszFile );
+				if ( lstrcmpi( psz, _T( "NONE" ) ) == 0 ) {
+					iLocalType = ITEM_LOCAL_NONE;
+				}
+				else if ( lstrcmpi( psz, _T( "MEMORY" ) ) == 0 ) {
+					iLocalType = ITEM_LOCAL_MEMORY;
+				}
+				else {
+					iLocalType = ITEM_LOCAL_FILE;
+					MyStrDup( pszFile, psz );
+				}
+			}
+		}
+		else if ( lstrcmpi( psz, _T( "/RETRYCOUNT" ) ) == 0 ) {
+			iRetryCount = popint();
+		}
+		else if ( lstrcmpi( psz, _T( "/RETRYDELAY" ) ) == 0 ) {
+			iRetryDelay = popint();
+		}
+		else if ( lstrcmpi( psz, _T( "/CONNECTRETRIES" ) ) == 0 ) {
+			iConnectRetries = popint();
+		}
+		else if ( lstrcmpi( psz, _T( "/CONNECTTIMEOUT" ) ) == 0 ) {
+			iConnectTimeout = popint();
+		}
+		else if ( lstrcmpi( psz, _T( "/RECEIVETIMEOUT" ) ) == 0 ) {
+			iRecvTimeout = popint();
+		}
+		else if ( lstrcmpi( psz, _T( "/PROXY" ) ) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				MyFree( pszProxyHost );
+				MyStrDup( pszProxyHost, psz );
+			}
+		}
+		else if ( lstrcmpi( psz, _T( "/PROXYUSER" ) ) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				MyFree( pszProxyUser );
+				MyStrDup( pszProxyUser, psz );
+			}
+		}
+		else if ( lstrcmpi( psz, _T( "/PROXYPASS" ) ) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				MyFree( pszProxyPass );
+				MyStrDup( pszProxyPass, psz );
+			}
+		}
+		else {
+			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
+		}
+	}
+
+	// Add to the download queue
 	QueueLock();
-	QueueAdd( _T( "MyURL" ), ITEM_LOCAL_NONE, _T( "adf" ), &pItem );
-	QueueAdd( _T( "MyURL" ), ITEM_LOCAL_FILE, _T( "fdsa" ), &pItem );
-	QueueAdd( _T( "MyURL" ), ITEM_LOCAL_MEMORY, _T( "fdsa" ), &pItem );
-	QueueSize();
-	QueueFindFirstWaiting();
-	QueueReset();
+	QueueAdd( pszUrl, iLocalType, pszFile, iRetryCount, iRetryDelay, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
+	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock();
+
+	MyFree( psz );
+	MyFree( pszUrl );
+	MyFree( pszFile );
+	MyFree( pszProxyHost );
+	MyFree( pszProxyUser );
+	MyFree( pszProxyPass );
 }
 
 

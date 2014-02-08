@@ -75,35 +75,47 @@ Function .onInit
 FunctionEnd
 
 !define LINK1 `http://download.tuxfamily.org/notepadplus/6.5.3/npp.6.5.3.Installer.exe`
-!define FILE1 "$EXEDIR\npp.6.5.3.Installer.exe"
+;!define FILE1 "$EXEDIR\npp.6.5.3.Installer.exe"
+!define FILE1 "NONE"
 
 !define LINK2 `http://www.piriform.com/ccleaner/download/slim/downloadfile`
-!define FILE2 "$EXEDIR\CCleanerSetup.exe"
+;!define FILE2 "$EXEDIR\CCleanerSetup.exe"
+!define FILE2 "MEMORY"
 
 !define LINK3 `http://live.sysinternals.com/Files/SysinternalsSuite.zip`
 !define FILE3 "$EXEDIR\SysinternalsSuite.zip"
 
 Section "-Test"
 	DetailPrint 'NSdown::Download "${LINK1}" "${FILE1}"'
-	Push "/END"
+	Push "5000"
+	Push "/RETRYDELAY"
+	Push "3"
+	Push "/RETRYCOUNT"
 	Push "${FILE1}"
+	Push "/LOCAL"
 	Push "${LINK1}"
+	Push "/URL"
 	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
-	;NSdown::Download "${LINK1}" "${FILE1}" /END
+	;NSdown::Download /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000
+	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Download "${LINK2}" "${FILE2}"'
-	Push "/END"
 	Push "${FILE2}"
+	Push "/LOCAL"
 	Push "${LINK2}"
+	Push "/URL"
 	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
-;	NSdown::Download "${LINK2}" "${FILE2}" /END
+;	NSdown::Download /URL "${LINK2}" /LOCAL "${FILE2}"
+	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Download "${LINK3}" "${FILE3}"'
-	Push "/END"
 	Push "${FILE3}"
+	Push "/LOCAL"
 	Push "${LINK3}"
+	Push "/URL"
 	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
-;	NSdown::Download "${LINK3}" "${FILE3}" /END
+;	NSdown::Download /URL "${LINK3}" /LOCAL "${FILE3}"
+	Pop $0	; ItemID
 
 
 /*	; Wait a few seconds...

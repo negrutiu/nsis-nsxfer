@@ -1,18 +1,29 @@
-NSdown::Download	/URL url [/FILE path]
+NSdown::Download	/URL url [/LOCAL file|MEMORY|NONE]
 					[/RETRYCOUNT count] [/RETRYDELAY msec]
 					[/CONNECTRETRIES count] [/CONNECTTIMEOUT msec] [/RECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 
 /URL url					| HTTP or HTTPS
-/FILE path					| Local path where the file is downloaded. If not specified, no content is downloaded, only headers.
-/RETRYCOUNT count			| The number of InternetOpenUrl calls. Default is 5.
-/RETRYDELAY msec			| Delay between two InternetOpenUrl calls. Default is 1000.
-/CONNECTRETRIES count		| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Works only for hosts with multiple IPs!
+/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all
+/RETRYCOUNT count			| The number of InternetOpenUrl calls. Default is 1
+/RETRYDELAY msec			| Delay between two InternetOpenUrl calls. Default is 0
+/CONNECTRETRIES count		| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
 /CONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 /RECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 /PROXY server				| Not implemented yet. The default proxy settings are used
 /PROXYUSER user				| Not implemented yet. The default proxy settings are used
 /PROXYPASS pass				| Not implemented yet. The default proxy settings are used
 
+Return:
+	[Stack] An unique ID useful to query the download status later
+
 Examples:
-NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /FILE "$EXEDIR\SysinternalsSuite.zip" /RETRYCOUNT 5 /RETRYDELAY 5000
+
+	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /RETRYCOUNT 5 /RETRYDELAY 5000
+	Pop $0	; Download ID
+
+	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY
+	Pop $0	; Download ID
+
+	NSdown::Download /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE
+	Pop $0	; Download ID
