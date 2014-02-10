@@ -1,13 +1,16 @@
 #include "main.h"
 #include "thread.h"
 #include "utils.h"
+#include "queue.h"
 
 THREAD g_Thread = { 0 };
 
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
+VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem );
 
 
+//++ ThreadInitialize
 DWORD ThreadInitialize( _Inout_ PTHREAD pThread )
 {
 	TRACE( _T( "  ThreadInitialize()\n" ) );
@@ -28,6 +31,8 @@ DWORD ThreadInitialize( _Inout_ PTHREAD pThread )
 	return ERROR_SUCCESS;
 }
 
+
+//++ ThreadDestroy
 DWORD ThreadDestroy( _Inout_ PTHREAD pThread, _In_opt_ ULONG iTimeout )
 {
 	DWORD err = ERROR_SUCCESS;
@@ -66,6 +71,8 @@ DWORD ThreadDestroy( _Inout_ PTHREAD pThread, _In_opt_ ULONG iTimeout )
 	return err;
 }
 
+
+//++ ThreadWake
 VOID ThreadWake( _Inout_ PTHREAD pThread )
 {
 	assert( pThread );
@@ -73,9 +80,12 @@ VOID ThreadWake( _Inout_ PTHREAD pThread )
 	SetEvent( pThread->hWakeEvent );
 }
 
+
+//++ ThreadProc
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 {
 	HANDLE handles[2];
+	PQUEUE_ITEM pItem;
 
 	assert( pThread );
 	assert( pThread->hTermEvent );
@@ -88,6 +98,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 
 	while ( TRUE )
 	{
+		// Wait for something to happen
 		DWORD iWait = WaitForMultipleObjects( 2, handles, FALSE, INFINITE );
 		if ( iWait == WAIT_OBJECT_0 ) {
 			// TERM event
@@ -104,9 +115,38 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 			TRACE( _T( "  [!] WaitForMultipleObjects(...) == %u, GLE == 0x%x" ), iWait, err );
 			break;
 		}
+
+		// Dequeue the first waiting item
+		QueueLock( &g_Queue );
+		pItem = QueueFindFirstWaiting( &g_Queue );
+		if ( pItem ) {
+			SYSTEMTIME st;
+			GetLocalTime( &st );
+			SystemTimeToFileTime( &st, &pItem->tmDownloadStart );
+			pItem->iStatus = ITEM_STATUS_DOWNLOADING;
+		}
+		QueueUnlock( &g_Queue );
+
+		// Start downloading
+		if ( pItem ) {
+			ThreadDownload( pThread, pItem );
+		}
 	}
 
 	TRACE( _T( "  Thread terminate\n" ) );
 	return 0;
 }
 
+
+//++ ThreadDownload
+VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+{
+	assert( pThread && pItem );
+	TRACE(
+		_T( "  ThreadDownload(Th:%s, ID:%u, %s -> %s)\n" ),
+		pThread->szName,
+		pItem->iId,
+		pItem->pszURL,
+		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->LocalData.pszFile : _T( "Memory" ))
+		);
+}

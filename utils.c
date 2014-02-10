@@ -2,9 +2,9 @@
 #include "main.h"
 #include "utils.h"
 
-//++ TRACE
+//++ TraceImpl
 #ifdef _DEBUG
-VOID TRACE( __in LPCTSTR pszFormat, ... )
+VOID TraceImpl( __in LPCTSTR pszFormat, ... )
 {
 	DWORD err = ERROR_SUCCESS;
 	if ( pszFormat && *pszFormat ) {

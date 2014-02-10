@@ -2,23 +2,27 @@
 
 //+ TRACE
 #ifdef _DEBUG
-VOID TRACE( __in LPCTSTR pszFormat, ... );
+	#define TRACE TraceImpl
+	#define TRACE2 TraceImpl
+	VOID TraceImpl( __in LPCTSTR pszFormat, ... );
 #else
-#define TRACE(...)
+	#define TRACE(...)
+	#define TRACE2(...)
 #endif
 
 //+ assert
 #ifdef _DEBUG
-#define assert(expr) \
-	if ( !(expr)) { \
-		TCHAR szMsg[512]; \
-		TRACE( _T("  [!] %s, %s:%u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
-		wnsprintf( szMsg, (int)ARRAYSIZE( szMsg ), _T("Expression: %s\n%s:%u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
-		MessageBox( NULL, szMsg, _T("ASSERT"), MB_ICONERROR ); \
-	}
-
+	#define assert(expr) \
+		if ( !(expr)) { \
+			TCHAR szMsg[512]; \
+			TRACE( _T("  [!] %s, %s:%u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
+			wnsprintf( szMsg, (int)ARRAYSIZE( szMsg ), _T("Expression: %s\n%s:%u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
+			MessageBox( NULL, szMsg, _T("ASSERT"), MB_ICONERROR ); \
+		}
+	#define verify assert
 #else
-#define assert(...)
+	#define assert(...)
+	#define verify(expr) ((VOID)(expr))
 #endif
 
 //+ Memory
