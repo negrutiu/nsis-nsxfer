@@ -3,24 +3,105 @@
 #include "utils.h"
 
 
-// The global download queue
-QUEUE g_Queue = { 0 };
-
-
-VOID QueueInitialize( _Inout_ PQUEUE pQueue )
+VOID QueueInitialize(
+	_Inout_ PQUEUE pQueue,
+	_In_ LPCTSTR szName,
+	_In_ int iThreadCount
+	)
 {
 	assert( pQueue );
-	TRACE( _T( "  QueueInitialize()\n" ) );
+	assert( szName && *szName );
+	assert( iThreadCount < QUEUE_MAX_THREADS );
+
+	// Name
+	if ( szName && *szName ) {
+		lstrcpyn( pQueue->szName, szName, ARRAYSIZE( pQueue->szName ) );
+	} else {
+		wnsprintf( pQueue->szName, ARRAYSIZE( pQueue->szName ), _T( "%p" ), pQueue );
+	}
+
+	// Queue
 	InitializeCriticalSectionAndSpinCount( &pQueue->csLock, 3000 );
+	pQueue->pHead = NULL;
+	pQueue->iLastId = 0;
+
+	// Worker threads
+	pQueue->iThreadCount = __min( iThreadCount, QUEUE_MAX_THREADS - 1 );
+	pQueue->hThreadTermEvent = CreateEvent( NULL, TRUE, FALSE, NULL );	/// Manual
+	pQueue->hThreadWakeEvent = CreateEvent( NULL, FALSE, FALSE, NULL );	/// Automatic
+	assert( pQueue->hThreadTermEvent );
+	assert( pQueue->hThreadWakeEvent );
+	for ( int i = 0; i < pQueue->iThreadCount; i++ ) {
+		PTHREAD pThread = pQueue->pThreads + i;
+		pThread->pQueue = pQueue;
+		pThread->hTermEvent = pQueue->hThreadTermEvent;
+		pThread->hWakeEvent = pQueue->hThreadWakeEvent;
+		wnsprintf( pThread->szName, ARRAYSIZE( pThread->szName ), _T( "%s%02d" ), pQueue->szName, i );
+		pThread->hThread = CreateThread( NULL, 0, ThreadProc, pThread, 0, &pThread->iTID );
+		assert( pThread->hThread );
+		if ( !pThread->hThread ) {
+			DWORD err = GetLastError();
+			TRACE( _T( "  [!] CreateThread(%s) == 0x%x\n" ), pThread->szName, err );
+			MyZeroMemory( pThread, sizeof(pThread) );
+		}
+	}
+
+	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, iThreadCount );
 }
 
 VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 {
 	assert( pQueue );
+
 	QueueLock( pQueue );
+
+	// Worker threads
+	if ( pQueue->iThreadCount > 0 ) {
+
+		HANDLE pObj[QUEUE_MAX_THREADS];
+		int iObjCnt = 0;
+
+		/// Signal thread termination
+		SetEvent( pQueue->hThreadTermEvent );
+
+		/// Make a list of thread handles
+		for ( int i = 0; i < pQueue->iThreadCount; i++ )
+			if ( pQueue->pThreads[i].hThread )
+				pObj[iObjCnt++] = pQueue->pThreads[i].hThread;
+		if ( iObjCnt > 0 ) {
+
+			/// Wait for all threads to terminate
+			DWORD dwTime = dwTime = GetTickCount();
+			DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, 10000 );
+			dwTime = GetTickCount() - dwTime;
+			if ( iWait == WAIT_OBJECT_0 || iWait == WAIT_ABANDONED_0 ) {
+				TRACE( _T( "  Threads closed in %ums\n" ), dwTime );
+				MyZeroMemory( pQueue->pThreads, ARRAYSIZE( pQueue->pThreads ) * sizeof(THREAD) );
+			} else if ( iWait == WAIT_TIMEOUT ) {
+				TRACE( _T( "  Threads failed to stop after %ums. Will terminate them forcedly\n" ), dwTime );
+				for ( int i = 0; i < iObjCnt; i++ )
+					TerminateThread( pObj[i], 666 );
+			} else {
+				DWORD err = GetLastError();
+				TRACE( _T( "  [!] WaitForMultipleObjects( ObjCnt:%d ) == 0x%x, GLE == 0x%x\n" ), iObjCnt, iWait, err );
+				for ( int i = 0; i < iObjCnt; i++ )
+					TerminateThread( pObj[i], 666 );
+			}
+		}
+	}
+	CloseHandle( pQueue->hThreadTermEvent );
+	CloseHandle( pQueue->hThreadWakeEvent );
+	pQueue->hThreadTermEvent = NULL;
+	pQueue->hThreadWakeEvent = NULL;
+	pQueue->iThreadCount = 0;
+
+	// Queue
 	QueueReset( pQueue );
 	DeleteCriticalSection( &pQueue->csLock );
-	TRACE( _T( "  QueueDestroy()\n" ) );
+
+	// Name
+	TRACE( _T( "  QueueDestroy(%s)\n" ), pQueue->szName );
+	*pQueue->szName = _T( '\0' );
 }
 
 VOID QueueLock( _Inout_ PQUEUE pQueue )
@@ -28,23 +109,24 @@ VOID QueueLock( _Inout_ PQUEUE pQueue )
 	assert( pQueue );
 	if ( !TryEnterCriticalSection( &pQueue->csLock ) )
 		EnterCriticalSection( &pQueue->csLock );
-	TRACE( _T( "  QueueLock()\n" ) );
+	TRACE( _T( "  QueueLock(%s)\n" ), pQueue->szName );
 }
 
 VOID QueueUnlock( _Inout_ PQUEUE pQueue )
 {
 	assert( pQueue );
 	LeaveCriticalSection( &pQueue->csLock );
-	TRACE( _T( "  QueueUnlock()\n" ) );
+	TRACE( _T( "  QueueUnlock(%s)\n" ), pQueue->szName );
 }
 
 BOOL QueueReset( _Inout_ PQUEUE pQueue )
 {
 	BOOL bRet = TRUE;
 	assert( pQueue );
-	TRACE( _T( "  QueueReset()\n" ) );
+	TRACE( _T( "  QueueReset(%s)\n" ), pQueue->szName );
 	while ( pQueue->pHead )
 		bRet = bRet && QueueRemove( pQueue, pQueue->pHead );
+	pQueue->iLastId = 0;
 	return bRet;
 }
 
@@ -53,7 +135,7 @@ PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID )
 	PQUEUE_ITEM pItem;
 	assert( pQueue );
 	for ( pItem = pQueue->pHead; pItem && pItem->iId != iItemID; pItem = pItem->pNext );
-	TRACE( _T( "  QueueFind(ID:%u) == 0x%p\n" ), iItemID, pItem );
+	TRACE( _T( "  QueueFind(%s, ID:%u) == 0x%p\n" ), pQueue->szName, iItemID, pItem );
 	return pItem;
 }
 
@@ -67,7 +149,7 @@ PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 	for ( pItem = pQueue->pHead, pLastWaitingItem = NULL; pItem; pItem = pItem->pNext )
 		if ( pItem->iStatus == ITEM_STATUS_WAITING )
 			pLastWaitingItem = pItem;
-	TRACE( _T( "  QueueFindFirstWaiting() == ID:%u, 0x%p\n" ), pLastWaitingItem ? pLastWaitingItem->iId : 0, pLastWaitingItem );
+	TRACE( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Ptr:0x%p\n" ), pQueue->szName, pLastWaitingItem ? pLastWaitingItem->iId : 0, pLastWaitingItem );
 	return pLastWaitingItem;
 }
 
@@ -140,8 +222,12 @@ BOOL QueueAdd(
 			if ( ppItem )
 				*ppItem = pItem;
 
+			// Wake up one worker thread to process this item
+			SetEvent( pQueue->hThreadWakeEvent );
+
 			TRACE(
-				_T( "  QueueAdd(ID:%u, %s -> %s)\n" ),
+				_T( "  QueueAdd(%s, ID:%u, %s -> %s)\n" ),
+				pQueue->szName,
 				pItem->iId,
 				pItem->pszURL,
 				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->LocalData.pszFile : _T("Memory"))
@@ -165,7 +251,8 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 	if ( pItem ) {
 
 		TRACE(
-			_T( "  QueueRemove(ID:%u, Err:%u, St:%s, %s -> %s)\n" ),
+			_T( "  QueueRemove(%s, ID:%u, Err:%u, St:%s, %s -> %s)\n" ),
+			pQueue->szName,
 			pItem->iId,
 			pItem->iErrorCode,
 			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
@@ -194,8 +281,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 			for ( pPrevItem = pQueue->pHead; (pPrevItem != NULL) && (pPrevItem->pNext != pItem); pPrevItem = pPrevItem->pNext );
 			if ( pPrevItem ) {
 				pPrevItem->pNext = pItem->pNext;
-			}
-			else {
+			} else {
 				pQueue->pHead = pItem->pNext;
 			}
 		}
@@ -215,6 +301,6 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue )
 	ULONG iSize;
 	assert( pQueue );
 	for ( pItem = pQueue->pHead, iSize = 0; pItem; pItem = pItem->pNext, iSize++ );
-	TRACE( _T( "  QueueSize() == %u\n" ), iSize );
+	TRACE( _T( "  QueueSize(%s) == %u\n" ), pQueue->szName, iSize );
 	return iSize;
 }

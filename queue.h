@@ -1,10 +1,13 @@
 #pragma once
+#include "thread.h"
+
+#define QUEUE_MAX_THREADS			20
 
 /*
-	Download queue:
-	- Each queue item represents a download request
+	Queue facts:
+	- A "queue" is an object that manages a list of download requests (queue items), and a list of worker threads
 	- An item waits in the queue (ITEM_STATUS_WAITING) until a worker thread will handle it
-	- When a worker thread becomes available, it'll process the item (ITEM_STATUS_DOWNLOADING)
+	- When a worker thread becomes available, it'll start processing the item (ITEM_STATUS_DOWNLOADING)
 	- After the download is completed, the item will be left in the queue (ITEM_STATUS_DONE)
 	- Items are stored in the queue forever. Their status can be queried at any time.
 	- QueueClear(...) will empty the queue. All past downloads will be forgotten.
@@ -19,7 +22,7 @@ typedef enum {
 } ITEM_STATUS;
 
 typedef enum {
-	ITEM_LOCAL_NONE,				/// The remote content will not be downloaded. Useful for simply connecting (HTTP GET) and then quickly exit
+	ITEM_LOCAL_NONE,				/// The remote content will not be downloaded. Useful to simply connect (HTTP GET) and disconnect instantly
 	ITEM_LOCAL_FILE,				/// The remote content will be downloaded to a local file
 	ITEM_LOCAL_MEMORY				/// The remote content will be downloaded to a memory
 } ITEM_LOCAL_TYPE;
@@ -67,14 +70,25 @@ typedef struct _QUEUE_ITEM {
 
 
 typedef struct _QUEUE {
+
+	TCHAR szName[20];				/// Queue name. The default queue will be named MAIN
+
+	// Queue
 	CRITICAL_SECTION csLock;
 	PQUEUE_ITEM pHead;
 	ULONG iLastId;
+
+	// Worker threads
+	THREAD pThreads[QUEUE_MAX_THREADS];
+	int iThreadCount;
+	HANDLE hThreadTermEvent;
+	HANDLE hThreadWakeEvent;
+
 } QUEUE, *PQUEUE;
 
 
 // Initializing
-VOID QueueInitialize( _Inout_ PQUEUE pQueue );
+VOID QueueInitialize( _Inout_ PQUEUE pQueue, _In_ LPCTSTR szName, _In_ int iThreadCount );
 VOID QueueDestroy( _Inout_ PQUEUE pQueue );
 
 // Queue locking
@@ -113,7 +127,3 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
 // Retrieve the queue size
 // The queue must be locked
 ULONG QueueSize( _Inout_ PQUEUE pQueue );
-
-
-// Global queue
-extern QUEUE g_Queue;

@@ -9,9 +9,7 @@
 #define _WIN32_WINNT 0x0500
 #include <windows.h>
 #include <wininet.h>
-#ifdef _DEBUG
-	#include <Shlwapi.h>			/// for wvnsprintf
-#endif
+#include <Shlwapi.h>				/// for wvnsprintf
 #include "nsiswapi/pluginapi.h"
 
 extern HINSTANCE g_hInst;			/// Defined in main.c

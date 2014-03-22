@@ -2,21 +2,14 @@
 
 
 typedef struct _THREAD {
+	LPVOID pQueue;					/// The QUEUE that owns this thread
 	HANDLE hThread;					/// Thread handle
 	ULONG iTID;						/// Cached TID
-	HANDLE hWakeEvent;				/// Wake the thread, usually when new items are enqueued
-	HANDLE hTermEvent;				/// Terminate the thread
-	TCHAR szName[50];				/// Thread name. "MAIN" by default
+	TCHAR szName[50];				/// Thread name. Ex: MAIN01
+	HANDLE hWakeEvent;				/// Wake a thread when new items are added to the queue
+	HANDLE hTermEvent;				/// Terminate threads
 } THREAD, *PTHREAD;
 
 
-// Initialize
-DWORD ThreadInitialize( _Inout_ PTHREAD pThread );
-DWORD ThreadDestroy( _Inout_ PTHREAD pThread, _In_opt_ ULONG iTimeout );		/// If iTimeout is zero, the function will wait forever
-
-// Wake up
-VOID ThreadWake( _Inout_ PTHREAD pThread );
-
-
-// The worker thread
-extern THREAD g_Thread;
+// Thread function passed to CreateThread
+DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
