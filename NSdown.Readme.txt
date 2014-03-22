@@ -7,7 +7,7 @@ NSdown::Download	/URL url [/LOCAL file|MEMORY|NONE]
 /LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all
 /RETRYCOUNT count			| The number of InternetOpenUrl calls. Default is 1
 /RETRYDELAY msec			| Delay between two InternetOpenUrl calls. Default is 0
-/CONNECTRETRIES count		| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
+/CONNECTRETRIES count		| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
 /CONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 /RECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 /PROXY server				| Not implemented yet. The default proxy settings are used
