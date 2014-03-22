@@ -1,13 +1,16 @@
 #pragma once
 
+//+ Init functions
+VOID UtilsInitialize();
+VOID UtilsDestroy();
+
+
 //+ TRACE
 #ifdef _DEBUG
 	#define TRACE TraceImpl
-	#define TRACE2 TraceImpl
 	VOID TraceImpl( __in LPCTSTR pszFormat, ... );
 #else
 	#define TRACE(...)
-	#define TRACE2(...)
 #endif
 
 //+ assert
@@ -26,12 +29,12 @@
 #endif
 
 //+ Memory
-#define MyAlloc(_size)		GlobalLock(GlobalAlloc(GMEM_FIXED, _size))
+#define MyAlloc(_size)		GlobalLock(GlobalAlloc(GMEM_FIXED, _size)); g_MemStats.AllocBytes += (_size); g_MemStats.AllocCalls++
 #define MyAllocStr(_len)	(LPTSTR)MyAlloc( ((_len) + 1) * sizeof(TCHAR))
-#define MyFree(_ptr)		if ( _ptr ) { GlobalFree((HGLOBAL)(_ptr)); (_ptr) = NULL; }
+#define MyFree(_ptr)		if ( _ptr ) { g_MemStats.FreeBytes += GlobalSize((HGLOBAL)(_ptr)); g_MemStats.FreeCalls++; GlobalFree((HGLOBAL)(_ptr)); (_ptr) = NULL; }
 
 #define MyStrDup(_dst, _src) { \
-	(_dst) = (LPTSTR)MyAlloc(( lstrlen( _src ) + 1 ) * sizeof(TCHAR)); \
+	(_dst) = MyAllocStr( lstrlen( _src )); \
 	if (_dst) \
 		lstrcpy( _dst, _src ); \
 }
@@ -40,3 +43,11 @@
 	LPBYTE p; \
 	for ( p = (LPBYTE)(_ptr) + (_cnt) - 1; p >= (LPBYTE)(_ptr); p-- ) *p = 0; \
 }
+
+typedef struct {
+	UINT64 AllocBytes;
+	UINT AllocCalls;
+	UINT64 FreeBytes;
+	UINT FreeCalls;
+} MEMORY_STATS;
+extern MEMORY_STATS g_MemStats;

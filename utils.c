@@ -2,6 +2,24 @@
 #include "main.h"
 #include "utils.h"
 
+
+MEMORY_STATS g_MemStats = { 0 };
+
+
+//++ UtilsInitialize
+VOID UtilsInitialize()
+{
+	TRACE( _T( "  UtilsInitialize()\n" ) );
+}
+
+//++ UtilsDestroy
+VOID UtilsDestroy()
+{
+	TRACE( _T( "  MyAlloc: %u calls, %I64u bytes\n" ), g_MemStats.AllocCalls, g_MemStats.AllocBytes );
+	TRACE( _T( "  MyFree:  %u calls, %I64u bytes\n" ), g_MemStats.FreeCalls, g_MemStats.FreeBytes );
+	TRACE( _T( "  UtilsDestroy()\n" ) );
+}
+
 //++ TraceImpl
 #ifdef _DEBUG
 VOID TraceImpl( __in LPCTSTR pszFormat, ... )
