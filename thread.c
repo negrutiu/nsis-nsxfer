@@ -243,9 +243,19 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 							if ( HttpSendRequest( hRequest, NULL, 0, NULL, 0 ) ) {
 
 								/// Check the query status code
-								ULONG iDummy = sizeof(pItem->iErrorCode);
+								TCHAR szErrorText[512];
+								ULONG iDataSize;
+								
+								iDataSize = sizeof(pItem->iErrorCode);
 								pItem->bErrorCodeIsHTTP = TRUE;
-								HttpQueryInfo( hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &pItem->iErrorCode, &iDummy, NULL );
+								HttpQueryInfo( hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &pItem->iErrorCode, &iDataSize, NULL );
+
+								iDataSize = sizeof(szErrorText);
+								szErrorText[0] = 0;
+								HttpQueryInfo( hRequest, HTTP_QUERY_STATUS_TEXT, szErrorText, &iDataSize, NULL );
+								if ( *szErrorText )
+									MyStrDup( pItem->pszErrorText, szErrorText );
+
 								if ( pItem->iErrorCode <= 299 )		/// Codes 1xx are informational. Codes 2xx are successful. Others represent errors.
 								{
 									// Download the content only when the caller requests it
@@ -290,7 +300,12 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 							TCHAR szWebError[255];
 							szWebError[0] = 0;
 							DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
-							InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen );
+							if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
+								///pItem->bErrorCodeIsHTTP = TRUE;
+								///pItem->iErrorCode = dwWebError;
+								MyFree( pItem->pszErrorText );
+								MyStrDup( pItem->pszErrorText, szWebError );
+							}
 						}
 					}
 				}	/// for
@@ -311,5 +326,29 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 		GetLocalTime( &st );
 		SystemTimeToFileTime( &st, &pItem->tmDownloadEnd );
 		pItem->iStatus = ITEM_STATUS_DONE;
+	}
+
+	// Error as text
+	if ( !pItem->bErrorCodeIsHTTP &&	/// Win32 error (HTTP errors should already have been retrieved)
+		 !pItem->pszErrorText )			/// Don't overwrite existing error text
+	{
+		DWORD dwLen;
+		TCHAR szTextError[512];
+		HMODULE hModule = NULL;
+		DWORD dwExtraFlags = 0;
+
+		if ( pItem->iErrorCode >= INTERNET_ERROR_BASE && pItem->iErrorCode <= INTERNET_ERROR_LAST ) {
+			hModule = GetModuleHandle( _T( "wininet.dll" ) );
+			dwExtraFlags = FORMAT_MESSAGE_FROM_HMODULE;
+		} else {
+			dwExtraFlags = FORMAT_MESSAGE_FROM_SYSTEM;
+		}
+
+		szTextError[0] = 0;
+		dwLen = FormatMessage( FORMAT_MESSAGE_IGNORE_INSERTS | dwExtraFlags, hModule, pItem->iErrorCode, 0, szTextError, ARRAYSIZE( szTextError ), NULL );
+		if ( dwLen > 0 ) {
+			StrTrim( szTextError, _T( ". \r\n" ) );
+			MyStrDup( pItem->pszErrorText, szTextError );
+		}
 	}
 }

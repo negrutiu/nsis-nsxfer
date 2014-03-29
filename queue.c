@@ -53,8 +53,6 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 {
 	assert( pQueue );
 
-	QueueLock( pQueue );
-
 	// Worker threads
 	if ( pQueue->iThreadCount > 0 ) {
 
@@ -72,7 +70,7 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 
 			/// Wait for all threads to terminate
 			DWORD dwTime = dwTime = GetTickCount();
-			DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, 10000 );
+			DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, 12000 );
 			dwTime = GetTickCount() - dwTime;
 			if ( iWait == WAIT_OBJECT_0 || iWait == WAIT_ABANDONED_0 ) {
 				TRACE( _T( "  Threads closed in %ums\n" ), dwTime );
@@ -96,6 +94,7 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 	pQueue->iThreadCount = 0;
 
 	// Queue
+	QueueLock( pQueue );
 	QueueReset( pQueue );
 	DeleteCriticalSection( &pQueue->csLock );
 
@@ -213,6 +212,7 @@ BOOL QueueAdd(
 
 			pItem->bErrorCodeIsHTTP = FALSE;
 			pItem->iErrorCode = ERROR_SUCCESS;
+			pItem->pszErrorText = NULL;
 
 			// Add in front
 			pItem->pNext = pQueue->pHead;
@@ -251,10 +251,11 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 	if ( pItem ) {
 
 		TRACE(
-			_T( "  QueueRemove(%s, ID:%u, Err:%u, St:%s, %s -> %s)\n" ),
+			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, %s -> %s)\n" ),
 			pQueue->szName,
 			pItem->iId,
 			pItem->iErrorCode,
+			pItem->pszErrorText ? pItem->pszErrorText : _T("n/a"),
 			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
 			pItem->pszURL,
 			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->LocalData.pszFile : _T( "Memory" ))
@@ -262,6 +263,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 
 		// Free item's content
 		MyFree( pItem->pszURL );
+		MyFree( pItem->pszErrorText );
 
 		switch ( pItem->iLocalType )
 		{

@@ -63,6 +63,7 @@ typedef struct _QUEUE_ITEM {
 	// Error code (Win32 or HTTP)
 	BOOL bErrorCodeIsHTTP;			/// TRUE: error code is HTTP status, FALSE: error code is Win32 error
 	ULONG iErrorCode;
+	LPTSTR pszErrorText;			/// Error code as text
 
 	struct _QUEUE_ITEM *pNext;		/// Singly linked list
 
