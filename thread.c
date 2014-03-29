@@ -11,6 +11,19 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
 VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem );
 
 
+//++ ThreadTerminating
+BOOL ThreadTerminating( _In_ PTHREAD pThread )
+{
+	assert( pThread );
+	assert( pThread->hTermEvent );
+
+	if ( WaitForSingleObject( pThread->hTermEvent, 0 ) == WAIT_TIMEOUT )
+		return FALSE;
+
+	return TRUE;
+}
+
+
 //++ ThreadProc
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 {
@@ -28,6 +41,12 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 
 	while ( TRUE )
 	{
+		// Check TERM signal
+		if ( ThreadTerminating( pThread )) {
+			TRACE( _T( "  Th:%s received TERM signal\n" ), pThread->szName );
+			break;
+		}
+
 		// Dequeue the first waiting item
 		QueueLock( (PQUEUE)pThread->pQueue );
 		pItem = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
@@ -49,16 +68,16 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 			// Wait for something to happen
 			DWORD iWait = WaitForMultipleObjects( 2, handles, FALSE, INFINITE );
 			if ( iWait == WAIT_OBJECT_0 ) {
-				// TERM event
+				/// TERM event
 				TRACE( _T( "  Th:%s received TERM signal\n" ), pThread->szName );
 				break;
 			}
 			else if ( iWait == WAIT_OBJECT_0 + 1 ) {
-				// WAKE event
+				/// WAKE event
 				TRACE( _T( "  Th:%s received WAKE signal\n" ), pThread->szName );
 			}
 			else {
-				// Some error...
+				/// Some error...
 				DWORD err = GetLastError();
 				TRACE( _T( "  [!] Th:%s, WaitForMultipleObjects(...) == %u, GLE == 0x%x" ), pThread->szName, iWait, err );
 				break;
@@ -199,9 +218,16 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 				/// Multiple retries in case of failure
 				for ( i = 0; i < iConnectRetries; i++ ) {
 
-					/// Delay between connection attempts
-					if ( i > 0 )
-						Sleep( iConnectDelay );
+					/// Check TERM signal
+					if ( ThreadTerminating( pThread ) )
+						break;
+
+					/// Delay between connection attempts. Monitor TERM signal
+					if ( i > 0 ) {
+						DWORD iWait = WaitForSingleObject( pThread->hTermEvent, iConnectDelay );
+						if ( iWait == WAIT_OBJECT_0 )
+							break;
+					}
 
 					hConnect = InternetConnect(
 						hSession,
@@ -256,13 +282,18 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 								if ( *szErrorText )
 									MyStrDup( pItem->pszErrorText, szErrorText );
 
-								if ( pItem->iErrorCode <= 299 )		/// Codes 1xx are informational. Codes 2xx are successful. Others represent errors.
+								// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+								if ( pItem->iErrorCode <= 299 )
 								{
+									/// 1xx Informational
+									/// 2xx Success
+
 									// Download the content only when the caller requests it
 									/*if ( pBuffer && iBufferSize )
 									{
 										// Read server's response
 										// TODO: Reading loop...
+										// TODO: Check TERM signal
 										DWORD dwBytes;
 										if ( InternetReadFile( hRequest, pBuffer, iBufferSize, &dwBytes ) ) {
 
@@ -277,7 +308,23 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 									}*/
 
 									/// Break the retry loop
-									break;
+									i = 0xfffffffe;
+
+								} else {
+
+									/// 3xx Redirection - The client must take additional action to complete the request
+									/// 4xx Client Error
+									/// 5xx Server Error
+
+									if ( pItem->iErrorCode != 503 &&	/// 503 Service Unavailable
+										pItem->iErrorCode != 504 &&		/// 504 Gateway Timeout
+										pItem->iErrorCode != 598 &&		/// 598 Network read timeout error (Unknown)
+										pItem->iErrorCode != 599		/// 599 Network connect timeout error (Unknown)
+										)
+									{
+										/// Break the retry loop
+										i = 0xfffffffe;
+									}
 								}
 
 							} else {
