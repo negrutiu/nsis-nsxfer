@@ -51,10 +51,11 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		QueueLock( (PQUEUE)pThread->pQueue );
 		pItem = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
 		if ( pItem ) {
-			SYSTEMTIME st;
-			GetLocalTime( &st );
-			SystemTimeToFileTime( &st, &pItem->tmDownloadStart );
+			GetLocalFileTime( &pItem->tmDownloadStart );
 			pItem->iStatus = ITEM_STATUS_DOWNLOADING;
+			TRACE( _T( "  Th:%s dequeued item ID:%u, %s\n" ), pThread->szName, pItem->iId, pItem->pszURL );
+		} else {
+			TRACE( _T( "  Th:%s has nothing to do, going to sleep\n" ), pThread->szName );
 		}
 		QueueUnlock( (PQUEUE)pThread->pQueue );
 
@@ -170,7 +171,7 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 {
 	assert( pThread && pItem );
 	TRACE(
-		_T( "  ThreadDownload(Th:%s, ID:%u, %s -> %s)\n" ),
+		_T( "  Th:%s ThreadDownload(ID:%u, %s -> %s)\n" ),
 		pThread->szName,
 		pItem->iId,
 		pItem->pszURL,
@@ -368,12 +369,8 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 	}
 
 	// Mark this item as done
-	{
-		SYSTEMTIME st;
-		GetLocalTime( &st );
-		SystemTimeToFileTime( &st, &pItem->tmDownloadEnd );
-		pItem->iStatus = ITEM_STATUS_DONE;
-	}
+	GetLocalFileTime( &pItem->tmDownloadEnd );
+	pItem->iStatus = ITEM_STATUS_DONE;
 
 	// Error as text
 	if ( !pItem->bErrorCodeIsHTTP &&	/// Win32 error (HTTP errors should already have been retrieved)

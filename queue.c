@@ -108,14 +108,14 @@ VOID QueueLock( _Inout_ PQUEUE pQueue )
 	assert( pQueue );
 	if ( !TryEnterCriticalSection( &pQueue->csLock ) )
 		EnterCriticalSection( &pQueue->csLock );
-	TRACE( _T( "  QueueLock(%s)\n" ), pQueue->szName );
+	///TRACE( _T( "  QueueLock(%s)\n" ), pQueue->szName );
 }
 
 VOID QueueUnlock( _Inout_ PQUEUE pQueue )
 {
 	assert( pQueue );
 	LeaveCriticalSection( &pQueue->csLock );
-	TRACE( _T( "  QueueUnlock(%s)\n" ), pQueue->szName );
+	///TRACE( _T( "  QueueUnlock(%s)\n" ), pQueue->szName );
 }
 
 BOOL QueueReset( _Inout_ PQUEUE pQueue )
@@ -134,7 +134,7 @@ PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID )
 	PQUEUE_ITEM pItem;
 	assert( pQueue );
 	for ( pItem = pQueue->pHead; pItem && pItem->iId != iItemID; pItem = pItem->pNext );
-	TRACE( _T( "  QueueFind(%s, ID:%u) == 0x%p\n" ), pQueue->szName, iItemID, pItem );
+	///TRACE( _T( "  QueueFind(%s, ID:%u) == 0x%p\n" ), pQueue->szName, iItemID, pItem );
 	return pItem;
 }
 
@@ -148,7 +148,7 @@ PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 	for ( pItem = pQueue->pHead, pLastWaitingItem = NULL; pItem; pItem = pItem->pNext )
 		if ( pItem->iStatus == ITEM_STATUS_WAITING )
 			pLastWaitingItem = pItem;
-	TRACE( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Ptr:0x%p\n" ), pQueue->szName, pLastWaitingItem ? pLastWaitingItem->iId : 0, pLastWaitingItem );
+	///TRACE( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Ptr:0x%p\n" ), pQueue->szName, pLastWaitingItem ? pLastWaitingItem->iId : 0, pLastWaitingItem );
 	return pLastWaitingItem;
 }
 
@@ -200,11 +200,7 @@ BOOL QueueAdd(
 			pItem->iConnectTimeout = iConnectTimeout;
 			pItem->iReceiveTimeout = iReceiveTimeout;
 
-			{
-				SYSTEMTIME st;
-				GetLocalTime( &st );
-				SystemTimeToFileTime( &st, &pItem->tmEnqueue );
-			}
+			GetLocalFileTime( &pItem->tmEnqueue );
 			pItem->tmDownloadStart.dwLowDateTime = 0;
 			pItem->tmDownloadStart.dwHighDateTime = 0;
 			pItem->tmDownloadEnd.dwLowDateTime = 0;

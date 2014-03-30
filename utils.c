@@ -46,3 +46,14 @@ VOID TraceImpl( __in LPCTSTR pszFormat, ... )
 	}
 }
 #endif
+
+//++ GetLocalFileTime
+BOOL GetLocalFileTime( _Out_ LPFILETIME lpFT )
+{
+	if ( lpFT ) {
+		SYSTEMTIME st;
+		GetLocalTime( &st );
+		return SystemTimeToFileTime( &st, lpFT );
+	}
+	return FALSE;
+}
