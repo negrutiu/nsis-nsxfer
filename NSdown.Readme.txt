@@ -27,3 +27,15 @@ Examples:
 
 	NSdown::Download /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE
 	Pop $0	; Download ID
+
+TODO:
+- Proxy/file
+- reconnect during dld
+- resume
+- query file size
+- download file with unknown size
+- HTTPS authentication
+- PROXY authentication
+- GET/POST/PUT(WebDAV)
+- POST headers
+- Multiple download sources
