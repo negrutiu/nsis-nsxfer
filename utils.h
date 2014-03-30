@@ -8,9 +8,11 @@ VOID UtilsDestroy();
 //+ TRACE
 #ifdef _DEBUG
 	#define TRACE TraceImpl
+	#define TRACE2(...)			/// More verbose tracing
 	VOID TraceImpl( __in LPCTSTR pszFormat, ... );
 #else
 	#define TRACE(...)
+	#define TRACE2(...)
 #endif
 
 //+ assert
