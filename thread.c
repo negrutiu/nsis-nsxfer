@@ -166,6 +166,38 @@ DWORD ThreadInitCrackedUrl( __in LPCTSTR pszUrl, __out URL_COMPONENTS *pUrlComps
 }
 
 
+//++ ThreadTraceHttpInfo
+#if DBG || _DEBUG
+#if UNICODE
+#define ThreadTraceHttpInfo( pThread, hSession, iHttpInfo ) \
+	ThreadTraceHttpInfoImpl( pThread, hSession, iHttpInfo, L#iHttpInfo )
+#else
+#define ThreadTraceHttpInfo( pThread, hSession, iHttpInfo ) \
+	ThreadTraceHttpInfoImpl( pThread, hSession, iHttpInfo, #iHttpInfo )
+#endif
+
+VOID ThreadTraceHttpInfoImpl( _In_ PTHREAD pThread, _In_ HINTERNET hSession, _In_ UINT iHttpInfo, _In_ LPCTSTR szHttpInfo )
+{
+	TCHAR szTemp[512];
+	ULONG iTempSize = sizeof(szTemp);
+	ULONG iTempErr = 0;
+
+	szTemp[0] = 0;
+	iTempErr = HttpQueryInfo( hSession, iHttpInfo, szTemp, &iTempSize, NULL ) ? ERROR_SUCCESS : GetLastError();
+	if ( iTempErr != ERROR_HTTP_HEADER_NOT_FOUND ) {
+		if ( iTempErr == ERROR_SUCCESS ) {
+			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == \"%s\" [%u bytes]\n" ), pThread->szName, szHttpInfo, szTemp, iTempSize );
+		} else {
+			LPTSTR pszTemp = NULL;
+			AllocErrorStr( iTempErr, &pszTemp );
+			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == %u \"%s\"\n" ), pThread->szName, szHttpInfo, iTempErr, pszTemp );
+			MyFree( pszTemp );
+		}
+	}
+}
+#endif ///DBG || _DEBUG
+
+
 //++ ThreadDownload
 VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 {
@@ -289,10 +321,34 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 									/// 1xx Informational
 									/// 2xx Success
 
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_RAW_HEADERS_CRLF );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_SERVER );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_TYPE );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_TRANSFER_ENCODING );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_ID );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_DESCRIPTION );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_LENGTH );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_LANGUAGE );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_BASE );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_ENCODING );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_MD5 );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_LAST_MODIFIED );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_URI );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_LINK );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_VERSION );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_DATE );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_ALLOW );
+									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_EXPIRES );
+
 									// Download the content only when the caller requests it
-									/*if ( pBuffer && iBufferSize )
+									if ( pItem->iLocalType != ITEM_LOCAL_NONE )
 									{
-										// Read server's response
+										// Query the remote file size
+										iDataSize = sizeof(pItem->iFileSize);
+										if ( !HttpQueryInfo( hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &pItem->iFileSize, &iDataSize, NULL ) )
+											pItem->iFileSize = (ULONG64)-1;
+
+										/*										// Read server's response
 										// TODO: Reading loop...
 										// TODO: Check TERM signal
 										DWORD dwBytes;
@@ -306,10 +362,11 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 										else {
 											err = GetLastError();
 										}
-									}*/
+										*/
+									}
 
 									/// Break the retry loop
-									i = 0xfffffffe;
+									i = iConnectRetries;
 
 								} else {
 
@@ -317,14 +374,14 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 									/// 4xx Client Error
 									/// 5xx Server Error
 
-									if ( pItem->iErrorCode != 503 &&	/// 503 Service Unavailable
-										pItem->iErrorCode != 504 &&		/// 504 Gateway Timeout
-										pItem->iErrorCode != 598 &&		/// 598 Network read timeout error (Unknown)
-										pItem->iErrorCode != 599		/// 599 Network connect timeout error (Unknown)
+									if ( pItem->iErrorCode != HTTP_STATUS_SERVICE_UNAVAIL &&	/// 503 Service Unavailable
+										pItem->iErrorCode != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
+										pItem->iErrorCode != 598 &&								/// 598 Network read timeout error (Unknown)
+										pItem->iErrorCode != 599								/// 599 Network connect timeout error (Unknown)
 										)
 									{
 										/// Break the retry loop
-										i = 0xfffffffe;
+										i = iConnectRetries;
 									}
 								}
 
@@ -376,23 +433,6 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 	if ( !pItem->bErrorCodeIsHTTP &&	/// Win32 error (HTTP errors should already have been retrieved)
 		 !pItem->pszErrorText )			/// Don't overwrite existing error text
 	{
-		DWORD dwLen;
-		TCHAR szTextError[512];
-		HMODULE hModule = NULL;
-		DWORD dwExtraFlags = 0;
-
-		if ( pItem->iErrorCode >= INTERNET_ERROR_BASE && pItem->iErrorCode <= INTERNET_ERROR_LAST ) {
-			hModule = GetModuleHandle( _T( "wininet.dll" ) );
-			dwExtraFlags = FORMAT_MESSAGE_FROM_HMODULE;
-		} else {
-			dwExtraFlags = FORMAT_MESSAGE_FROM_SYSTEM;
-		}
-
-		szTextError[0] = 0;
-		dwLen = FormatMessage( FORMAT_MESSAGE_IGNORE_INSERTS | dwExtraFlags, hModule, pItem->iErrorCode, 0, szTextError, ARRAYSIZE( szTextError ), NULL );
-		if ( dwLen > 0 ) {
-			StrTrim( szTextError, _T( ". \r\n" ) );
-			MyStrDup( pItem->pszErrorText, szTextError );
-		}
+		AllocErrorStr( pItem->iErrorCode, &pItem->pszErrorText );
 	}
 }

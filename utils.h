@@ -6,7 +6,7 @@ VOID UtilsDestroy();
 
 
 //+ TRACE
-#ifdef _DEBUG
+#if DBG || _DEBUG
 	#define TRACE TraceImpl
 	#define TRACE2(...)			/// More verbose tracing
 	VOID TraceImpl( __in LPCTSTR pszFormat, ... );
@@ -16,7 +16,7 @@ VOID UtilsDestroy();
 #endif
 
 //+ assert
-#ifdef _DEBUG
+#if DBG || _DEBUG
 	#define assert(expr) \
 		if ( !(expr)) { \
 			TCHAR szMsg[512]; \
@@ -32,6 +32,7 @@ VOID UtilsDestroy();
 
 //+ Utils
 BOOL GetLocalFileTime( _Out_ LPFILETIME lpFT );
+VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText );		/// Call MyFree(ppszErrText) when no longer needed
 
 //+ Memory
 #define MyAlloc(_size)		GlobalLock(GlobalAlloc(GMEM_FIXED, _size)); g_MemStats.AllocBytes += (_size); g_MemStats.AllocCalls++

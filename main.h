@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef _DEBUG
-	#if DBG || DEBUG
+	#if DBG || _DEBUG
 		#define _DEBUG
 	#endif
 #endif

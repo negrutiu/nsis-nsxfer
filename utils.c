@@ -21,7 +21,7 @@ VOID UtilsDestroy()
 }
 
 //++ TraceImpl
-#ifdef _DEBUG
+#if DBG || _DEBUG
 VOID TraceImpl( __in LPCTSTR pszFormat, ... )
 {
 	DWORD err = ERROR_SUCCESS;
@@ -56,4 +56,30 @@ BOOL GetLocalFileTime( _Out_ LPFILETIME lpFT )
 		return SystemTimeToFileTime( &st, lpFT );
 	}
 	return FALSE;
+}
+
+//++ AllocErrorStr
+VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText )
+{
+	if ( ppszErrText ) {
+
+		DWORD dwLen;
+		TCHAR szTextError[512];
+		HMODULE hModule = NULL;
+		DWORD dwExtraFlags = 0;
+
+		if ( dwErrCode >= INTERNET_ERROR_BASE && dwErrCode <= INTERNET_ERROR_LAST ) {
+			hModule = GetModuleHandle( _T( "wininet.dll" ) );
+			dwExtraFlags = FORMAT_MESSAGE_FROM_HMODULE;
+		} else {
+			dwExtraFlags = FORMAT_MESSAGE_FROM_SYSTEM;
+		}
+
+		szTextError[0] = 0;
+		dwLen = FormatMessage( FORMAT_MESSAGE_IGNORE_INSERTS | dwExtraFlags, hModule, dwErrCode, 0, szTextError, ARRAYSIZE( szTextError ), NULL );
+		if ( dwLen > 0 ) {
+			StrTrim( szTextError, _T( ". \r\n" ) );
+			MyStrDup( *ppszErrText, szTextError );
+		}
+	}
 }
