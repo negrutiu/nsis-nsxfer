@@ -4,15 +4,22 @@
 #include "utils.h"
 
 
-#define NSDOWN_USERAGENT _T("Mozilla/5.0 (NSdown)")
+#define NSDOWN_USERAGENT			_T("Mozilla/5.0 (NSdown)")
+#define INVALID_FILE_SIZE64			(ULONG64)-1
+#define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 
+/*
+	TODO:
+	- Modify errors to: LastWin32Error & LastHttpStatus
+	- Transfer to memory
+*/
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
 VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem );
 
 
-//++ ThreadTerminating
-BOOL ThreadTerminating( _In_ PTHREAD pThread )
+//++ ThreadIsTerminating
+BOOL ThreadIsTerminating( _In_ PTHREAD pThread )
 {
 	assert( pThread );
 	assert( pThread->hTermEvent );
@@ -42,7 +49,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 	while ( TRUE )
 	{
 		// Check TERM signal
-		if ( ThreadTerminating( pThread )) {
+		if ( ThreadIsTerminating( pThread )) {
 			TRACE( _T( "  Th:%s received TERM signal\n" ), pThread->szName );
 			break;
 		}
@@ -63,6 +70,8 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		if ( pItem ) {
 
 			ThreadDownload( pThread, pItem );
+			GetLocalFileTime( &pItem->tmDownloadEnd );
+			pItem->iStatus = ITEM_STATUS_DONE;
 
 		} else {
 
@@ -91,81 +100,6 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 }
 
 
-//++ ThreadDestroyCrackedUrl
-DWORD ThreadDestroyCrackedUrl( __in URL_COMPONENTS *pUrlComps )
-{
-	DWORD err = ERROR_SUCCESS;
-	if ( pUrlComps ) {
-
-		if ( pUrlComps->lpszScheme )
-			MyFree( pUrlComps->lpszScheme );
-		if ( pUrlComps->lpszHostName )
-			MyFree( pUrlComps->lpszHostName );
-		if ( pUrlComps->lpszUserName )
-			MyFree( pUrlComps->lpszUserName );
-		if ( pUrlComps->lpszPassword )
-			MyFree( pUrlComps->lpszPassword );
-		if ( pUrlComps->lpszUrlPath )
-			MyFree( pUrlComps->lpszUrlPath );
-		if ( pUrlComps->lpszExtraInfo )
-			MyFree( pUrlComps->lpszExtraInfo );
-
-		MyZeroMemory( pUrlComps, sizeof(*pUrlComps) );
-
-	}
-	else {
-		err = GetLastError();
-	}
-	return err;
-}
-
-
-//++ ThreadInitCrackedUrl
-DWORD ThreadInitCrackedUrl( __in LPCTSTR pszUrl, __out URL_COMPONENTS *pUrlComps )
-{
-	DWORD err = ERROR_SUCCESS;
-	if ( pszUrl && *pszUrl && pUrlComps ) {
-
-		ULONG iUrlLen = lstrlen( pszUrl );
-
-		MyZeroMemory( pUrlComps, sizeof(*pUrlComps) );
-		pUrlComps->dwStructSize = sizeof(*pUrlComps);
-
-		pUrlComps->dwSchemeLength = iUrlLen;
-		pUrlComps->lpszScheme = MyAllocStr( pUrlComps->dwSchemeLength );
-		pUrlComps->dwHostNameLength = iUrlLen;
-		pUrlComps->lpszHostName = MyAllocStr( pUrlComps->dwHostNameLength );
-		pUrlComps->dwUserNameLength = iUrlLen;
-		pUrlComps->lpszUserName = MyAllocStr( pUrlComps->dwUserNameLength );
-		pUrlComps->dwPasswordLength = iUrlLen;
-		pUrlComps->lpszPassword = MyAllocStr( pUrlComps->dwPasswordLength );
-		pUrlComps->dwUrlPathLength = iUrlLen;
-		pUrlComps->lpszUrlPath = MyAllocStr( pUrlComps->dwUrlPathLength );
-		pUrlComps->dwExtraInfoLength = iUrlLen;
-		pUrlComps->lpszExtraInfo = MyAllocStr( pUrlComps->dwExtraInfoLength );
-
-		if ( pUrlComps->lpszScheme && pUrlComps->lpszHostName && pUrlComps->lpszUserName && pUrlComps->lpszPassword && pUrlComps->lpszUrlPath && pUrlComps->lpszExtraInfo )
-		{
-			if ( InternetCrackUrl( pszUrl, 0, 0, pUrlComps ) ) {
-				// Success
-			} else {
-				err = GetLastError();
-			}
-		} else {
-			err = ERROR_OUTOFMEMORY;
-		}
-
-		/// Cleanup in case of errors
-		if ( err != ERROR_SUCCESS )
-			ThreadDestroyCrackedUrl( pUrlComps );
-
-	} else {
-		err = ERROR_INVALID_PARAMETER;
-	}
-	return err;
-}
-
-
 //++ ThreadTraceHttpInfo
 #if DBG || _DEBUG
 #if UNICODE
@@ -186,6 +120,10 @@ VOID ThreadTraceHttpInfoImpl( _In_ PTHREAD pThread, _In_ HINTERNET hSession, _In
 	iTempErr = HttpQueryInfo( hSession, iHttpInfo, szTemp, &iTempSize, NULL ) ? ERROR_SUCCESS : GetLastError();
 	if ( iTempErr != ERROR_HTTP_HEADER_NOT_FOUND ) {
 		if ( iTempErr == ERROR_SUCCESS ) {
+			LPTSTR psz;
+			for ( psz = szTemp; *psz; psz++ )
+				if ( *psz == _T( '\r' ) || *psz == _T( '\n' ) )
+					*psz = _T( '|' );
 			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == \"%s\" [%u bytes]\n" ), pThread->szName, szHttpInfo, szTemp, iTempSize );
 		} else {
 			LPTSTR pszTemp = NULL;
@@ -196,6 +134,480 @@ VOID ThreadTraceHttpInfoImpl( _In_ PTHREAD pThread, _In_ HINTERNET hSession, _In
 	}
 }
 #endif ///DBG || _DEBUG
+
+
+//++ ThreadDownload_Session
+BOOL ThreadDownload_Session(
+	_In_ PTHREAD pThread,
+	_In_ PQUEUE_ITEM pItem
+	)
+{
+	DWORD err = ERROR_SUCCESS;
+	assert( pThread );
+	assert( pItem );
+	assert( pItem->hSession == NULL );
+
+	pItem->hSession = InternetOpen( NSDOWN_USERAGENT, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0 );
+	if ( pItem->hSession ) {
+
+		/// Options
+		if ( pItem->iConnectRetries != DEFAULT_VALUE )
+			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iConnectRetries, sizeof( pItem->iConnectRetries ) );
+		if ( pItem->iConnectTimeout != DEFAULT_VALUE )
+			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iConnectTimeout, sizeof( pItem->iConnectTimeout ) );
+		if ( pItem->iReceiveTimeout != DEFAULT_VALUE )
+			InternetSetOption( pItem->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iReceiveTimeout, sizeof( pItem->iReceiveTimeout ) );
+
+		/// Reconnect if disconnected by user
+		if ( TRUE ) {
+			DWORD dwConnectState = 0;
+			DWORD dwConnectStateSize = sizeof( dwConnectState );
+			if ( InternetQueryOption( pItem->hSession, INTERNET_OPTION_CONNECTED_STATE, &dwConnectState, &dwConnectStateSize ) &&
+				(dwConnectState & INTERNET_STATE_DISCONNECTED_BY_USER) )
+			{
+				INTERNET_CONNECTED_INFO ci = { INTERNET_STATE_CONNECTED, 0 };
+				InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof( ci ) );
+			}
+		}
+
+	} else {
+		err = GetLastError();	/// InternetOpen
+	}
+
+	/// Remember the error code
+	pItem->iErrorCode = err;
+	pItem->bErrorCodeIsHTTP = FALSE;
+	MyFree( pItem->pszErrorText );
+
+	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
+}
+
+
+//++ ThreadDownload_RemoteDisconnect
+VOID ThreadDownload_RemoteDisconnect(
+	_In_ PTHREAD pThread,
+	_In_ PQUEUE_ITEM pItem
+	)
+{
+	assert( pThread );
+	assert( pItem );
+
+	if ( pItem->hConnect ) {
+		InternetCloseHandle( pItem->hConnect );
+		pItem->hConnect = NULL;
+	}
+	pItem->iFileSize = INVALID_FILE_SIZE64;
+}
+
+
+//++ ThreadDownload_RemoteConnect
+BOOL ThreadDownload_RemoteConnect(
+	_In_ PTHREAD pThread,
+	_In_ PQUEUE_ITEM pItem
+	)
+{
+	BOOL bRet = FALSE;
+	ULONG i, iConnectRetries, iConnectDelay;
+	ULONG iConnectFlags, iRequestFlags;
+
+	assert( pThread );
+	assert( pItem );
+	assert( pItem->hConnect == NULL );
+
+	iConnectRetries = (pItem->iRetryCount != DEFAULT_VALUE ? pItem->iRetryCount : 1);	/// Default: 1
+	iConnectDelay = (pItem->iRetryDelay != DEFAULT_VALUE ? pItem->iRetryDelay : 0);		/// Default: 0
+
+	// InternetOpen flags
+	iConnectFlags =
+		INTERNET_FLAG_IGNORE_CERT_DATE_INVALID |
+	///	INTERNET_FLAG_IGNORE_CERT_CN_INVALID |
+		INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI |
+		INTERNET_FLAG_RELOAD;
+	if ( CompareString( 0, NORM_IGNORECASE, pItem->pszURL, 8, _T( "https://" ), 8 ) == CSTR_EQUAL )
+		iConnectFlags |= INTERNET_FLAG_SECURE;
+
+	// InternetOpenUrl flags
+	iRequestFlags =
+		SECURITY_FLAG_IGNORE_REVOCATION |
+	///	SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+	///	SECURITY_FLAG_IGNORE_CERT_CN_INVALID
+		SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
+
+	/// Multiple retries in case of failure
+	for ( i = 0; i < iConnectRetries; i++ ) {
+
+		/// Check TERM event
+		if ( ThreadIsTerminating( pThread ) )
+			break;
+
+		/// Delay between attempts. Keep monitoring TERM event
+		if ( i > 0 ) {
+			DWORD iWait = WaitForSingleObject( pThread->hTermEvent, iConnectDelay );
+			if ( iWait == WAIT_OBJECT_0 )
+				break;
+		}
+
+		// Connect
+		/// TODO: Call InternetCanonicalizeUrl first if the URL being used contains a relative URL and a base URL separated by blank spaces
+		pItem->hConnect = InternetOpenUrl( pItem->hSession, pItem->pszURL, NULL, 0, iConnectFlags, (DWORD_PTR)pItem );
+		if ( pItem->hConnect ) {
+
+			// On some Vistas (e.g. Home), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
+			// We've decided to ignore the revocation status.
+			InternetSetOption( pItem->hConnect, INTERNET_OPTION_SECURITY_FLAGS, &iRequestFlags, sizeof( DWORD ) );
+
+			// The stupid 'Work offline' setting from IE
+			InternetSetOption( pItem->hConnect, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
+
+			// Send the HTTP request
+			if ( HttpSendRequest( pItem->hConnect, NULL, 0, NULL, 0 ) ) {
+
+				/// Check the query status code
+				TCHAR szErrorText[512];
+				ULONG iDataSize;
+
+				pItem->bErrorCodeIsHTTP = TRUE;
+				iDataSize = sizeof( pItem->iErrorCode );
+				HttpQueryInfo( pItem->hConnect, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &pItem->iErrorCode, &iDataSize, NULL );
+
+				iDataSize = sizeof( szErrorText );
+				szErrorText[0] = 0;
+				HttpQueryInfo( pItem->hConnect, HTTP_QUERY_STATUS_TEXT, szErrorText, &iDataSize, NULL );
+				if ( *szErrorText )
+					MyStrDup( pItem->pszErrorText, szErrorText );
+
+				// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+				if ( pItem->iErrorCode <= 299 ) {
+
+					/// 1xx Informational
+					/// 2xx Success
+
+					//ThreadTraceHttpInfo( pThread, hConnect, HTTP_QUERY_RAW_HEADERS_CRLF );
+
+					/// Success. Break the loop
+					bRet = TRUE;
+					break;
+
+				} else {
+
+					/// 3xx Redirection - The client must take additional action to complete the request
+					/// 4xx Client Error
+					/// 5xx Server Error
+
+					if ( pItem->iErrorCode != HTTP_STATUS_SERVICE_UNAVAIL &&	/// 503 Service Unavailable
+						pItem->iErrorCode != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
+						pItem->iErrorCode != 598 &&								/// 598 Network read timeout error (Unknown)
+						pItem->iErrorCode != 599								/// 599 Network connect timeout error (Unknown)
+						)
+					{
+						/// Error. Break the loop
+						ThreadDownload_RemoteDisconnect( pThread, pItem );
+						break;
+					}
+				}
+
+			} else {
+				/// HttpOpenRequest error
+				pItem->iErrorCode = GetLastError();
+				ThreadDownload_RemoteDisconnect( pThread, pItem );
+			}
+
+		} else {
+			/// InternetOpenUrl error
+			pItem->iErrorCode = GetLastError();
+			if ( pItem->iErrorCode == ERROR_INTERNET_EXTENDED_ERROR ) {
+				DWORD dwWebError;
+				TCHAR szWebError[255];
+				szWebError[0] = 0;
+				DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
+				if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
+					///pItem->bErrorCodeIsHTTP = TRUE;
+					///pItem->iErrorCode = dwWebError;
+					MyFree( pItem->pszErrorText );
+					MyStrDup( pItem->pszErrorText, szWebError );
+				}
+			}
+		}
+	}	/// for
+
+	return bRet;
+}
+
+
+//++ ThreadDownload_QueryContentLength
+ULONG ThreadDownload_QueryContentLength( _In_ HINTERNET hFile, _Out_ PULONG64 piContentLength )
+{
+	ULONG err = ERROR_SUCCESS;
+	TCHAR szContentLength[128];
+	ULONG iDataSize = sizeof( szContentLength );
+
+	assert( hFile );
+	assert( piContentLength );
+
+	if ( HttpQueryInfo( hFile, HTTP_QUERY_CONTENT_LENGTH, szContentLength, &iDataSize, NULL ) ) {
+		if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
+			/// SUCCESS
+		} else {
+			err = ERROR_INVALID_DATA;
+			*piContentLength = INVALID_FILE_SIZE64;
+		}
+	} else {
+		err = GetLastError();
+		*piContentLength = INVALID_FILE_SIZE64;
+	}
+
+	return err;
+}
+
+
+//++ ThreadDownload_LocalCreate
+ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+{
+	ULONG err = ERROR_SUCCESS;
+
+	assert( pThread );
+	assert( pItem );
+	assert( pItem->hConnect != NULL );
+
+	/// Cleanup
+	pItem->iFileSize = INVALID_FILE_SIZE64;
+	pItem->iRecvSize = 0;
+
+	switch ( pItem->iLocalType ) {
+
+		case ITEM_LOCAL_NONE:
+		{
+			// Exit immediately
+			break;
+		}
+
+		case ITEM_LOCAL_FILE:
+		{
+			assert( pItem->LocalData.hFile == NULL || pItem->LocalData.hFile == INVALID_HANDLE_VALUE );
+			assert( pItem->LocalData.pszFile && *pItem->LocalData.pszFile );
+
+			// Query the remote content length
+			ThreadDownload_QueryContentLength( pItem->hConnect, &pItem->iFileSize );
+
+			// Resume download?
+			if ( pItem->bResume && (pItem->iFileSize != INVALID_FILE_SIZE64) ) {
+
+				pItem->LocalData.hFile = CreateFile( pItem->LocalData.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+				if ( pItem->LocalData.hFile != INVALID_HANDLE_VALUE ) {
+					LARGE_INTEGER iExistingSize;
+					if ( GetFileSizeEx( pItem->LocalData.hFile, &iExistingSize ) ) {
+						if ( (ULONG64)iExistingSize.QuadPart <= pItem->iFileSize ) {
+							if ( (SetFilePointer( pItem->LocalData.hFile, 0, NULL, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
+								if ( (InternetSetFilePointer( pItem->hConnect, iExistingSize.LowPart, &iExistingSize.HighPart, FILE_BEGIN, 0 ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
+									/// SUCCESS (resume)
+									pItem->iRecvSize = iExistingSize.QuadPart;
+								} else {
+									// Full download (the remote server probably doesn't support resuming)
+									SetFilePointer( pItem->LocalData.hFile, 0, NULL, FILE_BEGIN );
+									if ( SetEndOfFile( pItem->LocalData.hFile ) ) {
+										/// SUCCESS
+									} else {
+										err = GetLastError();	/// SetEndOfFile
+									}
+								}
+							} else {
+								err = GetLastError();	/// SetFilePointer
+							}
+						} else {
+							// Full download (the existing file is larger than the remote file)
+							if ( (SetFilePointer( pItem->LocalData.hFile, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER ) || (GetLastError() == ERROR_SUCCESS)) {
+								if ( SetEndOfFile( pItem->LocalData.hFile ) ) {
+									/// SUCCESS
+								} else {
+									err = GetLastError();	/// SetEndOfFile
+								}
+							} else {
+								err = GetLastError();	/// SetFilePointer
+							}
+						}
+					} else {
+						err = GetLastError();	/// GetFileSizeEx
+					}
+				} else {
+					err = GetLastError();	/// CreateFile
+				}
+
+			} else {
+				// Full download (remote file size is not available)
+				pItem->LocalData.hFile = CreateFile( pItem->LocalData.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+				if ( pItem->LocalData.hFile != INVALID_HANDLE_VALUE ) {
+					/// SUCCESS
+				} else {
+					err = GetLastError();	/// CreateFile
+				}
+			}
+
+			/// Close the file on errors
+			if ( (err != ERROR_SUCCESS) && (pItem->LocalData.hFile != NULL) && (pItem->LocalData.hFile != INVALID_HANDLE_VALUE) ) {
+				CloseHandle( pItem->LocalData.hFile );
+				pItem->LocalData.hFile = NULL;
+			}
+			break;
+		}
+
+		case ITEM_LOCAL_MEMORY:
+		{
+			assert( pItem->LocalData.pMemory == NULL );
+
+			// Query the remote content length
+			err = ThreadDownload_QueryContentLength( pItem->hConnect, &pItem->iFileSize );
+			if ( err == ERROR_SUCCESS ) {
+
+				// Size limit
+				if ( pItem->iFileSize <= MAX_MEMORY_CONTENT_LENGTH ) {
+
+					// Allocate memory
+					pItem->LocalData.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
+					if ( pItem->LocalData.pMemory ) {
+						/// SUCCESS
+					} else {
+						err = ERROR_OUTOFMEMORY;
+					}
+
+				} else {
+					err = ERROR_FILE_TOO_LARGE;
+					pItem->LocalData.pMemory = NULL;
+				}
+			}
+			break;
+		}
+	}
+
+	/// Remember the error code
+	if ( err != ERROR_SUCCESS ) {
+		pItem->iErrorCode = err;
+		pItem->bErrorCodeIsHTTP = FALSE;
+		MyFree( pItem->pszErrorText );
+	}
+
+	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
+}
+
+
+//++ ThreadDownload_LocalClose
+BOOL ThreadDownload_LocalClose( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+{
+	BOOL bRet = TRUE;
+
+	assert( pThread );
+	assert( pItem );
+
+	switch ( pItem->iLocalType ) {
+
+		case ITEM_LOCAL_NONE:
+		{
+			break;
+		}
+
+		case ITEM_LOCAL_FILE:
+		{
+			if ( (pItem->LocalData.hFile != NULL) && (pItem->LocalData.hFile != INVALID_HANDLE_VALUE) ) {
+				bRet = CloseHandle( pItem->LocalData.hFile );
+				pItem->LocalData.hFile = NULL;
+			}
+			break;
+		}
+
+		case ITEM_LOCAL_MEMORY:
+		{
+			if ( pItem->LocalData.pMemory != NULL ) {
+				MyFree( pItem->LocalData.pMemory );
+			}
+			break;
+		}
+	}
+
+	return bRet;
+}
+
+
+//++ ThreadDownload_Transfer
+BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+{
+	DWORD err = ERROR_SUCCESS;
+
+	assert( pThread );
+	assert( pItem );
+	assert( pItem->hConnect != NULL );
+
+	switch ( pItem->iLocalType ) {
+
+		case ITEM_LOCAL_NONE:
+		{
+			/// Exit immediately
+			return TRUE;
+		}
+
+		case ITEM_LOCAL_FILE:
+		{
+			/// Allocate a transfer buffer
+			CONST ULONG iBufSize = 1024 * 128;
+			LPBYTE pBuf = MyAlloc( iBufSize );
+			if ( pBuf ) {
+
+				/// Transfer loop
+				ULONG iBytesRecv, iBytesWritten;
+				while ( err == ERROR_SUCCESS ) {
+					if ( !ThreadIsTerminating( pThread )) {
+						if ( InternetReadFile( pItem->hConnect, pBuf, iBufSize, &iBytesRecv ) ) {
+							if ( iBytesRecv > 0 ) {
+								if ( WriteFile( pItem->LocalData.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
+									pItem->iRecvSize += iBytesRecv;
+									///Sleep( 200 );		/// Emulate slow download
+								} else {
+									err = GetLastError();	/// WriteFile
+								}
+							} else {
+								// Transfer complete
+								break;
+							}
+						} else {
+							err = GetLastError();	/// InternetReadFile
+							/*if ( err == ERROR_INTERNET_EXTENDED_ERROR ) {
+								DWORD dwWebError;
+								TCHAR szWebError[255];
+								szWebError[0] = 0;
+								DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
+								if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
+								///pItem->bErrorCodeIsHTTP = TRUE;
+								///pItem->iErrorCode = dwWebError;
+								MyFree( pItem->pszErrorText );
+								MyStrDup( pItem->pszErrorText, szWebError );
+								}
+							}*/
+						}
+					} else {
+						err = ERROR_INTERNET_OPERATION_CANCELLED;
+					}
+				}
+
+				MyFree( pBuf );
+
+			} else {
+				err = ERROR_OUTOFMEMORY;
+			}
+			break;
+		}
+
+		case ITEM_LOCAL_MEMORY:
+		{
+			assert( !"TODO" );
+			break;
+		}
+	}
+
+	if ( err != ERROR_SUCCESS ) {
+		pItem->iErrorCode = err;
+		pItem->bErrorCodeIsHTTP = FALSE;
+		MyFree( pItem->pszErrorText );
+	}
+	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
+}
 
 
 //++ ThreadDownload
@@ -216,222 +628,26 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 
 	if ( pItem->pszURL && *pItem->pszURL ) {
 
-		HINTERNET hSession = InternetOpen( NSDOWN_USERAGENT, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0 );
-		if ( hSession ) {
+		if ( ThreadDownload_Session( pThread, pItem ) ) {
+			if ( ThreadDownload_RemoteConnect( pThread, pItem ) ) {
 
-			DWORD dwConnectState, dwConnectStateSize;
-			URL_COMPONENTS uc;
+				ThreadTraceHttpInfo( pThread, pItem->hConnect, HTTP_QUERY_RAW_HEADERS_CRLF );
 
-			if ( pItem->iConnectRetries != DEFAULT_VALUE )
-				InternetSetOption( hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iConnectRetries, sizeof(pItem->iConnectRetries) );
-			if ( pItem->iConnectTimeout != DEFAULT_VALUE )
-				InternetSetOption( hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iConnectTimeout, sizeof(pItem->iConnectTimeout) );
-			if ( pItem->iReceiveTimeout != DEFAULT_VALUE )
-				InternetSetOption( hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iReceiveTimeout, sizeof(pItem->iReceiveTimeout) );
-
-			/// Reconnect if disconnected by user
-			dwConnectState = 0;
-			dwConnectStateSize = sizeof(dwConnectState);
-			if ( InternetQueryOption( hSession, INTERNET_OPTION_CONNECTED_STATE, &dwConnectState, &dwConnectStateSize ) &&
-				(dwConnectState & INTERNET_STATE_DISCONNECTED_BY_USER) )
-			{
-				INTERNET_CONNECTED_INFO ci = { INTERNET_STATE_CONNECTED, 0 };
-				InternetSetOption( hSession, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof(ci) );
-			}
-
-			/// Crack the URL
-			pItem->iErrorCode = ThreadInitCrackedUrl( pItem->pszURL, &uc );
-			if ( pItem->iErrorCode == ERROR_SUCCESS ) {
-
-				ULONG i;
-				ULONG iConnectRetries = (pItem->iRetryCount != DEFAULT_VALUE ? pItem->iRetryCount : 1);
-				ULONG iConnectDelay = (pItem->iRetryDelay != DEFAULT_VALUE ? pItem->iRetryDelay : 0);
-				HINTERNET hConnect;
-
-				/// Multiple retries in case of failure
-				for ( i = 0; i < iConnectRetries; i++ ) {
-
-					/// Check TERM signal
-					if ( ThreadTerminating( pThread ) )
-						break;
-
-					/// Delay between connection attempts. Monitor TERM signal
-					if ( i > 0 ) {
-						DWORD iWait = WaitForSingleObject( pThread->hTermEvent, iConnectDelay );
-						if ( iWait == WAIT_OBJECT_0 )
-							break;
+				if ( ThreadDownload_LocalCreate( pThread, pItem ) ) {
+					if ( ThreadDownload_Transfer( pThread, pItem ) ) {
+						// Success
 					}
+					ThreadDownload_LocalClose( pThread, pItem );
+				}
 
-					hConnect = InternetConnect(
-						hSession,
-						uc.lpszHostName, uc.nPort,
-						*uc.lpszUserName ? uc.lpszUserName : NULL,
-						*uc.lpszPassword ? uc.lpszPassword : NULL,
-						INTERNET_SERVICE_HTTP, 0, 0
-						);
-
-					if ( hConnect ) {
-
-						// Make an HTTP request
-						HINTERNET hRequest;
-						LPCTSTR szReqType[2] = { _T( "*/*" ), 0 };
-						LPTSTR pszWebObj;
-						ULONG iWebObjLen;
-
-						DWORD dwReqFlags = INTERNET_FLAG_IGNORE_CERT_DATE_INVALID | INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI | INTERNET_FLAG_RELOAD;
-						if ( uc.nScheme == INTERNET_SCHEME_HTTPS )
-							dwReqFlags |= INTERNET_FLAG_SECURE;
-
-						iWebObjLen = uc.dwUrlPathLength + uc.dwExtraInfoLength;
-						pszWebObj = MyAllocStr( iWebObjLen );
-						assert( pszWebObj );
-						wnsprintf( pszWebObj, iWebObjLen + 1, _T( "%s%s" ), uc.lpszUrlPath, uc.lpszExtraInfo );
-						hRequest = HttpOpenRequest( hConnect, _T( "GET" ), pszWebObj, _T( "HTTP/1.1" ), NULL, szReqType, dwReqFlags, 0 );
-						MyFree( pszWebObj );
-						if ( hRequest ) {
-
-							// On some Vistas (e.g. Home), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
-							// We've decided to ignore the revocation status.
-							DWORD dwFlag = SECURITY_FLAG_IGNORE_REVOCATION | SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
-							InternetSetOption( hRequest, INTERNET_OPTION_SECURITY_FLAGS, &dwFlag, sizeof(DWORD) );
-
-							// The stupid 'Work offline' setting from IE
-							InternetSetOption( hRequest, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
-
-							// Send the request
-							if ( HttpSendRequest( hRequest, NULL, 0, NULL, 0 ) ) {
-
-								/// Check the query status code
-								TCHAR szErrorText[512];
-								ULONG iDataSize;
-								
-								iDataSize = sizeof(pItem->iErrorCode);
-								pItem->bErrorCodeIsHTTP = TRUE;
-								HttpQueryInfo( hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &pItem->iErrorCode, &iDataSize, NULL );
-
-								iDataSize = sizeof(szErrorText);
-								szErrorText[0] = 0;
-								HttpQueryInfo( hRequest, HTTP_QUERY_STATUS_TEXT, szErrorText, &iDataSize, NULL );
-								if ( *szErrorText )
-									MyStrDup( pItem->pszErrorText, szErrorText );
-
-								// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
-								if ( pItem->iErrorCode <= 299 )
-								{
-									/// 1xx Informational
-									/// 2xx Success
-
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_RAW_HEADERS_CRLF );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_SERVER );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_TYPE );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_TRANSFER_ENCODING );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_ID );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_DESCRIPTION );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_LENGTH );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_LANGUAGE );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_BASE );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_ENCODING );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_CONTENT_MD5 );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_LAST_MODIFIED );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_URI );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_LINK );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_VERSION );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_DATE );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_ALLOW );
-									//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_EXPIRES );
-
-									// Download the content only when the caller requests it
-									if ( pItem->iLocalType != ITEM_LOCAL_NONE )
-									{
-										// Query the remote file size
-										iDataSize = sizeof(pItem->iFileSize);
-										if ( !HttpQueryInfo( hRequest, HTTP_QUERY_CONTENT_LENGTH | HTTP_QUERY_FLAG_NUMBER, &pItem->iFileSize, &iDataSize, NULL ) )
-											pItem->iFileSize = (ULONG64)-1;
-
-										/*										// Read server's response
-										// TODO: Reading loop...
-										// TODO: Check TERM signal
-										DWORD dwBytes;
-										if ( InternetReadFile( hRequest, pBuffer, iBufferSize, &dwBytes ) ) {
-
-											/// Done
-											if ( piBytesReturned )
-												*piBytesReturned = dwBytes;
-
-										}
-										else {
-											err = GetLastError();
-										}
-										*/
-									}
-
-									/// Break the retry loop
-									i = iConnectRetries;
-
-								} else {
-
-									/// 3xx Redirection - The client must take additional action to complete the request
-									/// 4xx Client Error
-									/// 5xx Server Error
-
-									if ( pItem->iErrorCode != HTTP_STATUS_SERVICE_UNAVAIL &&	/// 503 Service Unavailable
-										pItem->iErrorCode != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
-										pItem->iErrorCode != 598 &&								/// 598 Network read timeout error (Unknown)
-										pItem->iErrorCode != 599								/// 599 Network connect timeout error (Unknown)
-										)
-									{
-										/// Break the retry loop
-										i = iConnectRetries;
-									}
-								}
-
-							} else {
-								pItem->iErrorCode = GetLastError();
-							}
-
-							InternetCloseHandle( hRequest );
-
-						} else {
-							pItem->iErrorCode = GetLastError();
-						}
-
-						InternetCloseHandle( hConnect );
-
-					} else {
-
-						pItem->iErrorCode = GetLastError();
-						if ( pItem->iErrorCode == ERROR_INTERNET_EXTENDED_ERROR ) {
-							DWORD dwWebError;
-							TCHAR szWebError[255];
-							szWebError[0] = 0;
-							DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
-							if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
-								///pItem->bErrorCodeIsHTTP = TRUE;
-								///pItem->iErrorCode = dwWebError;
-								MyFree( pItem->pszErrorText );
-								MyStrDup( pItem->pszErrorText, szWebError );
-							}
-						}
-					}
-				}	/// for
-
-				ThreadDestroyCrackedUrl( &uc );
+				ThreadDownload_RemoteDisconnect( pThread, pItem );
 			}
-
-			InternetCloseHandle( hSession );
-
-		} else {
-			pItem->iErrorCode = GetLastError();
 		}
 	}
 
-	// Mark this item as done
-	GetLocalFileTime( &pItem->tmDownloadEnd );
-	pItem->iStatus = ITEM_STATUS_DONE;
-
 	// Error as text
 	if ( !pItem->bErrorCodeIsHTTP &&	/// Win32 error (HTTP errors should already have been retrieved)
-		 !pItem->pszErrorText )			/// Don't overwrite existing error text
+		!pItem->pszErrorText )			/// Don't overwrite existing error text
 	{
 		AllocErrorStr( pItem->iErrorCode, &pItem->pszErrorText );
 	}

@@ -199,12 +199,18 @@ BOOL QueueAdd(
 			pItem->iConnectRetries = iConnectRetries;
 			pItem->iConnectTimeout = iConnectTimeout;
 			pItem->iReceiveTimeout = iReceiveTimeout;
+			pItem->bResume = TRUE;
 
 			GetLocalFileTime( &pItem->tmEnqueue );
 			pItem->tmDownloadStart.dwLowDateTime = 0;
 			pItem->tmDownloadStart.dwHighDateTime = 0;
 			pItem->tmDownloadEnd.dwLowDateTime = 0;
 			pItem->tmDownloadEnd.dwHighDateTime = 0;
+			pItem->iFileSize = 0;
+			pItem->iRecvSize = 0;
+
+			pItem->hSession = NULL;
+			pItem->hConnect = NULL;
 
 			pItem->bErrorCodeIsHTTP = FALSE;
 			pItem->iErrorCode = ERROR_SUCCESS;

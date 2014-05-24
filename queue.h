@@ -52,6 +52,7 @@ typedef struct _QUEUE_ITEM {
 	ULONG iConnectRetries;			/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
 	ULONG iConnectTimeout;			/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	ULONG iReceiveTimeout;			/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
+	BOOL bResume;					/// Resume download. Works with ITEM_LOCAL_FILE only
 
 	// Runtime statistics
 	FILETIME tmEnqueue;				/// Enqueue time
@@ -59,6 +60,10 @@ typedef struct _QUEUE_ITEM {
 	FILETIME tmDownloadEnd;			/// Download startup time
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
+
+	// Runtime variables
+	HINTERNET hSession;				/// InternetOpen
+	HINTERNET hConnect;				/// InternetOpenUrl
 
 	// Error code (Win32 or HTTP)
 	BOOL bErrorCodeIsHTTP;			/// TRUE: error code is HTTP status, FALSE: error code is Win32 error
