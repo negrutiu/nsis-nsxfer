@@ -385,8 +385,8 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 
 		case ITEM_LOCAL_FILE:
 		{
-			assert( pItem->LocalData.hFile == NULL || pItem->LocalData.hFile == INVALID_HANDLE_VALUE );
-			assert( pItem->LocalData.pszFile && *pItem->LocalData.pszFile );
+			assert( pItem->Local.hFile == NULL || pItem->Local.hFile == INVALID_HANDLE_VALUE );
+			assert( pItem->Local.pszFile && *pItem->Local.pszFile );
 
 			// Query the remote content length
 			ThreadDownload_QueryContentLength( pItem->hConnect, &pItem->iFileSize );
@@ -394,19 +394,19 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 			// Resume download?
 			if ( pItem->bResume && (pItem->iFileSize != INVALID_FILE_SIZE64) ) {
 
-				pItem->LocalData.hFile = CreateFile( pItem->LocalData.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-				if ( pItem->LocalData.hFile != INVALID_HANDLE_VALUE ) {
+				pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+				if ( pItem->Local.hFile != INVALID_HANDLE_VALUE ) {
 					LARGE_INTEGER iExistingSize;
-					if ( GetFileSizeEx( pItem->LocalData.hFile, &iExistingSize ) ) {
+					if ( GetFileSizeEx( pItem->Local.hFile, &iExistingSize ) ) {
 						if ( (ULONG64)iExistingSize.QuadPart <= pItem->iFileSize ) {
-							if ( (SetFilePointer( pItem->LocalData.hFile, 0, NULL, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
+							if ( (SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
 								if ( (InternetSetFilePointer( pItem->hConnect, iExistingSize.LowPart, &iExistingSize.HighPart, FILE_BEGIN, 0 ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
 									/// SUCCESS (resume)
 									pItem->iRecvSize = iExistingSize.QuadPart;
 								} else {
 									// Full download (the remote server probably doesn't support resuming)
-									SetFilePointer( pItem->LocalData.hFile, 0, NULL, FILE_BEGIN );
-									if ( SetEndOfFile( pItem->LocalData.hFile ) ) {
+									SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_BEGIN );
+									if ( SetEndOfFile( pItem->Local.hFile ) ) {
 										/// SUCCESS
 									} else {
 										err = GetLastError();	/// SetEndOfFile
@@ -417,8 +417,8 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 							}
 						} else {
 							// Full download (the existing file is larger than the remote file)
-							if ( (SetFilePointer( pItem->LocalData.hFile, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER ) || (GetLastError() == ERROR_SUCCESS)) {
-								if ( SetEndOfFile( pItem->LocalData.hFile ) ) {
+							if ( (SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER ) || (GetLastError() == ERROR_SUCCESS)) {
+								if ( SetEndOfFile( pItem->Local.hFile ) ) {
 									/// SUCCESS
 								} else {
 									err = GetLastError();	/// SetEndOfFile
@@ -436,8 +436,8 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 
 			} else {
 				// Full download (remote file size is not available)
-				pItem->LocalData.hFile = CreateFile( pItem->LocalData.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-				if ( pItem->LocalData.hFile != INVALID_HANDLE_VALUE ) {
+				pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+				if ( pItem->Local.hFile != INVALID_HANDLE_VALUE ) {
 					/// SUCCESS
 				} else {
 					err = GetLastError();	/// CreateFile
@@ -445,16 +445,16 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 			}
 
 			/// Close the file on errors
-			if ( (err != ERROR_SUCCESS) && (pItem->LocalData.hFile != NULL) && (pItem->LocalData.hFile != INVALID_HANDLE_VALUE) ) {
-				CloseHandle( pItem->LocalData.hFile );
-				pItem->LocalData.hFile = NULL;
+			if ( (err != ERROR_SUCCESS) && (pItem->Local.hFile != NULL) && (pItem->Local.hFile != INVALID_HANDLE_VALUE) ) {
+				CloseHandle( pItem->Local.hFile );
+				pItem->Local.hFile = NULL;
 			}
 			break;
 		}
 
 		case ITEM_LOCAL_MEMORY:
 		{
-			assert( pItem->LocalData.pMemory == NULL );
+			assert( pItem->Local.pMemory == NULL );
 
 			// Query the remote content length
 			err = ThreadDownload_QueryContentLength( pItem->hConnect, &pItem->iFileSize );
@@ -464,8 +464,8 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 				if ( pItem->iFileSize <= MAX_MEMORY_CONTENT_LENGTH ) {
 
 					// Allocate memory
-					pItem->LocalData.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
-					if ( pItem->LocalData.pMemory ) {
+					pItem->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
+					if ( pItem->Local.pMemory ) {
 						/// SUCCESS
 					} else {
 						err = ERROR_OUTOFMEMORY;
@@ -473,7 +473,7 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 
 				} else {
 					err = ERROR_FILE_TOO_LARGE;
-					pItem->LocalData.pMemory = NULL;
+					pItem->Local.pMemory = NULL;
 				}
 			}
 			break;
@@ -508,17 +508,17 @@ BOOL ThreadDownload_LocalClose( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem 
 
 		case ITEM_LOCAL_FILE:
 		{
-			if ( (pItem->LocalData.hFile != NULL) && (pItem->LocalData.hFile != INVALID_HANDLE_VALUE) ) {
-				bRet = CloseHandle( pItem->LocalData.hFile );
-				pItem->LocalData.hFile = NULL;
+			if ( (pItem->Local.hFile != NULL) && (pItem->Local.hFile != INVALID_HANDLE_VALUE) ) {
+				bRet = CloseHandle( pItem->Local.hFile );
+				pItem->Local.hFile = NULL;
 			}
 			break;
 		}
 
 		case ITEM_LOCAL_MEMORY:
 		{
-			if ( pItem->LocalData.pMemory != NULL ) {
-				MyFree( pItem->LocalData.pMemory );
+			if ( pItem->Local.pMemory != NULL ) {
+				MyFree( pItem->Local.pMemory );
 			}
 			break;
 		}
@@ -558,7 +558,7 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 					if ( !ThreadIsTerminating( pThread )) {
 						if ( InternetReadFile( pItem->hConnect, pBuf, iBufSize, &iBytesRecv ) ) {
 							if ( iBytesRecv > 0 ) {
-								if ( WriteFile( pItem->LocalData.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
+								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
 									pItem->iRecvSize += iBytesRecv;
 									///Sleep( 200 );		/// Emulate slow download
 								} else {
@@ -602,7 +602,7 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 			ULONG iBytesRecv;
 			while ( err == ERROR_SUCCESS ) {
 				if ( !ThreadIsTerminating( pThread ) ) {
-					if ( InternetReadFile( pItem->hConnect, pItem->LocalData.pMemory + pItem->iRecvSize, TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
+					if ( InternetReadFile( pItem->hConnect, pItem->Local.pMemory + pItem->iRecvSize, TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
 						if ( iBytesRecv > 0 ) {
 							pItem->iRecvSize += iBytesRecv;
 							///Sleep( 200 );		/// Emulate slow download
@@ -651,7 +651,7 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 		pThread->szName,
 		pItem->iId,
 		pItem->pszURL,
-		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->LocalData.pszFile : _T( "Memory" ))
+		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
 		);
 
 	/// Initialize Win32 error

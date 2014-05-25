@@ -44,7 +44,7 @@ typedef struct _QUEUE_ITEM {
 			HANDLE hFile;
 		};
 		LPBYTE pMemory;				/// Valid for ITEM_LOCAL_MEMORY. The buffer size will be iFileSize
-	} LocalData;
+	} Local;
 
 	// Download options
 	ULONG iRetryCount;				/// The number of InternetOpenUrl calls. Default is 1

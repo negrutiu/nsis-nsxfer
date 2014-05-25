@@ -180,15 +180,15 @@ BOOL QueueAdd(
 			switch ( iLocalType )
 			{
 			case ITEM_LOCAL_NONE:
-				pItem->LocalData.pszFile = NULL;
-				///pItem->LocalData.pMemory = NULL;
+				pItem->Local.pszFile = NULL;
+				///pItem->Local.pMemory = NULL;
 				break;
 			case ITEM_LOCAL_FILE:
-				MyStrDup( pItem->LocalData.pszFile, pszLocalFile );
-				pItem->LocalData.hFile = NULL;
+				MyStrDup( pItem->Local.pszFile, pszLocalFile );
+				pItem->Local.hFile = NULL;
 				break;
 			case ITEM_LOCAL_MEMORY:
-				pItem->LocalData.pMemory = NULL;	/// The memory buffer will be allocated later, when we'll know the file size
+				pItem->Local.pMemory = NULL;	/// The memory buffer will be allocated later, when we'll know the file size
 				break;
 			default:
 				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
@@ -232,7 +232,7 @@ BOOL QueueAdd(
 				pQueue->szName,
 				pItem->iId,
 				pItem->pszURL,
-				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->LocalData.pszFile : _T("Memory"))
+				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T("Memory"))
 				);
 		}
 		else {
@@ -260,7 +260,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 			pItem->pszErrorText ? pItem->pszErrorText : _T("n/a"),
 			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
 			pItem->pszURL,
-			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->LocalData.pszFile : _T( "Memory" ))
+			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
 			);
 
 		// Free item's content
@@ -270,12 +270,12 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 		switch ( pItem->iLocalType )
 		{
 		case ITEM_LOCAL_FILE:
-			MyFree( pItem->LocalData.pszFile );
-			if ( pItem->LocalData.hFile != NULL && pItem->LocalData.hFile != INVALID_HANDLE_VALUE )
-				CloseHandle( pItem->LocalData.hFile );
+			MyFree( pItem->Local.pszFile );
+			if ( pItem->Local.hFile != NULL && pItem->Local.hFile != INVALID_HANDLE_VALUE )
+				CloseHandle( pItem->Local.hFile );
 			break;
 		case ITEM_LOCAL_MEMORY:
-			MyFree( pItem->LocalData.pMemory );
+			MyFree( pItem->Local.pMemory );
 			break;
 		}
 
