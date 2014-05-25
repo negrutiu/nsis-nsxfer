@@ -174,6 +174,9 @@ BOOL QueueAdd(
 
 			pItem->iId = ++pQueue->iLastId;
 			pItem->iStatus = ITEM_STATUS_WAITING;
+			pItem->pQueue = pQueue;
+			pItem->pThread = NULL;
+
 			MyStrDup( pItem->pszURL, pszURL );
 
 			pItem->iLocalType = iLocalType;

@@ -16,7 +16,7 @@
 */
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
-VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem );
+VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem );
 
 
 //++ ThreadIsTerminating
@@ -59,6 +59,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		QueueLock( (PQUEUE)pThread->pQueue );
 		pItem = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
 		if ( pItem ) {
+			pItem->pThread = pThread;
 			GetLocalFileTime( &pItem->tmDownloadStart );
 			pItem->iStatus = ITEM_STATUS_DOWNLOADING;
 			TRACE( _T( "  Th:%s dequeued item ID:%u, %s\n" ), pThread->szName, pItem->iId, pItem->pszURL );
@@ -70,7 +71,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		// Start downloading
 		if ( pItem ) {
 
-			ThreadDownload( pThread, pItem );
+			ThreadDownload( pItem );
 			GetLocalFileTime( &pItem->tmDownloadEnd );
 			pItem->iStatus = ITEM_STATUS_DONE;
 
@@ -105,32 +106,32 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 #if DBG || _DEBUG
 
 #if UNICODE
-#define ThreadTraceHttpInfo( pThread, hSession, iHttpInfo ) \
-	ThreadTraceHttpInfoImpl( pThread, hSession, iHttpInfo, L#iHttpInfo )
+#define ThreadTraceHttpInfo( pItem, iHttpInfo ) \
+	ThreadTraceHttpInfoImpl( pItem, iHttpInfo, L#iHttpInfo )
 #else
-#define ThreadTraceHttpInfo( pThread, hSession, iHttpInfo ) \
-	ThreadTraceHttpInfoImpl( pThread, hSession, iHttpInfo, #iHttpInfo )
+#define ThreadTraceHttpInfo( pItem, iHttpInfo ) \
+	ThreadTraceHttpInfoImpl( pItem, iHttpInfo, #iHttpInfo )
 #endif
 
-VOID ThreadTraceHttpInfoImpl( _In_ PTHREAD pThread, _In_ HINTERNET hSession, _In_ UINT iHttpInfo, _In_ LPCTSTR szHttpInfo )
+VOID ThreadTraceHttpInfoImpl( _In_ PQUEUE_ITEM pItem, _In_ UINT iHttpInfo, _In_ LPCTSTR szHttpInfo )
 {
 	TCHAR szTemp[512];
 	ULONG iTempSize = sizeof(szTemp);
 	ULONG iTempErr = 0;
 
 	szTemp[0] = 0;
-	iTempErr = HttpQueryInfo( hSession, iHttpInfo, szTemp, &iTempSize, NULL ) ? ERROR_SUCCESS : GetLastError();
+	iTempErr = HttpQueryInfo( pItem->hConnect, iHttpInfo, szTemp, &iTempSize, NULL ) ? ERROR_SUCCESS : GetLastError();
 	if ( iTempErr != ERROR_HTTP_HEADER_NOT_FOUND ) {
 		if ( iTempErr == ERROR_SUCCESS ) {
 			LPTSTR psz;
 			for ( psz = szTemp; *psz; psz++ )
 				if ( *psz == _T( '\r' ) || *psz == _T( '\n' ) )
 					*psz = _T( '|' );
-			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == \"%s\" [%u bytes]\n" ), pThread->szName, szHttpInfo, szTemp, iTempSize );
+			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == \"%s\" [%u bytes]\n" ), pItem->pThread->szName, szHttpInfo, szTemp, iTempSize );
 		} else {
 			LPTSTR pszTemp = NULL;
 			AllocErrorStr( iTempErr, &pszTemp );
-			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == %u \"%s\"\n" ), pThread->szName, szHttpInfo, iTempErr, pszTemp );
+			TRACE( _T( "  Th:%s HttpQueryInfo( %s ) == %u \"%s\"\n" ), pItem->pThread->szName, szHttpInfo, iTempErr, pszTemp );
 			MyFree( pszTemp );
 		}
 	}
@@ -139,13 +140,9 @@ VOID ThreadTraceHttpInfoImpl( _In_ PTHREAD pThread, _In_ HINTERNET hSession, _In
 
 
 //++ ThreadDownload_Session
-BOOL ThreadDownload_Session(
-	_In_ PTHREAD pThread,
-	_In_ PQUEUE_ITEM pItem
-	)
+BOOL ThreadDownload_Session( _Inout_ PQUEUE_ITEM pItem )
 {
 	DWORD err = ERROR_SUCCESS;
-	assert( pThread );
 	assert( pItem );
 	assert( pItem->hSession == NULL );
 
@@ -186,12 +183,8 @@ BOOL ThreadDownload_Session(
 
 
 //++ ThreadDownload_RemoteDisconnect
-VOID ThreadDownload_RemoteDisconnect(
-	_In_ PTHREAD pThread,
-	_In_ PQUEUE_ITEM pItem
-	)
+VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_ITEM pItem )
 {
-	assert( pThread );
 	assert( pItem );
 
 	if ( pItem->hConnect ) {
@@ -203,16 +196,12 @@ VOID ThreadDownload_RemoteDisconnect(
 
 
 //++ ThreadDownload_RemoteConnect
-BOOL ThreadDownload_RemoteConnect(
-	_In_ PTHREAD pThread,
-	_In_ PQUEUE_ITEM pItem
-	)
+BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 {
 	BOOL bRet = FALSE;
 	ULONG i, iConnectRetries, iConnectDelay;
 	ULONG iConnectFlags, iRequestFlags;
 
-	assert( pThread );
 	assert( pItem );
 	assert( pItem->hConnect == NULL );
 
@@ -239,12 +228,12 @@ BOOL ThreadDownload_RemoteConnect(
 	for ( i = 0; i < iConnectRetries; i++ ) {
 
 		/// Check TERM event
-		if ( ThreadIsTerminating( pThread ) )
+		if ( ThreadIsTerminating( pItem->pThread ) )
 			break;
 
 		/// Delay between attempts. Keep monitoring TERM event
 		if ( i > 0 ) {
-			DWORD iWait = WaitForSingleObject( pThread->hTermEvent, iConnectDelay );
+			DWORD iWait = WaitForSingleObject( pItem->pThread->hTermEvent, iConnectDelay );
 			if ( iWait == WAIT_OBJECT_0 )
 				break;
 		}
@@ -303,7 +292,7 @@ BOOL ThreadDownload_RemoteConnect(
 						)
 					{
 						/// Error. Break the loop
-						ThreadDownload_RemoteDisconnect( pThread, pItem );
+						ThreadDownload_RemoteDisconnect( pItem );
 						break;
 					}
 				}
@@ -311,7 +300,7 @@ BOOL ThreadDownload_RemoteConnect(
 			} else {
 				/// HttpOpenRequest error
 				pItem->iErrorCode = GetLastError();
-				ThreadDownload_RemoteDisconnect( pThread, pItem );
+				ThreadDownload_RemoteDisconnect( pItem );
 			}
 
 		} else {
@@ -363,11 +352,10 @@ ULONG ThreadDownload_QueryContentLength( _In_ HINTERNET hFile, _Out_ PULONG64 pi
 
 
 //++ ThreadDownload_LocalCreate
-ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 {
 	ULONG err = ERROR_SUCCESS;
 
-	assert( pThread );
 	assert( pItem );
 	assert( pItem->hConnect != NULL );
 
@@ -492,11 +480,10 @@ ULONG ThreadDownload_LocalCreate( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pIte
 
 
 //++ ThreadDownload_LocalClose
-BOOL ThreadDownload_LocalClose( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pItem )
 {
 	BOOL bRet = TRUE;
 
-	assert( pThread );
 	assert( pItem );
 
 	switch ( pItem->iLocalType ) {
@@ -529,11 +516,10 @@ BOOL ThreadDownload_LocalClose( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem 
 
 
 //++ ThreadDownload_Transfer
-BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 {
 	DWORD err = ERROR_SUCCESS;
 
-	assert( pThread );
 	assert( pItem );
 	assert( pItem->hConnect != NULL );
 
@@ -555,7 +541,7 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 				/// Transfer loop
 				ULONG iBytesRecv, iBytesWritten;
 				while ( err == ERROR_SUCCESS ) {
-					if ( !ThreadIsTerminating( pThread )) {
+					if ( !ThreadIsTerminating( pItem->pThread )) {
 						if ( InternetReadFile( pItem->hConnect, pBuf, iBufSize, &iBytesRecv ) ) {
 							if ( iBytesRecv > 0 ) {
 								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
@@ -601,7 +587,7 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 			/// Transfer loop
 			ULONG iBytesRecv;
 			while ( err == ERROR_SUCCESS ) {
-				if ( !ThreadIsTerminating( pThread ) ) {
+				if ( !ThreadIsTerminating( pItem->pThread ) ) {
 					if ( InternetReadFile( pItem->hConnect, pItem->Local.pMemory + pItem->iRecvSize, TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
 						if ( iBytesRecv > 0 ) {
 							pItem->iRecvSize += iBytesRecv;
@@ -643,12 +629,12 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 
 
 //++ ThreadDownload
-VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
+VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 {
-	assert( pThread && pItem );
+	assert( pItem );
 	TRACE(
 		_T( "  Th:%s ThreadDownload(ID:%u, %s -> %s)\n" ),
-		pThread->szName,
+		pItem->pThread->szName,
 		pItem->iId,
 		pItem->pszURL,
 		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
@@ -660,19 +646,19 @@ VOID ThreadDownload( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 
 	if ( pItem->pszURL && *pItem->pszURL ) {
 
-		if ( ThreadDownload_Session( pThread, pItem ) ) {
-			if ( ThreadDownload_RemoteConnect( pThread, pItem ) ) {
+		if ( ThreadDownload_Session( pItem ) ) {
+			if ( ThreadDownload_RemoteConnect( pItem ) ) {
 
-				ThreadTraceHttpInfo( pThread, pItem->hConnect, HTTP_QUERY_RAW_HEADERS_CRLF );
+				ThreadTraceHttpInfo( pItem, HTTP_QUERY_RAW_HEADERS_CRLF );
 
-				if ( ThreadDownload_LocalCreate( pThread, pItem ) ) {
-					if ( ThreadDownload_Transfer( pThread, pItem ) ) {
+				if ( ThreadDownload_LocalCreate( pItem ) ) {
+					if ( ThreadDownload_Transfer( pItem ) ) {
 						// Success
 					}
-					ThreadDownload_LocalClose( pThread, pItem );
+					ThreadDownload_LocalClose( pItem );
 				}
 
-				ThreadDownload_RemoteDisconnect( pThread, pItem );
+				ThreadDownload_RemoteDisconnect( pItem );
 			}
 		}
 	}

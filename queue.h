@@ -33,6 +33,10 @@ typedef struct _QUEUE_ITEM {
 	ULONG iId;						/// Unique download ID
 	ITEM_STATUS iStatus;
 
+	// Objects this item belongs to
+	struct _QUEUE *pQueue;
+	struct _THREAD *pThread;
+
 	// Source
 	LPTSTR pszURL;
 
