@@ -215,9 +215,13 @@ BOOL QueueAdd(
 			pItem->hSession = NULL;
 			pItem->hConnect = NULL;
 
-			pItem->bErrorCodeIsHTTP = FALSE;
-			pItem->iErrorCode = ERROR_SUCCESS;
-			pItem->pszErrorText = NULL;
+			pItem->iWin32Error = ERROR_SUCCESS;
+			pItem->pszWin32Error = NULL;
+			AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
+
+			pItem->iHttpStatus = 666;
+			pItem->pszHttpStatus = NULL;
+			MyStrDup( pItem->pszHttpStatus, _T( "N/A" ) );
 
 			// Add in front
 			pItem->pNext = pQueue->pHead;
@@ -259,8 +263,8 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, %s -> %s)\n" ),
 			pQueue->szName,
 			pItem->iId,
-			pItem->iErrorCode,
-			pItem->pszErrorText ? pItem->pszErrorText : _T("n/a"),
+			pItem->iWin32Error != ERROR_SUCCESS ? pItem->iWin32Error : pItem->iHttpStatus,
+			pItem->iWin32Error != ERROR_SUCCESS ? pItem->pszWin32Error : pItem->pszHttpStatus,
 			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
 			pItem->pszURL,
 			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
@@ -268,7 +272,8 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 
 		// Free item's content
 		MyFree( pItem->pszURL );
-		MyFree( pItem->pszErrorText );
+		MyFree( pItem->pszWin32Error );
+		MyFree( pItem->pszHttpStatus );
 
 		switch ( pItem->iLocalType )
 		{

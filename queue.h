@@ -69,10 +69,11 @@ typedef struct _QUEUE_ITEM {
 	HINTERNET hSession;				/// InternetOpen
 	HINTERNET hConnect;				/// InternetOpenUrl
 
-	// Error code (Win32 or HTTP)
-	BOOL bErrorCodeIsHTTP;			/// TRUE: error code is HTTP status, FALSE: error code is Win32 error
-	ULONG iErrorCode;
-	LPTSTR pszErrorText;			/// Error code as text
+	// Error code (Win32 and HTTP)
+	ULONG iWin32Error;				/// Last Win32 error code
+	LPTSTR pszWin32Error;			/// Last Win32 error code (as string)
+	ULONG iHttpStatus;				/// Last HTTP status code
+	LPTSTR pszHttpStatus;			/// Last HTTP status code (as string)
 
 	struct _QUEUE_ITEM *pNext;		/// Singly linked list
 
