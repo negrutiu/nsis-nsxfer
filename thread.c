@@ -6,12 +6,13 @@
 
 #define NSDOWN_USERAGENT			_T("Mozilla/5.0 (NSdown)")
 #define INVALID_FILE_SIZE64			(ULONG64)-1
+#define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 
 /*
 	TODO:
 	- Modify errors to: LastWin32Error & LastHttpStatus
-	- Transfer to memory
+	- Reconnect during transfer
 */
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
@@ -102,6 +103,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 
 //++ ThreadTraceHttpInfo
 #if DBG || _DEBUG
+
 #if UNICODE
 #define ThreadTraceHttpInfo( pThread, hSession, iHttpInfo ) \
 	ThreadTraceHttpInfoImpl( pThread, hSession, iHttpInfo, L#iHttpInfo )
@@ -546,7 +548,7 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 		case ITEM_LOCAL_FILE:
 		{
 			/// Allocate a transfer buffer
-			CONST ULONG iBufSize = 1024 * 128;
+			CONST ULONG iBufSize = 1024 * TRANSFER_CHUNK_SIZE;
 			LPBYTE pBuf = MyAlloc( iBufSize );
 			if ( pBuf ) {
 
@@ -596,7 +598,37 @@ BOOL ThreadDownload_Transfer( _In_ PTHREAD pThread, _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_MEMORY:
 		{
-			assert( !"TODO" );
+			/// Transfer loop
+			ULONG iBytesRecv;
+			while ( err == ERROR_SUCCESS ) {
+				if ( !ThreadIsTerminating( pThread ) ) {
+					if ( InternetReadFile( pItem->hConnect, pItem->LocalData.pMemory + pItem->iRecvSize, TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
+						if ( iBytesRecv > 0 ) {
+							pItem->iRecvSize += iBytesRecv;
+							///Sleep( 200 );		/// Emulate slow download
+						} else {
+							// Transfer complete
+							break;
+						}
+					} else {
+						err = GetLastError();	/// InternetReadFile
+						/*if ( err == ERROR_INTERNET_EXTENDED_ERROR ) {
+						DWORD dwWebError;
+						TCHAR szWebError[255];
+						szWebError[0] = 0;
+						DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
+						if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
+						///pItem->bErrorCodeIsHTTP = TRUE;
+						///pItem->iErrorCode = dwWebError;
+						MyFree( pItem->pszErrorText );
+						MyStrDup( pItem->pszErrorText, szWebError );
+						}
+						}*/
+					}
+				} else {
+					err = ERROR_INTERNET_OPERATION_CANCELLED;
+				}
+			}
 			break;
 		}
 	}
