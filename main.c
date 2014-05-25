@@ -83,7 +83,7 @@ void __cdecl Download(
 	LPTSTR psz = NULL;
 	LPTSTR pszUrl = NULL, pszFile = NULL;
 	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
-	ULONG iRetryCount = DEFAULT_VALUE, iRetryDelay = DEFAULT_VALUE;
+	ULONG iTimeout = DEFAULT_VALUE;
 	ULONG iConnectRetries = DEFAULT_VALUE, iConnectTimeout = DEFAULT_VALUE, iRecvTimeout = DEFAULT_VALUE;
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
 	PQUEUE_ITEM pItem = NULL;
@@ -126,11 +126,8 @@ void __cdecl Download(
 				}
 			}
 		}
-		else if ( lstrcmpi( psz, _T( "/RETRYCOUNT" ) ) == 0 ) {
-			iRetryCount = popint();
-		}
-		else if ( lstrcmpi( psz, _T( "/RETRYDELAY" ) ) == 0 ) {
-			iRetryDelay = popint();
+		else if ( lstrcmpi( psz, _T( "/TIMEOUT" ) ) == 0 ) {
+			iTimeout = popint();
 		}
 		else if ( lstrcmpi( psz, _T( "/CONNECTRETRIES" ) ) == 0 ) {
 			iConnectRetries = popint();
@@ -166,7 +163,7 @@ void __cdecl Download(
 
 	// Add to the download queue
 	QueueLock( &g_Queue );
-	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iRetryCount, iRetryDelay, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
+	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iTimeout, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
 

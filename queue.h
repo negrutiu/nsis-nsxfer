@@ -51,8 +51,7 @@ typedef struct _QUEUE_ITEM {
 	} Local;
 
 	// Download options
-	ULONG iRetryCount;				/// The number of InternetOpenUrl calls. Default is 1
-	ULONG iRetryDelay;				/// Delay between two InternetOpenUrl calls. Default is 0
+	ULONG iTimeout;					/// Keep trying to connect for iTimeout ms. Default is 0
 	ULONG iConnectRetries;			/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
 	ULONG iConnectTimeout;			/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	ULONG iReceiveTimeout;			/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
@@ -123,8 +122,7 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
-	_In_opt_ ULONG iRetryCount,					/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iRetryDelay,					/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iTimeout,					/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iConnectRetries,				/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iConnectTimeout,				/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iReceiveTimeout,				/// can be DEFAULT_VALUE

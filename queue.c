@@ -157,8 +157,7 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
-	_In_opt_ ULONG iRetryCount,
-	_In_opt_ ULONG iRetryDelay,
+	_In_opt_ ULONG iTimeout,
 	_In_opt_ ULONG iConnectRetries,
 	_In_opt_ ULONG iConnectTimeout,
 	_In_opt_ ULONG iReceiveTimeout,
@@ -197,8 +196,7 @@ BOOL QueueAdd(
 				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
 			}
 
-			pItem->iRetryCount = iRetryCount;
-			pItem->iRetryDelay = iRetryDelay;
+			pItem->iTimeout = iTimeout;
 			pItem->iConnectRetries = iConnectRetries;
 			pItem->iConnectTimeout = iConnectTimeout;
 			pItem->iReceiveTimeout = iReceiveTimeout;

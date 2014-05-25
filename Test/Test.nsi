@@ -9,6 +9,11 @@
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 
+
+; NSdown path
+!define NSDOWN "$EXEDIR\..\DebugW\NSdown.dll"
+
+
 # The folder where NSdown.dll is
 !ifdef NSIS_UNICODE
 	!if /FileExists "..\ReleaseW\NSdown.dll"
@@ -74,6 +79,9 @@ Function .onInit
 
 FunctionEnd
 
+!define LINK0 `https://nefertiti`
+!define FILE0 "$EXEDIR\Nefertiti.html"
+
 !define LINK1 `http://download.tuxfamily.org/notepadplus/6.5.3/npp.6.5.3.Installer.exe`
 ;!define FILE1 "$EXEDIR\npp.6.5.3.Installer.exe"
 !define FILE1 "NONE"
@@ -85,17 +93,30 @@ FunctionEnd
 !define LINK3 `http://live.sysinternals.com/Files/SysinternalsSuite.zip`
 !define FILE3 "$EXEDIR\SysinternalsSuite.zip"
 
+!define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (May 13, 2014).zip`
+!define FILE4 "$EXEDIR\SysinternalsSuite (March 7, 2014).zip"
+
 Section "-Test"
+
+	DetailPrint 'NSdown::Download "${LINK0}" "${FILE0}"'
+	Push "15000"
+	Push "/TIMEOUT"
+	Push "${FILE0}"
+	Push "/LOCAL"
+	Push "${LINK0}"
+	Push "/URL"
+	CallInstDLL "${NSDOWN}" "Download"
+	;NSdown::Download /URL "${LINK0}" /LOCAL "${FILE0}" /RETRYCOUNT 3 /RETRYDELAY 5000
+	Pop $0	; ItemID
+
 	DetailPrint 'NSdown::Download "${LINK1}" "${FILE1}"'
-	Push "5000"
-	Push "/RETRYDELAY"
-	Push "3"
-	Push "/RETRYCOUNT"
+	Push "15000"
+	Push "/TIMEOUT"
 	Push "${FILE1}"
 	Push "/LOCAL"
 	Push "${LINK1}"
 	Push "/URL"
-	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
+	CallInstDLL "${NSDOWN}" "Download"
 	;NSdown::Download /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000
 	Pop $0	; ItemID
 
@@ -104,8 +125,8 @@ Section "-Test"
 	Push "/LOCAL"
 	Push "${LINK2}"
 	Push "/URL"
-	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
-;	NSdown::Download /URL "${LINK2}" /LOCAL "${FILE2}"
+	CallInstDLL "${NSDOWN}" "Download"
+	;NSdown::Download /URL "${LINK2}" /LOCAL "${FILE2}"
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Download "${LINK3}" "${FILE3}"'
@@ -113,8 +134,19 @@ Section "-Test"
 	Push "/LOCAL"
 	Push "${LINK3}"
 	Push "/URL"
-	CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "Download"
-;	NSdown::Download /URL "${LINK3}" /LOCAL "${FILE3}"
+	CallInstDLL "${NSDOWN}" "Download"
+	;NSdown::Download /URL "${LINK3}" /LOCAL "${FILE3}"
+	Pop $0	; ItemID
+
+	DetailPrint 'NSdown::Download "${LINK4}" "${FILE4}"'
+	Push "15000"
+	Push "/TIMEOUT"
+	Push "${FILE4}"
+	Push "/LOCAL"
+	Push "${LINK4}"
+	Push "/URL"
+	CallInstDLL "${NSDOWN}" "Download"
+	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}"
 	Pop $0	; ItemID
 
 
@@ -126,7 +158,7 @@ Section "-Test"
 		; $2 = Remaining files
 		; $3 = Number of downloaded bytes for the current file
 		; $4 = Size of current file (Empty string if the size is unknown)
-		CallInstDLL "$EXEDIR\..\DebugW\NSdown.dll" "GetStats"
+		CallInstDLL "${NSDOWN}" "GetStats"
 		;NSdown::GetStats
 		DetailPrint "Waiting($5/$6): HTTP status == $0, Completed files == $1, Remaining files == $2, Recv bytes (last file) == $3, Total bytes (last file) == $4"
 		${If} $2 = 0		; No remaining requests

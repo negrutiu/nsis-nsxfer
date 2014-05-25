@@ -8,10 +8,10 @@
 #define INVALID_FILE_SIZE64			(ULONG64)-1
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
+#define CONNECT_RETRY_DELAY			1000		/// milliseconds
 
 /*
 	TODO:
-	- Timeouts using time rather than Steps+Delay
 	- Reconnect during transfer
 */
 
@@ -196,15 +196,16 @@ VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_ITEM pItem )
 BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 {
 	BOOL bRet = FALSE;
-	ULONG i, iConnectRetries, iConnectDelay;
+	DWORD dwStartTime;
+	ULONG i, iTimeout;
 	ULONG iConnectFlags, iRequestFlags;
 	ULONG iHttpStatus;
 
 	assert( pItem );
 	assert( pItem->hConnect == NULL );
 
-	iConnectRetries = (pItem->iRetryCount != DEFAULT_VALUE ? pItem->iRetryCount : 1);	/// Default: 1
-	iConnectDelay = (pItem->iRetryDelay != DEFAULT_VALUE ? pItem->iRetryDelay : 0);		/// Default: 0
+	// Grand timeout value
+	iTimeout = (pItem->iTimeout != DEFAULT_VALUE ? pItem->iTimeout : 0);		/// Default: 0ms
 
 	// InternetOpen flags
 	iConnectFlags =
@@ -222,19 +223,33 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 	///	SECURITY_FLAG_IGNORE_CERT_CN_INVALID
 		SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
 
-	/// Multiple retries in case of failure
-	for ( i = 0; i < iConnectRetries; i++ ) {
+	/// Keep trying to connect for iTimeout milliseconds
+	for ( dwStartTime = GetTickCount(), i = 0; TRUE; i++ ) {
 
 		/// Check TERM event
 		if ( ThreadIsTerminating( pItem->pThread ) )
 			break;
 
-		/// Delay between attempts. Keep monitoring TERM event
+		/// Timeout?
 		if ( i > 0 ) {
-			DWORD iWait = WaitForSingleObject( pItem->pThread->hTermEvent, iConnectDelay );
-			if ( iWait == WAIT_OBJECT_0 )
-				break;
+			if ( GetTickCount() - dwStartTime < iTimeout ) {
+				/// Delay between attempts. Keep monitoring TERM event
+				DWORD iWait = WaitForSingleObject( pItem->pThread->hTermEvent, CONNECT_RETRY_DELAY );
+				if ( iWait == WAIT_OBJECT_0 )
+					break;	/// Canceled
+			} else {
+				break;	/// Timeout
+			}
 		}
+
+		TRACE(
+			_T( "  Th:%s Connect( Attempt:%d, Elapsed:%ums/%ums, %s -> %s )\n" ),
+			pItem->pThread->szName,
+			i,
+			GetTickCount() - dwStartTime, iTimeout,
+			pItem->pszURL,
+			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
+			);
 
 		// Connect
 		/// TODO: Call InternetCanonicalizeUrl first if the URL being used contains a relative URL and a base URL separated by blank spaces

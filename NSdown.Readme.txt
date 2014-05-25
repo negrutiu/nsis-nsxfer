@@ -1,12 +1,12 @@
-NSdown::Download	/URL url [/LOCAL file|MEMORY|NONE]
-					[/RETRYCOUNT count] [/RETRYDELAY msec]
+NSdown::Download	/URL url
+					[/LOCAL file|MEMORY|NONE]
+					[/TIMEOUT msec]
 					[/CONNECTRETRIES count] [/CONNECTTIMEOUT msec] [/RECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 
 /URL url					| HTTP or HTTPS
 /LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all
-/RETRYCOUNT count			| The number of InternetOpenUrl calls. Default is 1
-/RETRYDELAY msec			| Delay between two InternetOpenUrl calls. Default is 0
+/TIMEOUT msec				| Keep trying to connect for "msec" milliseconds
 /CONNECTRETRIES count		| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
 /CONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 /RECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
@@ -19,7 +19,7 @@ Return:
 
 Examples:
 
-	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /RETRYCOUNT 5 /RETRYDELAY 5000
+	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUT 60000
 	Pop $0	; Download ID
 
 	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY
