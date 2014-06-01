@@ -51,10 +51,11 @@ typedef struct _QUEUE_ITEM {
 	} Local;
 
 	// Download options
-	ULONG iTimeout;					/// Keep trying to connect for iTimeout ms. Default is 0
-	ULONG iConnectRetries;			/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
-	ULONG iConnectTimeout;			/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
-	ULONG iReceiveTimeout;			/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
+	ULONG iTimeoutConnect;			/// Keep trying to connect for X ms. Default is 0
+	ULONG iTimeoutReconnect;		/// Keep trying to reconnect for X ms when the connection drops while downloading. Default is 0
+	ULONG iOptConnectRetries;		/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
+	ULONG iOptConnectTimeout;		/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
+	ULONG iOptReceiveTimeout;		/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 	BOOL bResume;					/// Resume download. Works with ITEM_LOCAL_FILE only
 
 	// Runtime statistics
@@ -122,10 +123,11 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
-	_In_opt_ ULONG iTimeout,					/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iConnectRetries,				/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iConnectTimeout,				/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iReceiveTimeout,				/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iTimeoutConnect,				/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iTimeoutReconnect,				/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iOptConnectRetries,			/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iOptConnectTimeout,			/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iOptReceiveTimeout,			/// can be DEFAULT_VALUE
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	);
 

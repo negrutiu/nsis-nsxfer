@@ -1,15 +1,16 @@
 NSdown::Download	/URL url
 					[/LOCAL file|MEMORY|NONE]
-					[/TIMEOUT msec]
-					[/CONNECTRETRIES count] [/CONNECTTIMEOUT msec] [/RECEIVETIMEOUT msec]
+					[/TIMEOUTCONNECT msec] [/TIMEOUTRECONNECT msec]
+					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 
 /URL url					| HTTP or HTTPS
-/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all
-/TIMEOUT msec				| Keep trying to connect for "msec" milliseconds
-/CONNECTRETRIES count		| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
-/CONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
-/RECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
+/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
+/TIMEOUTCONNECT msec		| Keep trying to connect for "msec" milliseconds. Default is 0 (only one attempt to connect is made)
+/TIMEOUTRECONNECT msec		| Keep trying to reconnect for "msec" milliseconds, if the connection drops while downloading. Default is 0 (no attempts to reconnect are made)
+/OPTCONNECTRETRIES count	| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
+/OPTCONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
+/OPTRECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 /PROXY server				| Not implemented yet. The default proxy settings are used
 /PROXYUSER user				| Not implemented yet. The default proxy settings are used
 /PROXYPASS pass				| Not implemented yet. The default proxy settings are used
@@ -19,7 +20,7 @@ Return:
 
 Examples:
 
-	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUT 60000
+	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000
 	Pop $0	; Download ID
 
 	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY
@@ -29,11 +30,15 @@ Examples:
 	Pop $0	; Download ID
 
 TODO:
-- Proxy/file
+- Parameterized InternetOpenUrl flags
+- Parameterized HttpSendRequest flags
+- Proxy
 - reconnect during dld
-- resume
-- query file size
-- download file with unknown size
+* Connect timeout parameter
+* Reconnect timeout parameter
+- resume parameter
+* query file size
+* download file with unknown size
 - HTTPS authentication
 - PROXY authentication
 - GET/POST/PUT(WebDAV)

@@ -83,8 +83,8 @@ void __cdecl Download(
 	LPTSTR psz = NULL;
 	LPTSTR pszUrl = NULL, pszFile = NULL;
 	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
-	ULONG iTimeout = DEFAULT_VALUE;
-	ULONG iConnectRetries = DEFAULT_VALUE, iConnectTimeout = DEFAULT_VALUE, iRecvTimeout = DEFAULT_VALUE;
+	ULONG iTimeoutConnect = DEFAULT_VALUE, iTimeoutReconnect = DEFAULT_VALUE;
+	ULONG iOptConnectRetries = DEFAULT_VALUE, iOptConnectTimeout = DEFAULT_VALUE, iOptRecvTimeout = DEFAULT_VALUE;
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
 	PQUEUE_ITEM pItem = NULL;
 
@@ -126,17 +126,20 @@ void __cdecl Download(
 				}
 			}
 		}
-		else if ( lstrcmpi( psz, _T( "/TIMEOUT" ) ) == 0 ) {
-			iTimeout = popint();
+		else if ( lstrcmpi( psz, _T( "/TIMEOUTCONNECT" ) ) == 0 ) {
+			iTimeoutConnect = popint();
 		}
-		else if ( lstrcmpi( psz, _T( "/CONNECTRETRIES" ) ) == 0 ) {
-			iConnectRetries = popint();
+		else if ( lstrcmpi( psz, _T( "/TIMEOUTRECONNECT" ) ) == 0 ) {
+			iTimeoutReconnect = popint();
 		}
-		else if ( lstrcmpi( psz, _T( "/CONNECTTIMEOUT" ) ) == 0 ) {
-			iConnectTimeout = popint();
+		else if ( lstrcmpi( psz, _T( "/OPTCONNECTRETRIES" ) ) == 0 ) {
+			iOptConnectRetries = popint();
 		}
-		else if ( lstrcmpi( psz, _T( "/RECEIVETIMEOUT" ) ) == 0 ) {
-			iRecvTimeout = popint();
+		else if ( lstrcmpi( psz, _T( "/OPTCONNECTTIMEOUT" ) ) == 0 ) {
+			iOptConnectTimeout = popint();
+		}
+		else if ( lstrcmpi( psz, _T( "/OPTRECEIVETIMEOUT" ) ) == 0 ) {
+			iOptRecvTimeout = popint();
 		}
 		else if ( lstrcmpi( psz, _T( "/PROXY" ) ) == 0 ) {
 			if ( popstring( psz ) == 0 ) {
@@ -163,7 +166,7 @@ void __cdecl Download(
 
 	// Add to the download queue
 	QueueLock( &g_Queue );
-	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iTimeout, iConnectRetries, iConnectTimeout, iRecvTimeout, &pItem );
+	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
 

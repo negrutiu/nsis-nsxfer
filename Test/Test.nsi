@@ -100,7 +100,7 @@ Section "-Test"
 
 	DetailPrint 'NSdown::Download "${LINK0}" "${FILE0}"'
 	Push "15000"
-	Push "/TIMEOUT"
+	Push "/TIMEOUTCONNECT"
 	Push "${FILE0}"
 	Push "/LOCAL"
 	Push "${LINK0}"
@@ -111,7 +111,7 @@ Section "-Test"
 
 	DetailPrint 'NSdown::Download "${LINK1}" "${FILE1}"'
 	Push "15000"
-	Push "/TIMEOUT"
+	Push "/TIMEOUTCONNECT"
 	Push "${FILE1}"
 	Push "/LOCAL"
 	Push "${LINK1}"
@@ -139,14 +139,16 @@ Section "-Test"
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Download "${LINK4}" "${FILE4}"'
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
 	Push "15000"
-	Push "/TIMEOUT"
+	Push "/TIMEOUTCONNECT"
 	Push "${FILE4}"
 	Push "/LOCAL"
 	Push "${LINK4}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}"
+	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
 	Pop $0	; ItemID
 
 

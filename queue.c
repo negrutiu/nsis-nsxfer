@@ -157,10 +157,11 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
-	_In_opt_ ULONG iTimeout,
-	_In_opt_ ULONG iConnectRetries,
-	_In_opt_ ULONG iConnectTimeout,
-	_In_opt_ ULONG iReceiveTimeout,
+	_In_opt_ ULONG iTimeoutConnect,
+	_In_opt_ ULONG iTimeoutReconnect,
+	_In_opt_ ULONG iOptConnectRetries,
+	_In_opt_ ULONG iOptConnectTimeout,
+	_In_opt_ ULONG iOptReceiveTimeout,
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	)
 {
@@ -196,10 +197,11 @@ BOOL QueueAdd(
 				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
 			}
 
-			pItem->iTimeout = iTimeout;
-			pItem->iConnectRetries = iConnectRetries;
-			pItem->iConnectTimeout = iConnectTimeout;
-			pItem->iReceiveTimeout = iReceiveTimeout;
+			pItem->iTimeoutConnect = iTimeoutConnect;
+			pItem->iTimeoutReconnect = iTimeoutReconnect;
+			pItem->iOptConnectRetries = iOptConnectRetries;
+			pItem->iOptConnectTimeout = iOptConnectTimeout;
+			pItem->iOptReceiveTimeout = iOptReceiveTimeout;
 			pItem->bResume = TRUE;
 
 			GetLocalFileTime( &pItem->tmEnqueue );

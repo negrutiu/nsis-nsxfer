@@ -152,12 +152,12 @@ BOOL ThreadDownload_Session( _Inout_ PQUEUE_ITEM pItem )
 	if ( pItem->hSession ) {
 
 		/// Options
-		if ( pItem->iConnectRetries != DEFAULT_VALUE )
-			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iConnectRetries, sizeof( pItem->iConnectRetries ) );
-		if ( pItem->iConnectTimeout != DEFAULT_VALUE )
-			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iConnectTimeout, sizeof( pItem->iConnectTimeout ) );
-		if ( pItem->iReceiveTimeout != DEFAULT_VALUE )
-			InternetSetOption( pItem->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iReceiveTimeout, sizeof( pItem->iReceiveTimeout ) );
+		if ( pItem->iOptConnectRetries != DEFAULT_VALUE )
+			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iOptConnectRetries, sizeof( pItem->iOptConnectRetries ) );
+		if ( pItem->iOptConnectTimeout != DEFAULT_VALUE )
+			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iOptConnectTimeout, sizeof( pItem->iOptConnectTimeout ) );
+		if ( pItem->iOptReceiveTimeout != DEFAULT_VALUE )
+			InternetSetOption( pItem->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iOptReceiveTimeout, sizeof( pItem->iOptReceiveTimeout ) );
 
 		/// Reconnect if disconnected by user
 		if ( TRUE ) {
@@ -205,7 +205,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 	assert( pItem->hConnect == NULL );
 
 	// Grand timeout value
-	iTimeout = (pItem->iTimeout != DEFAULT_VALUE ? pItem->iTimeout : 0);		/// Default: 0ms
+	iTimeout = (pItem->iTimeoutConnect != DEFAULT_VALUE ? pItem->iTimeoutConnect : 0);		/// Default: 0ms
 
 	// InternetOpen flags
 	iConnectFlags =
