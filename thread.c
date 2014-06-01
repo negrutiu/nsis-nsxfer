@@ -34,6 +34,17 @@ BOOL ThreadIsTerminating( _In_ PTHREAD pThread )
 }
 
 
+//++ ThreadSleep
+// Returns TRUE if the sleep was uninterrupted, FALSE if the thread is shutting down
+BOOL ThreadSleep(_In_ PTHREAD pThread, _In_ ULONG iMilliseconds)
+{
+	assert( pThread );
+	assert( pThread->hTermEvent );
+
+	return WaitForSingleObject( pThread->hTermEvent, iMilliseconds ) == WAIT_TIMEOUT;
+}
+
+
 //++ ThreadProc
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 {
@@ -141,6 +152,103 @@ VOID ThreadTraceHttpInfoImpl( _In_ PQUEUE_ITEM pItem, _In_ UINT iHttpInfo, _In_ 
 #endif ///DBG || _DEBUG
 
 
+//++ ThreadDownload_StatusCallback
+void CALLBACK ThreadDownload_StatusCallback(
+	_In_ HINTERNET hRequest,
+	_In_ DWORD_PTR dwContext,
+	_In_ DWORD dwInternetStatus,
+	_In_ LPVOID lpvStatusInformation,
+	_In_ DWORD dwStatusInformationLength
+	)
+{
+	PQUEUE_ITEM pItem = (PQUEUE_ITEM)dwContext;
+	switch (dwInternetStatus)
+	{
+	case INTERNET_STATUS_RECEIVING_RESPONSE:
+		///TRACE(_T("  Th:%s INTERNET_STATUS_RECEIVING_RESPONSE(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_RESPONSE_RECEIVED:
+		///TRACE(_T("  Th:%s INTERNET_STATUS_RESPONSE_RECEIVED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_CLOSING_CONNECTION:
+		TRACE(_T("  Th:%s INTERNET_STATUS_CLOSING_CONNECTION(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_CONNECTED_TO_SERVER:
+		TRACE(_T("  Th:%s INTERNET_STATUS_CONNECTED_TO_SERVER(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_CONNECTING_TO_SERVER:
+		TRACE(_T("  Th:%s INTERNET_STATUS_CONNECTING_TO_SERVER(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_CONNECTION_CLOSED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_CONNECTION_CLOSED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_HANDLE_CLOSING:
+		TRACE(_T("  Th:%s INTERNET_STATUS_HANDLE_CLOSING(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_HANDLE_CREATED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_HANDLE_CREATED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_INTERMEDIATE_RESPONSE:
+		TRACE(_T("  Th:%s INTERNET_STATUS_INTERMEDIATE_RESPONSE(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_NAME_RESOLVED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_NAME_RESOLVED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_REDIRECT:
+		TRACE(_T("  Th:%s INTERNET_STATUS_REDIRECT(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_REQUEST_COMPLETE:
+		TRACE(_T("  Th:%s INTERNET_STATUS_REQUEST_COMPLETE(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_REQUEST_SENT:
+		TRACE(_T("  Th:%s INTERNET_STATUS_REQUEST_SENT(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_RESOLVING_NAME:
+		TRACE(_T("  Th:%s INTERNET_STATUS_RESOLVING_NAME(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_SENDING_REQUEST:
+		TRACE(_T("  Th:%s INTERNET_STATUS_SENDING_REQUEST(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_STATE_CHANGE:
+		TRACE(_T("  Th:%s INTERNET_STATUS_STATE_CHANGE(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_DETECTING_PROXY:
+		TRACE(_T("  Th:%s INTERNET_STATUS_DETECTING_PROXY(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_CTL_RESPONSE_RECEIVED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_CTL_RESPONSE_RECEIVED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_PREFETCH:
+		TRACE(_T("  Th:%s INTERNET_STATUS_PREFETCH(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_USER_INPUT_REQUIRED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_USER_INPUT_REQUIRED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_COOKIE_SENT:
+		TRACE(_T("  Th:%s INTERNET_STATUS_COOKIE_SENT(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_COOKIE_RECEIVED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_COOKIE_RECEIVED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_PRIVACY_IMPACTED:
+		TRACE(_T("  Th:%s INTERNET_STATUS_PRIVACY_IMPACTED(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_P3P_HEADER:
+		TRACE(_T("  Th:%s INTERNET_STATUS_P3P_HEADER(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_P3P_POLICYREF:
+		TRACE(_T("  Th:%s INTERNET_STATUS_P3P_POLICYREF(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	case INTERNET_STATUS_COOKIE_HISTORY:
+		TRACE(_T("  Th:%s INTERNET_STATUS_COOKIE_HISTORY(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	default:
+		TRACE(_T("  Th:%s INTERNET_STATUS_UNKNOWN(%u)\n"), pItem->pThread->szName, dwInternetStatus);
+		break;
+	}
+}
+
+
 //++ ThreadDownload_Session
 BOOL ThreadDownload_Session( _Inout_ PQUEUE_ITEM pItem )
 {
@@ -150,6 +258,9 @@ BOOL ThreadDownload_Session( _Inout_ PQUEUE_ITEM pItem )
 
 	pItem->hSession = InternetOpen( NSDOWN_USERAGENT, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0 );
 	if ( pItem->hSession ) {
+
+		// Set callback function
+		InternetSetStatusCallback(pItem->hSession, ThreadDownload_StatusCallback);
 
 		/// Options
 		if ( pItem->iOptConnectRetries != DEFAULT_VALUE )
@@ -198,7 +309,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 	BOOL bRet = FALSE;
 	DWORD dwStartTime;
 	ULONG i, iTimeout;
-	ULONG iConnectFlags, iRequestFlags;
+	ULONG iConnectFlags, iSecurityFlags;
 	ULONG iHttpStatus;
 
 	assert( pItem );
@@ -217,7 +328,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 		iConnectFlags |= INTERNET_FLAG_SECURE;
 
 	// InternetOpenUrl flags
-	iRequestFlags =
+	iSecurityFlags =
 		SECURITY_FLAG_IGNORE_REVOCATION |
 	///	SECURITY_FLAG_IGNORE_UNKNOWN_CA |
 	///	SECURITY_FLAG_IGNORE_CERT_CN_INVALID
@@ -234,8 +345,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 		if ( i > 0 ) {
 			if ( GetTickCount() - dwStartTime < iTimeout ) {
 				/// Delay between attempts. Keep monitoring TERM event
-				DWORD iWait = WaitForSingleObject( pItem->pThread->hTermEvent, CONNECT_RETRY_DELAY );
-				if ( iWait == WAIT_OBJECT_0 )
+				if (!ThreadSleep(pItem->pThread, CONNECT_RETRY_DELAY))
 					break;	/// Canceled
 			} else {
 				break;	/// Timeout
@@ -256,51 +366,63 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem )
 		pItem->hConnect = InternetOpenUrl( pItem->hSession, pItem->pszURL, NULL, 0, iConnectFlags, (DWORD_PTR)pItem );
 		if ( pItem->hConnect ) {
 
+			// Set callback function
+			InternetSetStatusCallback( pItem->hConnect, ThreadDownload_StatusCallback );
+
 			// On some Vistas (e.g. Home), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
 			// We've decided to ignore the revocation status.
-			InternetSetOption( pItem->hConnect, INTERNET_OPTION_SECURITY_FLAGS, &iRequestFlags, sizeof( DWORD ) );
+			InternetSetOption( pItem->hConnect, INTERNET_OPTION_SECURITY_FLAGS, &iSecurityFlags, sizeof( DWORD ) );
 
 			// The stupid 'Work offline' setting from IE
 			InternetSetOption( pItem->hConnect, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
 
-			// Send the HTTP request
-			if ( HttpSendRequest( pItem->hConnect, NULL, 0, NULL, 0 ) ) {
+			if ( !ThreadIsTerminating( pItem->pThread )) {
 
-				/// Check the HTTP status code
-				iHttpStatus = ThreadSetHttpStatus( pItem );
+				// Send the HTTP request
+				BOOL b;
+				b = HttpSendRequest( pItem->hConnect, NULL, 0, NULL, 0 );
+				if ( b ) {
 
-				// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
-				if ( iHttpStatus <= 299 ) {
+					/// Check the HTTP status code
+					iHttpStatus = ThreadSetHttpStatus( pItem );
 
-					/// 1xx Informational
-					/// 2xx Success
+					// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+					if ( iHttpStatus <= 299 ) {
 
-					//ThreadTraceHttpInfo( pThread, hConnect, HTTP_QUERY_RAW_HEADERS_CRLF );
+						/// 1xx Informational
+						/// 2xx Success
 
-					/// Success. Break the loop
-					bRet = TRUE;
-					break;
+						//ThreadTraceHttpInfo( pThread, hConnect, HTTP_QUERY_RAW_HEADERS_CRLF );
+
+						/// Success. Break the loop
+						bRet = TRUE;
+						break;
+
+					} else {
+
+						/// 3xx Redirection - The client must take additional action to complete the request
+						/// 4xx Client Error
+						/// 5xx Server Error
+
+						if ( iHttpStatus != HTTP_STATUS_SERVICE_UNAVAIL &&		/// 503 Service Unavailable
+							iHttpStatus != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
+							iHttpStatus != 598 &&								/// 598 Network read timeout error (Unknown)
+							iHttpStatus != 599									/// 599 Network connect timeout error (Unknown)
+							)
+						{
+							/// Error. Break the loop
+							ThreadDownload_RemoteDisconnect( pItem );
+							break;
+						}
+					}
 
 				} else {
-
-					/// 3xx Redirection - The client must take additional action to complete the request
-					/// 4xx Client Error
-					/// 5xx Server Error
-
-					if ( iHttpStatus != HTTP_STATUS_SERVICE_UNAVAIL &&		/// 503 Service Unavailable
-						iHttpStatus != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
-						iHttpStatus != 598 &&								/// 598 Network read timeout error (Unknown)
-						iHttpStatus != 599									/// 599 Network connect timeout error (Unknown)
-						)
-					{
-						/// Error. Break the loop
-						ThreadDownload_RemoteDisconnect( pItem );
-						break;
-					}
+					ThreadSetWin32Error( pItem, GetLastError() );	/// HttpOpenRequest error
+					ThreadDownload_RemoteDisconnect( pItem );
 				}
 
 			} else {
-				ThreadSetWin32Error( pItem, GetLastError() );	/// HttpOpenRequest error
+				ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// Thread is terminating
 				ThreadDownload_RemoteDisconnect( pItem );
 			}
 
