@@ -98,7 +98,7 @@ FunctionEnd
 
 Section "-Test"
 
-	DetailPrint 'NSdown::Download "${LINK0}" "${FILE0}"'
+/*	DetailPrint 'NSdown::Download "${LINK0}" "${FILE0}"'
 	Push "15000"
 	Push "/TIMEOUTCONNECT"
 	Push "${FILE0}"
@@ -137,7 +137,7 @@ Section "-Test"
 	CallInstDLL "${NSDOWN}" "Download"
 	;NSdown::Download /URL "${LINK3}" /LOCAL "${FILE3}"
 	Pop $0	; ItemID
-
+*/
 	DetailPrint 'NSdown::Download "${LINK4}" "${FILE4}"'
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
@@ -147,6 +147,8 @@ Section "-Test"
 	Push "/LOCAL"
 	Push "${LINK4}"
 	Push "/URL"
+	Push "POST"
+	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Download"
 	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
 	Pop $0	; ItemID

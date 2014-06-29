@@ -1,9 +1,11 @@
-NSdown::Download	/URL url
+NSdown::Download	[/METHOD GET|POST]
+					/URL url
 					[/LOCAL file|MEMORY|NONE]
 					[/TIMEOUTCONNECT msec] [/TIMEOUTRECONNECT msec]
 					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 
+/METHOD GET|POST			| HTTP Method. Default is GET
 /URL url					| HTTP or HTTPS
 /LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
 /TIMEOUTCONNECT msec		| Keep trying to connect for "msec" milliseconds. Default is 0 (only one attempt to connect is made)

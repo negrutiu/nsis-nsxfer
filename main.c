@@ -81,6 +81,7 @@ void __cdecl Download(
 	)
 {
 	LPTSTR psz = NULL;
+	LPTSTR pszMethod = NULL;
 	LPTSTR pszUrl = NULL, pszFile = NULL;
 	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
 	ULONG iTimeoutConnect = DEFAULT_VALUE, iTimeoutReconnect = DEFAULT_VALUE;
@@ -105,7 +106,17 @@ void __cdecl Download(
 		if ( popstring( psz ) != 0 )
 			break;
 
-		if ( lstrcmpi( psz, _T( "/URL" )) == 0 ) {
+		if ( lstrcmpi( psz, _T( "/METHOD" ) ) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				if ( lstrcmpi( psz, _T( "GET" ) ) == 0 || lstrcmpi( psz, _T( "POST" ) ) == 0 ) {
+					MyFree( pszMethod );
+					MyStrDup( pszMethod, psz );
+				} else {
+					/// TODO:
+				}
+			}
+		}
+		else if ( lstrcmpi( psz, _T( "/URL" )) == 0 ) {
 			if ( popstring( psz ) == 0 ) {
 				MyFree( pszUrl );
 				MyStrDup( pszUrl, psz );
@@ -166,11 +177,12 @@ void __cdecl Download(
 
 	// Add to the download queue
 	QueueLock( &g_Queue );
-	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, &pItem );
+	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, pszMethod, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
 
 	MyFree( psz );
+	MyFree( pszMethod );
 	MyFree( pszUrl );
 	MyFree( pszFile );
 	MyFree( pszProxyHost );
