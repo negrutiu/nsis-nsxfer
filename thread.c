@@ -402,15 +402,19 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 			for ( dwStartTime = GetTickCount(), i = 0; TRUE; i++ ) {
 
 				/// Check TERM event
-				if ( ThreadIsTerminating( pItem->pThread ) )
+				if ( ThreadIsTerminating( pItem->pThread ) ) {
+					ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
 					break;
+				}
 
 				/// Timed out?
 				if ( i > 0 ) {
 					if ( GetTickCount() - dwStartTime < iTimeout ) {
 						/// Delay between attempts. Keep monitoring TERM event
-						if ( !ThreadSleep( pItem->pThread, CONNECT_RETRY_DELAY ) )
+						if ( !ThreadSleep( pItem->pThread, CONNECT_RETRY_DELAY ) ) {
+							ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
 							break;	/// Canceled
+						}
 					} else {
 						break;	/// Timeout
 					}
@@ -512,8 +516,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										if ( iHttpStatus != HTTP_STATUS_SERVICE_UNAVAIL &&		/// 503 Service Unavailable
 											iHttpStatus != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
 											iHttpStatus != 598 &&								/// 598 Network read timeout error (Unknown)
-											iHttpStatus != 599									/// 599 Network connect timeout error (Unknown)
-											) {
+											iHttpStatus != 599 )								/// 599 Network connect timeout error (Unknown)
+										{
 											/// Error. Break the loop
 											ThreadDownload_RemoteDisconnect( pItem );
 											break;
@@ -669,7 +673,6 @@ ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 			}
 
 			/// Handle errors
-			ThreadSetWin32Error( pItem, err );
 			if ( (err != ERROR_SUCCESS) && (pItem->Local.hFile != NULL) && (pItem->Local.hFile != INVALID_HANDLE_VALUE) ) {
 				CloseHandle( pItem->Local.hFile );
 				pItem->Local.hFile = NULL;
@@ -895,7 +898,11 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 	if ( pItem->pszURL && *pItem->pszURL ) {
 
 		if ( ThreadDownload_Session( pItem ) ) {
-			for ( int i = 0; i < 1000; i++ ) {
+
+			BOOL bReconnect = TRUE;
+			for ( int i = 0; (i < 1000) && bReconnect; i++ ) {
+
+				bReconnect = FALSE;
 				if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
 
 					ULONG64 iRecvBytes = 0;
@@ -911,14 +918,12 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 					}
 					ThreadDownload_RemoteDisconnect( pItem );
 
-					/// Decide whether to reconnect and resume the download...
-					if ( pItem->iWin32Error == ERROR_SUCCESS ||
-						pItem->iWin32Error == ERROR_INTERNET_OPERATION_CANCELLED ||
-						iRecvBytes == 0 ||
-						!ItemIsReconnectAllowed( pItem )
-						)
-						/// Don't reconnect
-						break;
+					/// Reconnect and resume?
+					bReconnect =
+						pItem->iWin32Error != ERROR_SUCCESS &&
+						pItem->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
+						iRecvBytes > 0 &&
+						ItemIsReconnectAllowed( pItem );
 				}
 			}
 		}
