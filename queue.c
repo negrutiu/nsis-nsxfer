@@ -216,6 +216,7 @@ BOOL QueueAdd(
 			pItem->tmDownloadEnd.dwHighDateTime = 0;
 			pItem->iFileSize = 0;
 			pItem->iRecvSize = 0;
+			pItem->bResumeNeedsValidation = FALSE;
 
 			pItem->hSession = NULL;
 			pItem->hConnect = NULL;

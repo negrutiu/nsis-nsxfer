@@ -64,6 +64,7 @@ typedef struct _QUEUE_ITEM {
 	FILETIME tmDownloadEnd;			/// Download startup time
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
+	BOOLEAN bResumeNeedsValidation;	/// Set to TRUE when The Range HTTP header is used, and we must validate whether the server truly supports it
 
 	// Runtime variables
 	HINTERNET hSession;				/// InternetOpen

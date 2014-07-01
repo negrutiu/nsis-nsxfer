@@ -91,10 +91,10 @@ FunctionEnd
 !define FILE2 "MEMORY"
 
 !define LINK3 `http://live.sysinternals.com/Files/SysinternalsSuite.zip`
-!define FILE3 "$EXEDIR\SysinternalsSuite.zip"
+!define FILE3 "$EXEDIR\SysinternalsSuiteLive.zip"
 
 !define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (May 13, 2014).zip`
-!define FILE4 "$EXEDIR\SysinternalsSuite (March 7, 2014).zip"
+!define FILE4 "$EXEDIR\SysinternalsSuite (May 13, 2014).zip"
 
 Section "-Test"
 
@@ -130,6 +130,10 @@ Section "-Test"
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Download "${LINK3}" "${FILE3}"'
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
 	Push "${FILE3}"
 	Push "/LOCAL"
 	Push "${LINK3}"
@@ -147,6 +151,8 @@ Section "-Test"
 	Push "/LOCAL"
 	Push "${LINK4}"
 	Push "/URL"
+	Push "POST"
+	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Download"
 	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
 	Pop $0	; ItemID

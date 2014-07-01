@@ -590,6 +590,68 @@ ULONG ThreadDownload_QueryContentLength( _In_ HINTERNET hFile, _Out_ PULONG64 pi
 }
 
 
+//++ ThreadDownload_SetRemotePosition
+ULONG ThreadDownload_SetRemotePosition( _Inout_ PQUEUE_ITEM pItem, _In_ PLARGE_INTEGER piFilePos )
+{
+	ULONG err = ERROR_SUCCESS;
+	TCHAR szHeader[128];
+
+	assert( pItem );
+	assert( pItem->hRequest != NULL );
+	assert( pItem->iFileSize != INVALID_FILE_SIZE64 );
+	assert( piFilePos );
+
+	/// By design, the current (remote) position is at offset zero
+	/// If the new offset is also zero, we'll return successfully
+	/// Additionally, don't attempt to set the position past the EOF
+	if ( (piFilePos->QuadPart > 0) && ((ULONG64)piFilePos->QuadPart < pItem->iFileSize) ) {
+
+		if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
+
+			/// Method 1: Use InternetSetFilePointer
+			/// Doesn't work with POST method
+			/// Doesn't work if the cache is disabled
+			if ( InternetSetFilePointer( pItem->hRequest, piFilePos->LowPart, &piFilePos->HighPart, FILE_BEGIN, 0 ) == INVALID_SET_FILE_POINTER )
+				err = GetLastError();
+
+			/// Method 2: Use the "Range" HTTP header
+			/// http://www.clevercomponents.com/articles/article015/resuming.asp
+			if ( err != ERROR_SUCCESS ) {
+
+				/// Make sure the server doesn't explicitly reject ranges
+				TCHAR szAcceptRanges[128];
+				ULONG iAcceptRangesSize = sizeof( szAcceptRanges );
+				if ( !HttpQueryInfo( pItem->hRequest, HTTP_QUERY_ACCEPT_RANGES, szAcceptRanges, &iAcceptRangesSize, NULL ) )
+					szAcceptRanges[0] = _T( '\0' );
+				if ( lstrcmpi( szAcceptRanges, _T( "none" ) ) != 0 ) {
+
+					wnsprintf( szHeader, ARRAYSIZE( szHeader ), _T( "Range: bytes=%I64u-" ), piFilePos->QuadPart );
+					if ( HttpAddRequestHeaders( pItem->hRequest, szHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW ) ) {
+						if ( HttpSendRequest( pItem->hRequest, NULL, 0, NULL, 0 ) ) {
+							/// We'll check later if the server truly supports the Range header
+							pItem->bResumeNeedsValidation = TRUE;
+							/// Success
+							err = ERROR_SUCCESS;
+						} else {
+							err = GetLastError();
+						}
+					} else {
+						err = GetLastError();
+					}
+				} else {
+					err = ERROR_INTERNET_INVALID_OPERATION;		/// The server explicitly rejects resuming
+				}
+			}
+
+		} else {
+			err = ERROR_INTERNET_INCORRECT_FORMAT;
+		}
+	}
+
+	return err;
+}
+
+
 //++ ThreadDownload_LocalCreate
 ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 {
@@ -628,7 +690,7 @@ ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 					if ( GetFileSizeEx( pItem->Local.hFile, &iExistingSize ) ) {
 						if ( (ULONG64)iExistingSize.QuadPart <= pItem->iFileSize ) {
 							if ( (SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
-								if ( (InternetSetFilePointer( pItem->hRequest, iExistingSize.LowPart, &iExistingSize.HighPart, FILE_BEGIN, 0 ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
+								if ( ThreadDownload_SetRemotePosition( pItem, &iExistingSize ) == ERROR_SUCCESS ) {
 									/// SUCCESS (resume)
 									pItem->iRecvSize = iExistingSize.QuadPart;
 								} else {
@@ -783,7 +845,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 				ULONG iBytesRecv, iBytesWritten;
 				if ( piRecvBytes )
 					*piRecvBytes = 0;
-				while ( err == ERROR_SUCCESS ) {
+				while ( err == ERROR_SUCCESS && (pItem->iRecvSize < pItem->iFileSize)) {
 #ifdef DEBUG_XFER_MAX_BYTES
 					if ( piRecvBytes && (*piRecvBytes >= DEBUG_XFER_MAX_BYTES) ) {
 						err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
@@ -792,6 +854,17 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 #endif ///DEBUG_XFER_MAX_BYTES
 					if ( !ThreadIsTerminating( pItem->pThread )) {
 						if ( InternetReadFile( pItem->hRequest, pBuf, iBufSize, &iBytesRecv ) ) {
+							if ( pItem->bResumeNeedsValidation ) {
+								pItem->bResumeNeedsValidation = FALSE;		/// Reset the flag. We're doing this check only once
+								ThreadSetHttpStatus( pItem );				/// Retrieve the HTTP status
+								if ( pItem->iHttpStatus == HTTP_STATUS_OK ) {
+									/// We're resuming the download using the Range header, but the server doesn't support it
+									/// The server should have returned HTTP_STATUS_PARTIAL_CONTENT[216] HTTP status...
+									/// Abort everything
+									ThreadSetWin32Error( pItem, ERROR_HTTP_INVALID_SERVER_RESPONSE );
+									break;
+								}
+							}
 							if ( piRecvBytes )
 								*piRecvBytes += iBytesRecv;
 							if ( iBytesRecv > 0 ) {
