@@ -157,6 +157,7 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
+	_In_opt_ LPCTSTR pszMethod,
 	_In_opt_ ULONG iTimeoutConnect,
 	_In_opt_ ULONG iTimeoutReconnect,
 	_In_opt_ ULONG iOptConnectRetries,
@@ -197,6 +198,11 @@ BOOL QueueAdd(
 				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
 			}
 
+			if ( pszMethod && *pszMethod ) {
+				lstrcpyn( pItem->szMethod, pszMethod, ARRAYSIZE( pItem->szMethod ) );
+			} else {
+				lstrcpy( pItem->szMethod, _T("GET") );		/// Default
+			}
 			pItem->iTimeoutConnect = iTimeoutConnect;
 			pItem->iTimeoutReconnect = iTimeoutReconnect;
 			pItem->iOptConnectRetries = iOptConnectRetries;
@@ -213,6 +219,7 @@ BOOL QueueAdd(
 
 			pItem->hSession = NULL;
 			pItem->hConnect = NULL;
+			pItem->hRequest = NULL;
 
 			pItem->iWin32Error = ERROR_SUCCESS;
 			pItem->pszWin32Error = NULL;
@@ -234,9 +241,10 @@ BOOL QueueAdd(
 			SetEvent( pQueue->hThreadWakeEvent );
 
 			TRACE(
-				_T( "  QueueAdd(%s, ID:%u, %s -> %s)\n" ),
+				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s)\n" ),
 				pQueue->szName,
 				pItem->iId,
+				pItem->szMethod,
 				pItem->pszURL,
 				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T("Memory"))
 				);
@@ -259,12 +267,13 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 	if ( pItem ) {
 
 		TRACE(
-			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, %s -> %s)\n" ),
+			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, %s %s -> %s)\n" ),
 			pQueue->szName,
 			pItem->iId,
 			pItem->iWin32Error != ERROR_SUCCESS ? pItem->iWin32Error : pItem->iHttpStatus,
 			pItem->iWin32Error != ERROR_SUCCESS ? pItem->pszWin32Error : pItem->pszHttpStatus,
 			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
+			pItem->szMethod,
 			pItem->pszURL,
 			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
 			);

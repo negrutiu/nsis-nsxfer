@@ -51,6 +51,7 @@ typedef struct _QUEUE_ITEM {
 	} Local;
 
 	// Download options
+	TCHAR szMethod[20];				/// GET, POST, HEAD, etc. Default is GET
 	ULONG iTimeoutConnect;			/// Keep trying to connect for X ms. Default is 0
 	ULONG iTimeoutReconnect;		/// Keep trying to reconnect for X ms when the connection drops while downloading. Default is 0
 	ULONG iOptConnectRetries;		/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
@@ -66,7 +67,8 @@ typedef struct _QUEUE_ITEM {
 
 	// Runtime variables
 	HINTERNET hSession;				/// InternetOpen
-	HINTERNET hConnect;				/// InternetOpenUrl
+	HINTERNET hConnect;				/// InternetConnect
+	HINTERNET hRequest;				/// HttpOpenRequest
 
 	// Error code (Win32 and HTTP)
 	ULONG iWin32Error;				/// Last Win32 error code
@@ -130,6 +132,7 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
+	_In_opt_ LPCTSTR pszMethod,					/// can be NULL
 	_In_opt_ ULONG iTimeoutConnect,				/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iTimeoutReconnect,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptConnectRetries,			/// can be DEFAULT_VALUE
