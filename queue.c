@@ -202,7 +202,6 @@ BOOL QueueAdd(
 			pItem->iOptConnectRetries = iOptConnectRetries;
 			pItem->iOptConnectTimeout = iOptConnectTimeout;
 			pItem->iOptReceiveTimeout = iOptReceiveTimeout;
-			pItem->bResume = TRUE;
 
 			GetLocalFileTime( &pItem->tmEnqueue );
 			pItem->tmDownloadStart.dwLowDateTime = 0;

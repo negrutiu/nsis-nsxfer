@@ -56,7 +56,6 @@ typedef struct _QUEUE_ITEM {
 	ULONG iOptConnectRetries;		/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
 	ULONG iOptConnectTimeout;		/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	ULONG iOptReceiveTimeout;		/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
-	BOOL bResume;					/// Resume download. Works with ITEM_LOCAL_FILE only
 
 	// Runtime statistics
 	FILETIME tmEnqueue;				/// Enqueue time
@@ -78,6 +77,14 @@ typedef struct _QUEUE_ITEM {
 	struct _QUEUE_ITEM *pNext;		/// Singly linked list
 
 } QUEUE_ITEM, *PQUEUE_ITEM;
+
+
+#define ItemIsReconnectAllowed(pItem) \
+	((pItem)->iTimeoutReconnect != DEFAULT_VALUE) && \
+	((pItem)->iTimeoutReconnect > 0)
+
+#define ItemGetRecvPercent(pItem) \
+	(int)(((pItem)->iFileSize == 0 || (pItem)->iFileSize == INVALID_FILE_SIZE64) ? 0 : (((pItem)->iRecvSize * 100) / (pItem)->iFileSize))
 
 
 typedef struct _QUEUE {
@@ -124,7 +131,7 @@ BOOL QueueAdd(
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
 	_In_opt_ ULONG iTimeoutConnect,				/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iTimeoutReconnect,				/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iTimeoutReconnect,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptConnectRetries,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptConnectTimeout,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptReceiveTimeout,			/// can be DEFAULT_VALUE

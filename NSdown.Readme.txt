@@ -16,7 +16,7 @@ NSdown::Download	/URL url
 /PROXYPASS pass				| Not implemented yet. The default proxy settings are used
 
 Return:
-	[Stack] An unique ID useful to query the download status later
+	[Stack] An unique download ID. Useful to query the download status later
 
 Examples:
 
@@ -33,10 +33,10 @@ TODO:
 - Parameterized InternetOpenUrl flags
 - Parameterized HttpSendRequest flags
 - Proxy
-- reconnect during dld
+* reconnect during dld
 * Connect timeout parameter
 * Reconnect timeout parameter
-- resume parameter
+x resume parameter
 * query file size
 * download file with unknown size
 - HTTPS authentication
@@ -46,3 +46,5 @@ TODO:
 - Multiple download sources
 - Support files > 4GB
 - Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads)
+- Use InternetSetStatusCallback
+- Retry opening local file if ERROR_LOCK_VIOLATION
