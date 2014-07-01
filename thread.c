@@ -10,10 +10,6 @@
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
 
-/*
-	TODO:
-	- Reconnect during transfer
-*/
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
 VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem );
@@ -369,6 +365,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 	// HttpOpenRequest flags
 	iFlagsHttpOpen =
+		INTERNET_FLAG_NO_CACHE_WRITE |
 		INTERNET_FLAG_IGNORE_CERT_DATE_INVALID |
 	///	INTERNET_FLAG_IGNORE_CERT_CN_INVALID |
 		INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI |
