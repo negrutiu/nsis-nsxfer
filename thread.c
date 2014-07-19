@@ -164,9 +164,11 @@ void CALLBACK ThreadDownload_StatusCallback(
 	switch (dwInternetStatus)
 	{
 	case INTERNET_STATUS_RECEIVING_RESPONSE:
+		/// Too noisy...
 		///TRACE2( _T("  Th:%s StatusCallback( 0x%p, INTERNET_STATUS_RECEIVING_RESPONSE[%u] )\n"), pItem->pThread->szName, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_RESPONSE_RECEIVED:
+		/// Too noisy...
 		///TRACE2( _T("  Th:%s StatusCallback( 0x%p, INTERNET_STATUS_RESPONSE_RECEIVED[%u] )\n"), pItem->pThread->szName, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_CLOSING_CONNECTION:
@@ -285,8 +287,8 @@ void CALLBACK ThreadDownload_StatusCallback(
 }
 
 
-//++ ThreadDownload_Session
-BOOL ThreadDownload_Session( _Inout_ PQUEUE_ITEM pItem )
+//++ ThreadDownload_OpenSession
+BOOL ThreadDownload_OpenSession(_Inout_ PQUEUE_ITEM pItem)
 {
 	DWORD err = ERROR_SUCCESS;
 	assert( pItem );
@@ -371,7 +373,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 		INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI |
 		INTERNET_FLAG_RELOAD;
 
-	// InternetOpenUrl flags
+	// HttpSendRequest flags
 	iFlagsHttpSend =
 		SECURITY_FLAG_IGNORE_REVOCATION |
 	///	SECURITY_FLAG_IGNORE_UNKNOWN_CA |
@@ -442,7 +444,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 				if ( pItem->hConnect ) {
 
-					// Check TERM event
+					// Check again the TERM event
 					if ( !ThreadIsTerminating( pItem->pThread ) ) {
 
 						// Make an HTTP request
@@ -468,7 +470,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 								NULL,					/// Referer
 								szReqType,
 								iFlagsHttpOpen,
-								(DWORD_PTR)pItem
+								(DWORD_PTR)pItem		/// Context
 								);
 
 							MyFree( pszObjectName );
@@ -564,8 +566,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 }
 
 
-//++ ThreadDownload_QueryContentLength
-ULONG ThreadDownload_QueryContentLength( _In_ HINTERNET hFile, _Out_ PULONG64 piContentLength )
+//++ ThreadDownload_QueryContentLength64
+ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 piContentLength )
 {
 	ULONG err = ERROR_SUCCESS;
 	TCHAR szContentLength[128];
@@ -601,10 +603,10 @@ ULONG ThreadDownload_SetRemotePosition( _Inout_ PQUEUE_ITEM pItem, _In_ PLARGE_I
 	assert( pItem->iFileSize != INVALID_FILE_SIZE64 );
 	assert( piFilePos );
 
-	/// By design, the current (remote) position is at offset zero
-	/// If the new offset is also zero, we'll return successfully
-	/// Additionally, don't attempt to set the position past the EOF
-	if ( (piFilePos->QuadPart > 0) && ((ULONG64)piFilePos->QuadPart < pItem->iFileSize) ) {
+	/// By design, this function is called when the remote file position is zero
+	if ((piFilePos->QuadPart > 0) &&							/// The new position must be different than the old one
+		((ULONG64)piFilePos->QuadPart < pItem->iFileSize) )		/// Don't set the postition past the EOF
+	{
 
 		if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
 
@@ -678,7 +680,7 @@ ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 			assert( pItem->Local.pszFile && *pItem->Local.pszFile );
 
 			// Query the remote content length
-			ThreadDownload_QueryContentLength( pItem->hRequest, &pItem->iFileSize );
+			ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize );
 
 			// Create/Append local file
 			if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
@@ -747,7 +749,7 @@ ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 			assert( pItem->Local.pMemory == NULL );
 
 			// Query the remote content length
-			err = ThreadDownload_QueryContentLength( pItem->hRequest, &pItem->iFileSize );
+			err = ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize );
 			if ( err == ERROR_SUCCESS ) {
 
 				// Size limit
@@ -847,6 +849,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 					*piRecvBytes = 0;
 				while ( err == ERROR_SUCCESS && (pItem->iRecvSize < pItem->iFileSize)) {
 #ifdef DEBUG_XFER_MAX_BYTES
+					/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
 					if ( piRecvBytes && (*piRecvBytes >= DEBUG_XFER_MAX_BYTES) ) {
 						err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
 						break;
@@ -871,9 +874,11 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
 									pItem->iRecvSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
-									Sleep( DEBUG_XFER_SLOWDOWN );	/// Emulate slow download
+									/// Simulate transfer slow download
+									Sleep( DEBUG_XFER_SLOWDOWN );
 #endif ///DEBUG_XFER_SLOWDOWN
 #ifdef DEBUG_XFER_PROGRESS
+									/// Display transfer progress
 									TRACE(
 										_T( "  Th:%s ThreadTransfer(ID:%u, Recv:(%d%%)%I64u/%I64u, %s %s -> %s)\n" ),
 										pItem->pThread->szName, pItem->iId,
@@ -913,6 +918,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 			ULONG iBytesRecv;
 			while ( err == ERROR_SUCCESS ) {
 #ifdef DEBUG_XFER_MAX_BYTES
+				/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
 				if ( piRecvBytes && (*piRecvBytes >= DEBUG_XFER_MAX_BYTES) ) {
 					err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
 					break;
@@ -923,9 +929,11 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 						if ( iBytesRecv > 0 ) {
 							pItem->iRecvSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
+							/// Simulate transfer slow download
 							Sleep( DEBUG_XFER_SLOWDOWN );	/// Emulate slow download
 #endif ///DEBUG_XFER_SLOWDOWN
 #ifdef DEBUG_XFER_PROGRESS
+							/// Display transfer progress
 							TRACE(
 								_T( "  Th:%s ThreadTransfer(ID:%u, Recv:(%d%%)%I64u/%I64u, %s %s -> Memory)\n" ),
 								pItem->pThread->szName, pItem->iId,
@@ -970,12 +978,12 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 
 	if ( pItem->pszURL && *pItem->pszURL ) {
 
-		if ( ThreadDownload_Session( pItem ) ) {
+		if ( ThreadDownload_OpenSession( pItem ) ) {
 
-			BOOL bReconnect = TRUE;
-			for ( int i = 0; (i < 1000) && bReconnect; i++ ) {
+			BOOL bReconnectAllowed = TRUE;
+			for (int i = 0; (i < 1000) && bReconnectAllowed; i++) {
 
-				bReconnect = FALSE;
+				bReconnectAllowed = FALSE;
 				if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
 
 					ULONG64 iRecvBytes = 0;
@@ -992,10 +1000,10 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 					ThreadDownload_RemoteDisconnect( pItem );
 
 					/// Reconnect and resume?
-					bReconnect =
+					bReconnectAllowed =
 						pItem->iWin32Error != ERROR_SUCCESS &&
 						pItem->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
-						iRecvBytes > 0 &&
+						iRecvBytes > 0 &&			/// We already received something...
 						ItemIsReconnectAllowed( pItem );
 				}
 			}
@@ -1047,12 +1055,14 @@ ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pItem )
 		TCHAR szErrorText[512];
 		ULONG iDataSize;
 
+		/// Get HTTP status (numeric)
 		iDataSize = sizeof( iHttpStatus );
 		if ( HttpQueryInfo( pItem->hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &iHttpStatus, &iDataSize, NULL ) ) {
 			if ( pItem->iHttpStatus != iHttpStatus ) {
 
 				pItem->iHttpStatus = iHttpStatus;
 
+				/// Get HTTP status (string)
 				MyFree( pItem->pszHttpStatus );
 				szErrorText[0] = 0;
 				iDataSize = sizeof( szErrorText );
