@@ -492,7 +492,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 							if ( !ThreadIsTerminating( pItem->pThread ) ) {
 
 								// Send the HTTP request
-								if ( HttpSendRequest( pItem->hRequest, pItem->pszHeaders, -1, NULL, 0 ) ) {
+								if ( HttpSendRequest( pItem->hRequest, pItem->pszHeaders, -1, pItem->pData, pItem->iDataSize ) ) {
 
 									/// Check the HTTP status code
 									iHttpStatus = ThreadSetHttpStatus( pItem );

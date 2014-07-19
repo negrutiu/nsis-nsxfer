@@ -53,6 +53,8 @@ typedef struct _QUEUE_ITEM {
 	// Download options
 	TCHAR szMethod[20];				/// GET, POST, HEAD, etc. Default is GET
 	LPTSTR pszHeaders;				/// Additional HTTP headers sent by HttpSendRequest
+	LPVOID pData;					/// Additional data sent by HttpSendRequest (useful for POST)
+	ULONG iDataSize;
 	ULONG iTimeoutConnect;			/// Keep trying to connect for X ms. Default is 0
 	ULONG iTimeoutReconnect;		/// Keep trying to reconnect for X ms when the connection drops while downloading. Default is 0
 	ULONG iOptConnectRetries;		/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
@@ -137,6 +139,8 @@ BOOL QueueAdd(
 	_In_opt_ LPCTSTR pszLocalFile,
 	_In_opt_ LPCTSTR pszMethod,					/// can be NULL
 	_In_opt_ LPCTSTR pszHeaders,				/// can be NULL
+	_In_opt_ LPVOID pData,						/// can be NULL
+	_In_opt_ ULONG iDataSize,					/// can be 0
 	_In_opt_ ULONG iTimeoutConnect,				/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iTimeoutReconnect,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptConnectRetries,			/// can be DEFAULT_VALUE

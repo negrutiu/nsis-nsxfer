@@ -39,6 +39,17 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText );		/// Call
 #define MyAllocStr(_len)	(LPTSTR)MyAlloc( ((_len) + 1) * sizeof(TCHAR))
 #define MyFree(_ptr)		if ( _ptr ) { g_MemStats.FreeBytes += GlobalSize((HGLOBAL)(_ptr)); g_MemStats.FreeCalls++; GlobalFree((HGLOBAL)(_ptr)); (_ptr) = NULL; }
 
+#define MyDataDup(_dst, _src, _size) { \
+	(_dst) = MyAlloc( _size ); \
+	if (_dst) { \
+		LPBYTE pDst = (LPBYTE)(_dst); \
+		LPBYTE pSrc = (LPBYTE)(_src); \
+		ULONG i; \
+		for ( i = 0; i < (_size); i++, pDst++, pSrc++ ) \
+			*pDst = *pSrc; \
+	} \
+}
+
 #define MyStrDup(_dst, _src) { \
 	(_dst) = MyAllocStr( lstrlen( _src )); \
 	if (_dst) \

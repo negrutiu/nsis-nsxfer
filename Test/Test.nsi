@@ -96,6 +96,9 @@ FunctionEnd
 !define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (May 13, 2014).zip`
 !define FILE4 "$EXEDIR\SysinternalsSuite (May 13, 2014).zip"
 
+!define LINK5 `http://httpbin.org/post`
+!define FILE5 "$EXEDIR\Post.txt"
+
 Section "-Test"
 
 	DetailPrint 'NSdown::Download "${LINK0}" "${FILE0}"'
@@ -157,6 +160,28 @@ Section "-Test"
 	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
 	Pop $0	; ItemID
 
+	DetailPrint 'NSdown::Download "${LINK5}" "${FILE5}"'
+	Push "${LINK5}"
+	Push "/REFERER"
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "user=My+User+Name&pass=My+Password"
+	Push "/DATA"
+	;Push "$EXEDIR\buildW.bat"
+	;Push "/DATAFILE"
+	Push "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST"
+	Push "/HEADERS"
+	Push "${FILE5}"
+	Push "/LOCAL"
+	Push "${LINK5}"
+	Push "/URL"
+	Push "POST"
+	Push "/METHOD"
+	CallInstDLL "${NSDOWN}" "Download"
+	;NSdown::Download /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}"
+	Pop $0	; ItemID
 
 /*	; Wait a few seconds...
 	StrCpy $6 4000		; Steps

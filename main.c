@@ -85,6 +85,8 @@ void __cdecl Download(
 	LPTSTR pszUrl = NULL, pszFile = NULL;
 	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
 	LPTSTR pszHeaders = NULL;
+	LPVOID pData = NULL;
+	ULONG iDataSize = 0;
 	ULONG iTimeoutConnect = DEFAULT_VALUE, iTimeoutReconnect = DEFAULT_VALUE;
 	ULONG iOptConnectRetries = DEFAULT_VALUE, iOptConnectTimeout = DEFAULT_VALUE, iOptRecvTimeout = DEFAULT_VALUE;
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
@@ -144,6 +146,49 @@ void __cdecl Download(
 				MyFree( pszHeaders );
 				MyStrDup( pszHeaders, psz );
 			}
+		}
+		else if (lstrcmpi( psz, _T( "/DATA" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				MyFree( pData );
+				iDataSize = 0;
+#ifdef UNICODE
+				pData = MyAlloc( string_size );
+				if (pData) {
+					WideCharToMultiByte( CP_ACP, 0, psz, -1, (LPSTR)pData, string_size, NULL, NULL );
+					iDataSize = lstrlenA( (LPSTR)pData );	/// Don't trust what WideCharToMultiByte returns...
+				}
+#else
+				MyStrDup( pData, psz );
+				iDataSize = lstrlen( psz );
+#endif
+			}
+		}
+		else if (lstrcmpi( psz, _T( "/DATAFILE" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				HANDLE hFile = CreateFile( psz, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL );
+				if (hFile != INVALID_HANDLE_VALUE) {
+					ULONG iFileSize = GetFileSize( hFile, NULL );
+					if (iFileSize != INVALID_FILE_SIZE || GetLastError() == ERROR_SUCCESS) {
+						MyFree( pData );
+						iDataSize = 0;
+						pData = MyAlloc( iFileSize );
+						if (pData) {
+							if (!ReadFile( hFile, pData, iFileSize, &iDataSize, NULL )) {
+								MyFree( pData );
+								iDataSize = 0;
+								assert( !"/DATAFILE: Failed to read" );
+							}
+						} else {
+							assert( !"/DATAFILE: Failed to allocate memory" );
+						}
+					} else {
+						assert( !"/DATAFILE: Failed to get size" );
+					}
+					CloseHandle( hFile );
+				} else {
+					assert( !"/DATAFILE: Failed to open" );
+				}
+			}
 		} else if (lstrcmpi( psz, _T( "/TIMEOUTCONNECT" ) ) == 0) {
 			iTimeoutConnect = popint();
 		}
@@ -190,7 +235,15 @@ void __cdecl Download(
 
 	// Add to the download queue
 	QueueLock( &g_Queue );
-	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, pszMethod, pszHeaders, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, pszReferer, &pItem );
+	QueueAdd(
+		&g_Queue,
+		pszUrl, iLocalType, pszFile,
+		pszMethod, pszHeaders, pData, iDataSize,
+		iTimeoutConnect, iTimeoutReconnect,
+		iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout,
+		pszReferer,
+		&pItem
+		);
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
 
@@ -199,6 +252,7 @@ void __cdecl Download(
 	MyFree( pszUrl );
 	MyFree( pszFile );
 	MyFree( pszHeaders );
+	MyFree( pData );
 	MyFree( pszProxyHost );
 	MyFree( pszProxyUser );
 	MyFree( pszProxyPass );
