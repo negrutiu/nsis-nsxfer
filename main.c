@@ -87,6 +87,7 @@ void __cdecl Download(
 	ULONG iTimeoutConnect = DEFAULT_VALUE, iTimeoutReconnect = DEFAULT_VALUE;
 	ULONG iOptConnectRetries = DEFAULT_VALUE, iOptConnectTimeout = DEFAULT_VALUE, iOptRecvTimeout = DEFAULT_VALUE;
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
+	LPTSTR pszReferer = NULL;
 	PQUEUE_ITEM pItem = NULL;
 
 	EXDLL_INIT();
@@ -170,6 +171,12 @@ void __cdecl Download(
 				MyStrDup( pszProxyPass, psz );
 			}
 		}
+		else if ( lstrcmpi( psz, _T( "/REFERER" ) ) == 0 ) {
+			if ( popstring( psz ) == 0 ) {
+				MyFree( pszReferer );
+				MyStrDup( pszReferer, psz );
+			}
+		}
 		else {
 			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 		}
@@ -177,12 +184,13 @@ void __cdecl Download(
 
 	// Add to the download queue
 	QueueLock( &g_Queue );
-	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, pszMethod, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, &pItem );
+	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, pszMethod, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, pszReferer, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
 
 	MyFree( psz );
 	MyFree( pszMethod );
+	MyFree( pszReferer );
 	MyFree( pszUrl );
 	MyFree( pszFile );
 	MyFree( pszProxyHost );

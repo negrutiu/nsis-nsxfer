@@ -57,6 +57,7 @@ typedef struct _QUEUE_ITEM {
 	ULONG iOptConnectRetries;		/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
 	ULONG iOptConnectTimeout;		/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	ULONG iOptReceiveTimeout;		/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
+	LPTSTR pszReferer;				/// Sent to HttpOpenRequest. Default is NULL
 
 	// Runtime statistics
 	FILETIME tmEnqueue;				/// Enqueue time
@@ -139,6 +140,7 @@ BOOL QueueAdd(
 	_In_opt_ ULONG iOptConnectRetries,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptConnectTimeout,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptReceiveTimeout,			/// can be DEFAULT_VALUE
+	_In_opt_ LPCTSTR pszReferer,				/// can be NULL
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	);
 

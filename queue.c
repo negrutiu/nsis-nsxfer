@@ -163,6 +163,7 @@ BOOL QueueAdd(
 	_In_opt_ ULONG iOptConnectRetries,
 	_In_opt_ ULONG iOptConnectTimeout,
 	_In_opt_ ULONG iOptReceiveTimeout,
+	_In_opt_ LPCTSTR pszReferrer,
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	)
 {
@@ -208,6 +209,11 @@ BOOL QueueAdd(
 			pItem->iOptConnectRetries = iOptConnectRetries;
 			pItem->iOptConnectTimeout = iOptConnectTimeout;
 			pItem->iOptReceiveTimeout = iOptReceiveTimeout;
+			if (pszReferrer && *pszReferrer) {
+				MyStrDup( pItem->pszReferer, pszReferrer );
+			} else {
+				pItem->pszReferer = NULL;
+			}
 
 			GetLocalFileTime( &pItem->tmEnqueue );
 			pItem->tmDownloadStart.dwLowDateTime = 0;
@@ -283,6 +289,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 		MyFree( pItem->pszURL );
 		MyFree( pItem->pszWin32Error );
 		MyFree( pItem->pszHttpStatus );
+		MyFree( pItem->pszReferer );
 
 		switch ( pItem->iLocalType )
 		{

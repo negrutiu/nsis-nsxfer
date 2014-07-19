@@ -4,6 +4,7 @@ NSdown::Download	[/METHOD GET|POST]
 					[/TIMEOUTCONNECT msec] [/TIMEOUTRECONNECT msec]
 					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
+					[/REFERER url]
 
 /METHOD GET|POST			| HTTP Method. Default is GET
 /URL url					| HTTP or HTTPS
@@ -16,6 +17,7 @@ NSdown::Download	[/METHOD GET|POST]
 /PROXY server				| Not implemented yet. The default proxy settings are used
 /PROXYUSER user				| Not implemented yet. The default proxy settings are used
 /PROXYPASS pass				| Not implemented yet. The default proxy settings are used
+/REFERER url				| Optional referer URL, passed to InternetOpenRequest
 
 Return:
 	[Stack] An unique download ID. Useful to query the download status later

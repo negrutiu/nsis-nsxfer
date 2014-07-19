@@ -467,7 +467,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 								pItem->szMethod,
 								pszObjectName,
 								_T( "HTTP/1.1" ),
-								NULL,					/// Referer
+								pItem->pszReferer,
 								szReqType,
 								iFlagsHttpOpen,
 								(DWORD_PTR)pItem		/// Context
