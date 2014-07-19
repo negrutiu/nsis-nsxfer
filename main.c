@@ -84,6 +84,7 @@ void __cdecl Download(
 	LPTSTR pszMethod = NULL;
 	LPTSTR pszUrl = NULL, pszFile = NULL;
 	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
+	LPTSTR pszHeaders = NULL;
 	ULONG iTimeoutConnect = DEFAULT_VALUE, iTimeoutReconnect = DEFAULT_VALUE;
 	ULONG iOptConnectRetries = DEFAULT_VALUE, iOptConnectTimeout = DEFAULT_VALUE, iOptRecvTimeout = DEFAULT_VALUE;
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
@@ -138,7 +139,12 @@ void __cdecl Download(
 				}
 			}
 		}
-		else if ( lstrcmpi( psz, _T( "/TIMEOUTCONNECT" ) ) == 0 ) {
+		else if (lstrcmpi( psz, _T( "/HEADERS" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				MyFree( pszHeaders );
+				MyStrDup( pszHeaders, psz );
+			}
+		} else if (lstrcmpi( psz, _T( "/TIMEOUTCONNECT" ) ) == 0) {
 			iTimeoutConnect = popint();
 		}
 		else if ( lstrcmpi( psz, _T( "/TIMEOUTRECONNECT" ) ) == 0 ) {
@@ -184,18 +190,19 @@ void __cdecl Download(
 
 	// Add to the download queue
 	QueueLock( &g_Queue );
-	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, pszMethod, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, pszReferer, &pItem );
+	QueueAdd( &g_Queue, pszUrl, iLocalType, pszFile, pszMethod, pszHeaders, iTimeoutConnect, iTimeoutReconnect, iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout, pszReferer, &pItem );
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
 	QueueUnlock( &g_Queue );
 
 	MyFree( psz );
 	MyFree( pszMethod );
-	MyFree( pszReferer );
 	MyFree( pszUrl );
 	MyFree( pszFile );
+	MyFree( pszHeaders );
 	MyFree( pszProxyHost );
 	MyFree( pszProxyUser );
 	MyFree( pszProxyPass );
+	MyFree( pszReferer );
 }
 
 

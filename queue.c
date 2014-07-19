@@ -158,6 +158,7 @@ BOOL QueueAdd(
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
 	_In_opt_ LPCTSTR pszMethod,
+	_In_opt_ LPCTSTR pszHeaders,
 	_In_opt_ ULONG iTimeoutConnect,
 	_In_opt_ ULONG iTimeoutReconnect,
 	_In_opt_ ULONG iOptConnectRetries,
@@ -203,6 +204,11 @@ BOOL QueueAdd(
 				lstrcpyn( pItem->szMethod, pszMethod, ARRAYSIZE( pItem->szMethod ) );
 			} else {
 				lstrcpy( pItem->szMethod, _T("GET") );		/// Default
+			}
+			if (pszHeaders && *pszHeaders) {
+				MyStrDup( pItem->pszHeaders, pszHeaders );
+			} else {
+				pItem->pszHeaders = NULL;
 			}
 			pItem->iTimeoutConnect = iTimeoutConnect;
 			pItem->iTimeoutReconnect = iTimeoutReconnect;
@@ -287,6 +293,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 
 		// Free item's content
 		MyFree( pItem->pszURL );
+		MyFree( pItem->pszHeaders );
 		MyFree( pItem->pszWin32Error );
 		MyFree( pItem->pszHttpStatus );
 		MyFree( pItem->pszReferer );
