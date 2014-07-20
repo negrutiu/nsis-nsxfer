@@ -23,28 +23,33 @@ NSdown::Download	[/METHOD GET|POST]
 /PROXYUSER user				| Not implemented yet. The default proxy settings are used
 /PROXYPASS pass				| Not implemented yet. The default proxy settings are used
 /REFERER url				| Optional referer URL, passed to InternetOpenRequest
+/INTERNETFLAGS flags		| Combination of INTERNET_FLAG_XXX passed to InternetOpenRequest. Default is 0x84082200 (INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD)
+/SECURITYFLAGS flags		| Combination of SECURITY_FLAG_XXX passed to InternetSetOption(INTERNET_OPTION_SECURITY_FLAGS). Default is 0x2080 (SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID)
 
 Return:
 	[Stack] An unique download ID. Useful to query the download status later
 
 Examples:
 
+	; Download to local file
 	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000
 	Pop $0	; Download ID
 
+	; Download to memory
 	NSdown::Download /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY
 	Pop $0	; Download ID
 
+	; Send the HTTP request but don't download the content
 	NSdown::Download /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE
 	Pop $0	; Download ID
 
 	; POST a form
-	NSdown::Download /URL "http://httpbin.org/post" /METHOD POST /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD"
+	NSdown::Download /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD"
 	Pop R0	; Download ID
 
 TODO:
-- Parameterized InternetOpenUrl flags
-- Parameterized HttpSendRequest flags
+* Parameterized InternetOpenUrl flags
+* Parameterized HttpSendRequest flags
 - Proxy
 * reconnect during dld
 * Connect timeout parameter

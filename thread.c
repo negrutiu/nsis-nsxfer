@@ -350,8 +350,6 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 	BOOL bRet = FALSE;
 	DWORD dwStartTime;
 	ULONG i, iTimeout;
-	ULONG iFlagsHttpOpen, iFlagsHttpSend;
-	ULONG iHttpStatus;
 	URL_COMPONENTS uc;
 
 	assert( pItem );
@@ -364,21 +362,6 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 	} else {
 		iTimeout = (pItem->iTimeoutConnect != DEFAULT_VALUE ? pItem->iTimeoutConnect : 0);		/// Default: 0ms
 	}
-
-	// HttpOpenRequest flags
-	iFlagsHttpOpen =
-		INTERNET_FLAG_NO_CACHE_WRITE |
-		INTERNET_FLAG_IGNORE_CERT_DATE_INVALID |
-	///	INTERNET_FLAG_IGNORE_CERT_CN_INVALID |
-		INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_NO_UI |
-		INTERNET_FLAG_RELOAD;
-
-	// HttpSendRequest flags
-	iFlagsHttpSend =
-		SECURITY_FLAG_IGNORE_REVOCATION |
-	///	SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-	///	SECURITY_FLAG_IGNORE_CERT_CN_INVALID
-		SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
 
 	// Crack the URL
 	uc.dwStructSize = sizeof( uc );
@@ -459,8 +442,18 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 						if ( pszObjectName ) {
 
 							wnsprintf( pszObjectName, iObjectNameLen + 1, _T( "%s%s" ), uc.lpszUrlPath, uc.lpszExtraInfo );
+
+							if (pItem->iHttpInternetFlags == DEFAULT_VALUE) {
+								pItem->iHttpInternetFlags =
+									INTERNET_FLAG_NO_CACHE_WRITE |
+									INTERNET_FLAG_IGNORE_CERT_DATE_INVALID |
+									///INTERNET_FLAG_IGNORE_CERT_CN_INVALID |
+									INTERNET_FLAG_NO_COOKIES |
+									INTERNET_FLAG_NO_UI |
+									INTERNET_FLAG_RELOAD;
+							}
 							if ( uc.nScheme == INTERNET_SCHEME_HTTPS )
-								iFlagsHttpOpen |= INTERNET_FLAG_SECURE;
+								pItem->iHttpInternetFlags |= INTERNET_FLAG_SECURE;
 
 							pItem->hRequest = HttpOpenRequest(
 								pItem->hConnect,
@@ -469,7 +462,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 								_T( "HTTP/1.1" ),
 								pItem->pszReferer,
 								szReqType,
-								iFlagsHttpOpen,
+								pItem->iHttpInternetFlags,
 								(DWORD_PTR)pItem		/// Context
 								);
 
@@ -481,9 +474,16 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 							// Set callback function
 							InternetSetStatusCallback( pItem->hRequest, ThreadDownload_StatusCallback );
 
-							// On some Vistas (e.g. Home), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
-							// We've decided to ignore the revocation status.
-							InternetSetOption( pItem->hRequest, INTERNET_OPTION_SECURITY_FLAGS, &iFlagsHttpSend, sizeof( DWORD ) );
+							// On some Vistas (Home edition), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
+							// By default, we ignore the revocation information
+							if (pItem->iHttpSecurityFlags == DEFAULT_VALUE) {
+								pItem->iHttpSecurityFlags =
+									SECURITY_FLAG_IGNORE_REVOCATION |
+									///SECURITY_FLAG_IGNORE_UNKNOWN_CA |
+									///SECURITY_FLAG_IGNORE_CERT_CN_INVALID
+									SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
+							}
+							InternetSetOption( pItem->hRequest, INTERNET_OPTION_SECURITY_FLAGS, &pItem->iHttpSecurityFlags, sizeof( DWORD ) );
 
 							// The stupid 'Work offline' setting from IE
 							InternetSetOption( pItem->hRequest, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
@@ -495,7 +495,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 								if ( HttpSendRequest( pItem->hRequest, pItem->pszHeaders, -1, pItem->pData, pItem->iDataSize ) ) {
 
 									/// Check the HTTP status code
-									iHttpStatus = ThreadSetHttpStatus( pItem );
+									ULONG iHttpStatus = ThreadSetHttpStatus( pItem );
 
 									// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 									if ( iHttpStatus <= 299 ) {

@@ -61,6 +61,8 @@ typedef struct _QUEUE_ITEM {
 	ULONG iOptConnectTimeout;		/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	ULONG iOptReceiveTimeout;		/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 	LPTSTR pszReferer;				/// Sent to HttpOpenRequest. Default is NULL
+	ULONG iHttpInternetFlags;		/// INTERNET_FLAG_XXX. Default is INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD
+	ULONG iHttpSecurityFlags;		/// SECURITY_FLAG_XXX. Default is SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
 
 	// Runtime statistics
 	FILETIME tmEnqueue;				/// Enqueue time
@@ -147,6 +149,8 @@ BOOL QueueAdd(
 	_In_opt_ ULONG iOptConnectTimeout,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iOptReceiveTimeout,			/// can be DEFAULT_VALUE
 	_In_opt_ LPCTSTR pszReferer,				/// can be NULL
+	_In_opt_ ULONG iHttpInternetFlags,			/// can be DEFAULT_VALUE
+	_In_opt_ ULONG iHttpSecurityFlags,			/// can be DEFAULT_VALUE
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	);
 

@@ -167,6 +167,8 @@ BOOL QueueAdd(
 	_In_opt_ ULONG iOptConnectTimeout,
 	_In_opt_ ULONG iOptReceiveTimeout,
 	_In_opt_ LPCTSTR pszReferrer,
+	_In_opt_ ULONG iHttpInternetFlags,
+	_In_opt_ ULONG iHttpSecurityFlags,
 	_Outptr_opt_ PQUEUE_ITEM *ppItem
 	)
 {
@@ -229,6 +231,8 @@ BOOL QueueAdd(
 			} else {
 				pItem->pszReferer = NULL;
 			}
+			pItem->iHttpInternetFlags = iHttpInternetFlags;
+			pItem->iHttpSecurityFlags = iHttpSecurityFlags;
 
 			GetLocalFileTime( &pItem->tmEnqueue );
 			pItem->tmDownloadStart.dwLowDateTime = 0;

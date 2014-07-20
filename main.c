@@ -91,6 +91,7 @@ void __cdecl Download(
 	ULONG iOptConnectRetries = DEFAULT_VALUE, iOptConnectTimeout = DEFAULT_VALUE, iOptRecvTimeout = DEFAULT_VALUE;
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
 	LPTSTR pszReferer = NULL;
+	ULONG iHttpInternetFlags = DEFAULT_VALUE, iHttpSecurityFlags = DEFAULT_VALUE;
 	PQUEUE_ITEM pItem = NULL;
 
 	EXDLL_INIT();
@@ -222,11 +223,21 @@ void __cdecl Download(
 				MyStrDup( pszProxyPass, psz );
 			}
 		}
-		else if ( lstrcmpi( psz, _T( "/REFERER" ) ) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		else if (lstrcmpi( psz, _T( "/REFERER" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				MyFree( pszReferer );
 				MyStrDup( pszReferer, psz );
 			}
+		}
+		else if (lstrcmpi( psz, _T( "/INTERNETFLAGS" ) ) == 0) {
+			ULONG iFlags = (ULONG)popint_or();
+			if (iFlags != 0)
+				iHttpInternetFlags = iFlags;
+		}
+		else if (lstrcmpi( psz, _T( "/SECURITYFLAGS" ) ) == 0) {
+			ULONG iFlags = (ULONG)popint_or();
+			if (iFlags != 0)
+				iHttpSecurityFlags = iFlags;
 		}
 		else {
 			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
@@ -242,6 +253,7 @@ void __cdecl Download(
 		iTimeoutConnect, iTimeoutReconnect,
 		iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout,
 		pszReferer,
+		iHttpInternetFlags, iHttpSecurityFlags,
 		&pItem
 		);
 	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
