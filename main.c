@@ -102,7 +102,7 @@ void __cdecl Transfer(
 	// Request unload notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
-	TRACE( _T("NSdown!Download\n"));
+	TRACE( _T("NSdown!Transfer\n"));
 
 	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
 	for ( ;; )
@@ -268,6 +268,46 @@ void __cdecl Transfer(
 	MyFree( pszProxyUser );
 	MyFree( pszProxyPass );
 	MyFree( pszReferer );
+}
+
+
+//++ QueryGlobal
+EXTERN_C __declspec(dllexport)
+void __cdecl QueryGlobal(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	ULONG iThreadCount;
+	ULONG iItemsTotal, iItemsDone, iItemsDownloading, iItemsWaiting;
+	ULONG iItemsSpeed;
+
+	EXDLL_INIT();
+
+	// Validate NSIS version
+	if (!IsCompatibleApiVersion())
+		return;
+
+	TRACE( _T( "NSdown!QueryGlobal\n" ) );
+
+	QueueLock( &g_Queue );
+	QueueStatistics(
+		&g_Queue,
+		&iThreadCount,
+		&iItemsTotal, &iItemsDone, &iItemsDownloading, &iItemsWaiting,
+		&iItemsSpeed
+		);
+	QueueUnlock( &g_Queue );
+
+	pushint( iItemsSpeed );
+	pushint( iItemsWaiting );
+	pushint( iItemsDownloading );
+	pushint( iItemsDone );
+	pushint( iItemsTotal );
+	pushint( iThreadCount );
 }
 
 

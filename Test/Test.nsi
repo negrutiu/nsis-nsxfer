@@ -11,7 +11,11 @@
 
 
 ; NSdown path
-!define NSDOWN "$EXEDIR\..\DebugW\NSdown.dll"
+!ifdef NSIS_UNICODE
+	!define NSDOWN "$EXEDIR\..\DebugW\NSdown.dll"
+!else
+	!define NSDOWN "$EXEDIR\..\DebugA\NSdown.dll"
+!endif
 
 
 # The folder where NSdown.dll is
@@ -80,24 +84,24 @@ Function .onInit
 FunctionEnd
 
 !define LINK0 `https://nefertiti`
-!define FILE0 "$EXEDIR\Nefertiti.html"
+!define FILE0 "$EXEDIR\_Nefertiti.html"
 
-!define LINK1 `http://download.tuxfamily.org/notepadplus/6.5.3/npp.6.5.3.Installer.exe`
-;!define FILE1 "$EXEDIR\npp.6.5.3.Installer.exe"
-!define FILE1 "NONE"
+!define LINK1 `http://download.tuxfamily.org/notepadplus/6.6.7/npp.6.6.7.Installer.exe`
+!define FILE1 "$EXEDIR\_npp.6.6.7.Installer.exe"
+;!define FILE1 "NONE"
 
 !define LINK2 `http://www.piriform.com/ccleaner/download/slim/downloadfile`
 ;!define FILE2 "$EXEDIR\CCleanerSetup.exe"
 !define FILE2 "MEMORY"
 
 !define LINK3 `http://live.sysinternals.com/Files/SysinternalsSuite.zip`
-!define FILE3 "$EXEDIR\SysinternalsSuiteLive.zip"
+!define FILE3 "$EXEDIR\_SysinternalsSuiteLive.zip"
 
 !define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (May 13, 2014).zip`
-!define FILE4 "$EXEDIR\SysinternalsSuite (May 13, 2014).zip"
+!define FILE4 "$EXEDIR\_SysinternalsSuite (May 13, 2014).zip"
 
 !define LINK5 `http://httpbin.org/post`
-!define FILE5 "$EXEDIR\Post.txt"
+!define FILE5 "$EXEDIR\_Post1.txt"
 
 Section "-Test"
 
@@ -203,4 +207,26 @@ Section "-Test"
 		Sleep 500
 	${Next} */
 
+SectionEnd
+
+Section Wait
+_loop:
+	CallInstDLL "${NSDOWN}" "QueryGlobal"
+	;NSdown::QueryGlobal
+	Pop $R0 ; Worker threads
+	Pop $R1 ; ItemsTotal
+	Pop $R2 ; ItemsDone
+	Pop $R3 ; ItemsDownloading
+	Pop $R4 ; ItemsWaiting
+	Pop $R5 ; Speed bps
+!ifdef NSIS_UNICODE
+	System::Call 'shlwapi::StrFormatByteSizeW( l r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
+!else
+	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
+!endif
+	DetailPrint "    Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
+	IntCmp $R4 0 _done +1 +1
+		Sleep 1000
+		Goto _loop
+_done:
 SectionEnd

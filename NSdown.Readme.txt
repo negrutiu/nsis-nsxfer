@@ -46,6 +46,36 @@ Examples:
 	; POST a form
 	NSdown::Transfer /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD"
 	Pop R0	; Transfer ID
+_________________________________________________________________________________________________
+
+NSdown::QueryGlobal
+
+Return:
+	[Stack] Worker thread count
+	[Stack] ItemsTotal (which is ItemsDone + ItemsDownloading + ItemsWaiting)
+	[Stack] ItemsDone
+	[Stack] ItemsDownloading
+	[Stack] ItemsWaiting
+	[Stack] Combined speed of transfers in progress (in bytes/s)
+
+Example:
+	NSdown::QueryGlobal
+	Pop $R0 ; Worker threads
+	Pop $R1 ; ItemsTotal
+	Pop $R2 ; ItemsDone
+	Pop $R3 ; ItemsDownloading
+	Pop $R4 ; ItemsWaiting
+	Pop $R5 ; Speed bps
+
+	; Format $R5 (b/s) -> $R6 (KB/s, MB/s, ...)
+!ifdef NSIS_UNICODE
+	System::Call 'shlwapi::StrFormatByteSizeW( l r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
+!else
+	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
+!endif
+
+	DetailPrint "Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
+_________________________________________________________________________________________________
 
 TODO:
 * Parameterized InternetOpenUrl flags

@@ -161,3 +161,15 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
 // Retrieve the queue size
 // The queue must be locked
 ULONG QueueSize( _Inout_ PQUEUE pQueue );
+
+// Retrieve queue statistics
+// The queue must be locked
+BOOL QueueStatistics(
+	_In_ PQUEUE pQueue,
+	_Out_opt_ PULONG piThreadCount,
+	_Out_opt_ PULONG piItemsTotal,
+	_Out_opt_ PULONG piItemsDone,
+	_Out_opt_ PULONG piItemsDownloading,
+	_Out_opt_ PULONG piItemsWaiting,
+	_Out_opt_ PULONG piItemsSpeed				/// Combined transfer speed in bytes/s
+	);

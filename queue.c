@@ -344,6 +344,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 	return bRet;
 }
 
+
 ULONG QueueSize( _Inout_ PQUEUE pQueue )
 {
 	PQUEUE_ITEM pItem;
@@ -352,4 +353,53 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue )
 	for ( pItem = pQueue->pHead, iSize = 0; pItem; pItem = pItem->pNext, iSize++ );
 	TRACE2( _T( "  QueueSize(%s) == %u\n" ), pQueue->szName, iSize );
 	return iSize;
+}
+
+
+BOOL QueueStatistics(
+	_In_ PQUEUE pQueue,
+	_Out_opt_ PULONG piThreadCount,
+	_Out_opt_ PULONG piItemsTotal,
+	_Out_opt_ PULONG piItemsDone,
+	_Out_opt_ PULONG piItemsDownloading,
+	_Out_opt_ PULONG piItemsWaiting,
+	_Out_opt_ PULONG piItemsSpeed
+	)
+{
+	BOOL bRet = TRUE;
+	assert( pQueue );
+	if (pQueue) {
+		PQUEUE_ITEM pItem;
+
+		if (piThreadCount)
+			*piThreadCount = (ULONG)pQueue->iThreadCount;
+
+		if (piItemsTotal)
+			*piItemsTotal = 0;
+		if (piItemsDone)
+			*piItemsDone = 0;
+		if (piItemsDownloading)
+			*piItemsDownloading = 0;
+		if (piItemsWaiting)
+			*piItemsWaiting = 0;
+		if (piItemsSpeed)
+			*piItemsSpeed = 0;
+
+		for (pItem = pQueue->pHead; pItem; pItem = pItem->pNext) {
+			if (piItemsTotal)
+				(*piItemsTotal)++;
+			if (piItemsDone && (pItem->iStatus == ITEM_STATUS_DONE))
+				(*piItemsDone)++;
+			if (piItemsDownloading && (pItem->iStatus == ITEM_STATUS_DOWNLOADING))
+				(*piItemsDownloading)++;
+			if (piItemsWaiting && (pItem->iStatus == ITEM_STATUS_WAITING))
+				(*piItemsWaiting)++;
+			if (piItemsSpeed)
+				*piItemsSpeed += 0;		/// TODO
+		}
+
+	} else {
+		bRet = FALSE;
+	}
+	return bRet;
 }
