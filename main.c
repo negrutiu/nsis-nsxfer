@@ -3,7 +3,6 @@
 #include "utils.h"
 #include "queue.h"
 
-#define USERAGENT _T("NSdown (WinInet)")
 HINSTANCE g_hInst = NULL;
 BOOL g_bInitialized = FALSE;
 QUEUE g_Queue = { 0 };
@@ -70,9 +69,9 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage )
 }
 
 
-//++ Download
+//++ Transfer
 EXTERN_C __declspec(dllexport)
-void __cdecl Download(
+void __cdecl Transfer(
 	HWND   parent,
 	int    string_size,
 	TCHAR   *variables,

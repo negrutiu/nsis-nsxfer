@@ -235,10 +235,10 @@ BOOL QueueAdd(
 			pItem->iHttpSecurityFlags = iHttpSecurityFlags;
 
 			GetLocalFileTime( &pItem->tmEnqueue );
-			pItem->tmDownloadStart.dwLowDateTime = 0;
-			pItem->tmDownloadStart.dwHighDateTime = 0;
-			pItem->tmDownloadEnd.dwLowDateTime = 0;
-			pItem->tmDownloadEnd.dwHighDateTime = 0;
+			pItem->tmTransferStart.dwLowDateTime = 0;
+			pItem->tmTransferStart.dwHighDateTime = 0;
+			pItem->tmTransferEnd.dwLowDateTime = 0;
+			pItem->tmTransferEnd.dwHighDateTime = 0;
 			pItem->iFileSize = 0;
 			pItem->iRecvSize = 0;
 			pItem->bResumeNeedsValidation = FALSE;

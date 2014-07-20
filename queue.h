@@ -10,7 +10,7 @@
 	- When a worker thread becomes available, it'll start processing the item (ITEM_STATUS_DOWNLOADING)
 	- After the download is completed, the item will be left in the queue (ITEM_STATUS_DONE)
 	- Items are stored in the queue forever. Their status can be queried at any time.
-	- QueueClear(...) will empty the queue. All past downloads will be forgotten.
+	- QueueClear(...) will empty the queue. All completed downloads will be forgotten.
 */
 
 #define DEFAULT_VALUE				((ULONG)-1)
@@ -50,7 +50,7 @@ typedef struct _QUEUE_ITEM {
 		LPBYTE pMemory;				/// Valid for ITEM_LOCAL_MEMORY. The buffer size will be iFileSize
 	} Local;
 
-	// Download options
+	// Transfer options
 	TCHAR szMethod[20];				/// GET, POST, HEAD, etc. Default is GET
 	LPTSTR pszHeaders;				/// Additional HTTP headers sent by HttpSendRequest
 	LPVOID pData;					/// Additional data sent by HttpSendRequest (useful for POST)
@@ -66,8 +66,8 @@ typedef struct _QUEUE_ITEM {
 
 	// Runtime statistics
 	FILETIME tmEnqueue;				/// Enqueue time
-	FILETIME tmDownloadStart;		/// Download startup time
-	FILETIME tmDownloadEnd;			/// Download startup time
+	FILETIME tmTransferStart;		/// Transfer startup time
+	FILETIME tmTransferEnd;			/// Transfer completion time
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
 	BOOLEAN bResumeNeedsValidation;	/// Set to TRUE when The Range HTTP header is used, and we must validate whether the server truly supports it

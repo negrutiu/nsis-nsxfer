@@ -4,7 +4,7 @@
 #include "utils.h"
 
 
-#define NSDOWN_USERAGENT			_T("Mozilla/5.0 (NSdown)")
+#define NSDOWN_USERAGENT			_T("NSdown (WinInet)")
 #define INVALID_FILE_SIZE64			(ULONG64)-1
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
@@ -69,7 +69,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		pItem = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
 		if ( pItem ) {
 			pItem->pThread = pThread;
-			GetLocalFileTime( &pItem->tmDownloadStart );
+			GetLocalFileTime( &pItem->tmTransferStart );
 			pItem->iStatus = ITEM_STATUS_DOWNLOADING;
 			TRACE( _T( "  Th:%s dequeued item ID:%u, %s\n" ), pThread->szName, pItem->iId, pItem->pszURL );
 		} else {
@@ -81,7 +81,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		if ( pItem ) {
 
 			ThreadDownload( pItem );
-			GetLocalFileTime( &pItem->tmDownloadEnd );
+			GetLocalFileTime( &pItem->tmTransferEnd );
 			pItem->iStatus = ITEM_STATUS_DONE;
 
 		} else {
@@ -480,7 +480,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 								pItem->iHttpSecurityFlags =
 									SECURITY_FLAG_IGNORE_REVOCATION |
 									///SECURITY_FLAG_IGNORE_UNKNOWN_CA |
-									///SECURITY_FLAG_IGNORE_CERT_CN_INVALID
+									///SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
 									SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
 							}
 							InternetSetOption( pItem->hRequest, INTERNET_OPTION_SECURITY_FLAGS, &pItem->iHttpSecurityFlags, sizeof( DWORD ) );

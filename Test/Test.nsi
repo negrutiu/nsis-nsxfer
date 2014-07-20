@@ -101,38 +101,40 @@ FunctionEnd
 
 Section "-Test"
 
-	DetailPrint 'NSdown::Download "${LINK0}" "${FILE0}"'
+	DetailPrint 'NSdown::Transfer "${LINK0}" "${FILE0}"'
+	Push "0x2080|0x100"
+	Push "/SECURITYFLAGS"
 	Push "15000"
 	Push "/TIMEOUTCONNECT"
 	Push "${FILE0}"
 	Push "/LOCAL"
 	Push "${LINK0}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /URL "${LINK0}" /LOCAL "${FILE0}" /RETRYCOUNT 3 /RETRYDELAY 5000
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /URL "${LINK0}" /LOCAL "${FILE0}" /RETRYCOUNT 3 /RETRYDELAY 5000
 	Pop $0	; ItemID
 
-	DetailPrint 'NSdown::Download "${LINK1}" "${FILE1}"'
+	DetailPrint 'NSdown::Transfer "${LINK1}" "${FILE1}"'
 	Push "15000"
 	Push "/TIMEOUTCONNECT"
 	Push "${FILE1}"
 	Push "/LOCAL"
 	Push "${LINK1}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000
 	Pop $0	; ItemID
 
-	DetailPrint 'NSdown::Download "${LINK2}" "${FILE2}"'
+	DetailPrint 'NSdown::Transfer "${LINK2}" "${FILE2}"'
 	Push "${FILE2}"
 	Push "/LOCAL"
 	Push "${LINK2}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /URL "${LINK2}" /LOCAL "${FILE2}"
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /URL "${LINK2}" /LOCAL "${FILE2}"
 	Pop $0	; ItemID
 
-	DetailPrint 'NSdown::Download "${LINK3}" "${FILE3}"'
+	DetailPrint 'NSdown::Transfer "${LINK3}" "${FILE3}"'
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
 	Push "15000"
@@ -141,11 +143,11 @@ Section "-Test"
 	Push "/LOCAL"
 	Push "${LINK3}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /URL "${LINK3}" /LOCAL "${FILE3}"
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3}"
 	Pop $0	; ItemID
 
-	DetailPrint 'NSdown::Download "${LINK4}" "${FILE4}"'
+	DetailPrint 'NSdown::Transfer "${LINK4}" "${FILE4}"'
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
 	Push "15000"
@@ -156,11 +158,11 @@ Section "-Test"
 	Push "/URL"
 	Push "POST"
 	Push "/METHOD"
-	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
 	Pop $0	; ItemID
 
-	DetailPrint 'NSdown::Download "${LINK5}" "${FILE5}"'
+	DetailPrint 'NSdown::Transfer "${LINK5}" "${FILE5}"'
 	Push "${LINK5}"
 	Push "/REFERER"
 	Push "60000"
@@ -179,8 +181,8 @@ Section "-Test"
 	Push "/URL"
 	Push "POST"
 	Push "/METHOD"
-	CallInstDLL "${NSDOWN}" "Download"
-	;NSdown::Download /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}"
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}"
 	Pop $0	; ItemID
 
 /*	; Wait a few seconds...
@@ -189,7 +191,7 @@ Section "-Test"
 		; $0 = HTTP status code, 0=Completed
 		; $1 = Completed files
 		; $2 = Remaining files
-		; $3 = Number of downloaded bytes for the current file
+		; $3 = Number of transfered bytes for the current file
 		; $4 = Size of current file (Empty string if the size is unknown)
 		CallInstDLL "${NSDOWN}" "GetStats"
 		;NSdown::GetStats
