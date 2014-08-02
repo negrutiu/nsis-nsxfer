@@ -103,6 +103,9 @@ FunctionEnd
 !define LINK5 `http://httpbin.org/post`
 !define FILE5 "$EXEDIR\_Post1.txt"
 
+!define LINK6 `http://nefertiti.homenet.org:8008/Priest.mkv`
+!define FILE6 "$EXEDIR\_Priest.mkv"
+
 Section "-Test"
 
 	DetailPrint 'NSdown::Transfer "${LINK0}" "${FILE0}"'
@@ -189,25 +192,23 @@ Section "-Test"
 	;NSdown::Transfer /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}"
 	Pop $0	; ItemID
 
-/*	; Wait a few seconds...
-	StrCpy $6 4000		; Steps
-	${For} $5 1 $6
-		; $0 = HTTP status code, 0=Completed
-		; $1 = Completed files
-		; $2 = Remaining files
-		; $3 = Number of transfered bytes for the current file
-		; $4 = Size of current file (Empty string if the size is unknown)
-		CallInstDLL "${NSDOWN}" "GetStats"
-		;NSdown::GetStats
-		DetailPrint "Waiting($5/$6): HTTP status == $0, Completed files == $1, Remaining files == $2, Recv bytes (last file) == $3, Total bytes (last file) == $4"
-		${If} $2 = 0		; No remaining requests
-		;${OrIf} $0 >= 300	; HTTP error codes
-			${Break}
-		${EndIf}
-		Sleep 500
-	${Next} */
+/*
+	DetailPrint 'NSdown::Transfer "${LINK6}" "${FILE6}"'
+	Push "10000"
+	Push "/TIMEOUTRECONNECT"
+	Push "${FILE6}"
+	Push "/LOCAL"
+	Push "${LINK6}"
+	Push "/URL"
+	Push "POST"
+	Push "/METHOD"
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /METHOD POST /URL "${LINK6}" /LOCAL "${FILE6}" /TIMEOUTRECONNECT 60000
+	Pop $0	; ItemID
+*/
 
 SectionEnd
+
 
 Section Wait
 _loop:
@@ -225,7 +226,9 @@ _loop:
 	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
 !endif
 	DetailPrint "    Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
-	IntCmp $R4 0 _done +1 +1
+
+	; Loop until ItemsTotal == ItemsDone
+	IntCmp $R1 $R2 _done +1 +1
 		Sleep 1000
 		Goto _loop
 _done:

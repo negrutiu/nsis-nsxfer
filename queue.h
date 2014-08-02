@@ -72,6 +72,19 @@ typedef struct _QUEUE_ITEM {
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
 
+	struct {
+		FILETIME tmStart;			/// Last transfer (loop) startup time
+		FILETIME tmEnd;				/// Last transfer (loop) finish time
+		ULONG64 iXferSize;			/// Last transfer (loop) data size
+	} Xfer;
+
+	struct {
+		ULONG iSpeed;				/// Transfer speed (bytes/sec)
+		TCHAR szSpeed[30];			/// Transfer speed nicely formatted ("255.4 KB/s", "2 MB/s", etc)
+		ULONG iChunkTime;			/// Tick count
+		ULONG iChunkSize;			/// Bytes
+	} Speed;
+
 	// Runtime variables
 	HINTERNET hSession;				/// InternetOpen
 	HINTERNET hConnect;				/// InternetConnect

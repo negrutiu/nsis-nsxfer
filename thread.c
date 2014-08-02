@@ -9,6 +9,7 @@
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
+#define SPEED_MEASURE_INTERVAL		2000		/// milliseconds
 
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
@@ -815,13 +816,71 @@ BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pItem )
 }
 
 
+//++ ThreadDownload_RefreshSpeed
+void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bXferFinished )
+{
+	BOOL bFormatString = FALSE;
+	assert( pItem );
+
+	// Compute speed
+	if (bXferFinished) {
+
+		ULONG64 iTimeDiff = ((PULARGE_INTEGER)&pItem->Xfer.tmEnd)->QuadPart - ((PULARGE_INTEGER)&pItem->Xfer.tmStart)->QuadPart;
+		iTimeDiff /= 10000;		/// Convert to milliseconds
+
+		if (iTimeDiff > 0) {
+			pItem->Speed.iSpeed = (ULONG)(pItem->Xfer.iXferSize / (iTimeDiff / 1000.0F));
+		} else {
+			pItem->Speed.iSpeed = (ULONG)pItem->Xfer.iXferSize;
+		}
+		bFormatString = TRUE;
+
+		pItem->Speed.iChunkTime = 0;
+		pItem->Speed.iChunkSize = 0;
+
+	} else {
+
+		ULONG iTimeDiff = GetTickCount() - pItem->Speed.iChunkTime;
+		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
+
+			pItem->Speed.iSpeed = (ULONG)(pItem->Speed.iChunkSize / (iTimeDiff / 1000.0F));
+			bFormatString = TRUE;
+
+			pItem->Speed.iChunkSize = 0;
+			pItem->Speed.iChunkTime = GetTickCount();
+		}
+	}
+
+	// Format as text
+	if (bFormatString) {
+#ifdef UNICODE
+		StrFormatByteSizeW( (LONGLONG)pItem->Speed.iSpeed, pItem->Speed.szSpeed, ARRAYSIZE( pItem->Speed.szSpeed ) );
+#else
+		StrFormatByteSizeA( pItem->Speed.iSpeed, pItem->Speed.szSpeed, ARRAYSIZE( pItem->Speed.szSpeed ) );
+#endif
+		lstrcat( pItem->Speed.szSpeed, _T( "/s" ) );
+	}
+}
+
+
 //++ ThreadDownload_Transfer
-BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRecvBytes )
+BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 {
 	DWORD err = ERROR_SUCCESS;
 
 	assert( pItem );
 	assert( pItem->hRequest != NULL );
+
+	/// Initializations
+	GetLocalFileTime( &pItem->Xfer.tmStart );
+	pItem->Xfer.tmEnd.dwLowDateTime = 0;
+	pItem->Xfer.tmEnd.dwHighDateTime = 0;
+	pItem->Xfer.iXferSize = 0;
+
+	pItem->Speed.iSpeed = 0;
+	lstrcpy( pItem->Speed.szSpeed, _T( "..." ) );
+	pItem->Speed.iChunkTime = GetTickCount();
+	pItem->Speed.iChunkSize = 0;
 
 	// Debugging definitions
 ///#define DEBUG_XFER_MAX_BYTES		1024*1024
@@ -845,12 +904,10 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 
 				/// Transfer loop
 				ULONG iBytesRecv, iBytesWritten;
-				if ( piRecvBytes )
-					*piRecvBytes = 0;
 				while ( err == ERROR_SUCCESS && (pItem->iRecvSize < pItem->iFileSize)) {
 #ifdef DEBUG_XFER_MAX_BYTES
 					/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
-					if ( piRecvBytes && (*piRecvBytes >= DEBUG_XFER_MAX_BYTES) ) {
+					if ( pItem->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
 						err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
 						break;
 					}
@@ -868,22 +925,26 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 									break;
 								}
 							}
-							if ( piRecvBytes )
-								*piRecvBytes += iBytesRecv;
 							if ( iBytesRecv > 0 ) {
 								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
+									/// Update fields
 									pItem->iRecvSize += iBytesRecv;
+									pItem->Xfer.iXferSize += iBytesRecv;
+									pItem->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
 									/// Simulate transfer slow download
 									Sleep( DEBUG_XFER_SLOWDOWN );
 #endif ///DEBUG_XFER_SLOWDOWN
+									/// Speed measurement
+									ThreadDownload_RefreshSpeed( pItem, FALSE );
 #ifdef DEBUG_XFER_PROGRESS
 									/// Display transfer progress
 									TRACE(
-										_T( "  Th:%s ThreadTransfer(ID:%u, Recv:(%d%%)%I64u/%I64u, %s %s -> %s)\n" ),
+										_T( "  Th:%s ThreadTransfer(ID:%u, Recv:(%d%%)%I64u/%I64u@%s, %s %s -> %s)\n" ),
 										pItem->pThread->szName, pItem->iId,
 										ItemGetRecvPercent( pItem ),
 										pItem->iRecvSize, pItem->iFileSize,
+										pItem->Speed.szSpeed,
 										pItem->szMethod, pItem->pszURL, pItem->Local.pszFile
 										);
 #endif ///DEBUG_XFER_PROGRESS
@@ -902,7 +963,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 					} else {
 						err = ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
 					}
-				}
+				}	///while
 
 				MyFree( pBuf );
 
@@ -919,26 +980,32 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 			while ( err == ERROR_SUCCESS ) {
 #ifdef DEBUG_XFER_MAX_BYTES
 				/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
-				if ( piRecvBytes && (*piRecvBytes >= DEBUG_XFER_MAX_BYTES) ) {
+				if ( pItem->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
 					err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
 					break;
 				}
 #endif ///DEBUG_XFER_MAX_BYTES
 				if ( !ThreadIsTerminating( pItem->pThread ) ) {
-					if ( InternetReadFile( pItem->hRequest, pItem->Local.pMemory + pItem->iRecvSize, TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
+					if ( InternetReadFile( pItem->hRequest, pItem->Local.pMemory + pItem->iRecvSize, 1024 * TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
 						if ( iBytesRecv > 0 ) {
+							/// Update fields
 							pItem->iRecvSize += iBytesRecv;
+							pItem->Xfer.iXferSize += iBytesRecv;
+							pItem->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
 							/// Simulate transfer slow download
 							Sleep( DEBUG_XFER_SLOWDOWN );	/// Emulate slow download
 #endif ///DEBUG_XFER_SLOWDOWN
+							/// Speed measurement
+							ThreadDownload_RefreshSpeed( pItem, FALSE );
 #ifdef DEBUG_XFER_PROGRESS
 							/// Display transfer progress
 							TRACE(
-								_T( "  Th:%s ThreadTransfer(ID:%u, Recv:(%d%%)%I64u/%I64u, %s %s -> Memory)\n" ),
+								_T( "  Th:%s ThreadTransfer(ID:%u, Recv:(%d%%)%I64u/%I64u@%s, %s %s -> Memory)\n" ),
 								pItem->pThread->szName, pItem->iId,
 								ItemGetRecvPercent( pItem ),
 								pItem->iRecvSize, pItem->iFileSize,
+								pItem->Speed.szSpeed,
 								pItem->szMethod, pItem->pszURL
 								);
 #endif ///DEBUG_XFER_PROGRESS
@@ -958,6 +1025,10 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 			break;
 		}
 	}
+
+	/// Finalize
+	GetLocalFileTime( &pItem->Xfer.tmEnd );
+	ThreadDownload_RefreshSpeed( pItem, TRUE );
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
 }
@@ -986,13 +1057,11 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 				bReconnectAllowed = FALSE;
 				if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
 
-					ULONG64 iRecvBytes = 0;
-
 					if ( i == 0 )
 						ThreadTraceHttpInfo( pItem, HTTP_QUERY_RAW_HEADERS_CRLF );
 
 					if ( ThreadDownload_LocalCreate( pItem ) ) {
-						if ( ThreadDownload_Transfer( pItem, &iRecvBytes ) ) {
+						if ( ThreadDownload_Transfer( pItem ) ) {
 							// Success
 						}
 						ThreadDownload_LocalClose( pItem );
@@ -1003,7 +1072,7 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 					bReconnectAllowed =
 						pItem->iWin32Error != ERROR_SUCCESS &&
 						pItem->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
-						iRecvBytes > 0 &&			/// We already received something...
+						pItem->Xfer.iXferSize > 0 &&			/// We already received something...
 						ItemIsReconnectAllowed( pItem );
 				}
 			}

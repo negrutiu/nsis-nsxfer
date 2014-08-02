@@ -239,8 +239,20 @@ BOOL QueueAdd(
 			pItem->tmConnect.dwHighDateTime = 0;
 			pItem->tmDisconnect.dwLowDateTime = 0;
 			pItem->tmDisconnect.dwHighDateTime = 0;
+
 			pItem->iFileSize = 0;
 			pItem->iRecvSize = 0;
+
+			pItem->Xfer.tmStart.dwLowDateTime = 0;
+			pItem->Xfer.tmStart.dwHighDateTime = 0;
+			pItem->Xfer.tmEnd.dwLowDateTime = 0;
+			pItem->Xfer.tmEnd.dwHighDateTime = 0;
+			pItem->Xfer.iXferSize = 0;
+
+			pItem->Speed.iSpeed = 0;
+			pItem->Speed.szSpeed[0] = 0;
+			pItem->Speed.iChunkTime = 0;
+			pItem->Speed.iChunkSize = 0;
 
 			pItem->hSession = NULL;
 			pItem->hConnect = NULL;
@@ -293,12 +305,13 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 	if ( pItem ) {
 
 		TRACE(
-			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, %s %s -> %s)\n" ),
+			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, Speed:%s, %s %s -> %s)\n" ),
 			pQueue->szName,
 			pItem->iId,
 			pItem->iWin32Error != ERROR_SUCCESS ? pItem->iWin32Error : pItem->iHttpStatus,
 			pItem->iWin32Error != ERROR_SUCCESS ? pItem->pszWin32Error : pItem->pszHttpStatus,
 			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
+			pItem->Speed.szSpeed,
 			pItem->szMethod,
 			pItem->pszURL,
 			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
@@ -394,8 +407,8 @@ BOOL QueueStatistics(
 				(*piItemsDownloading)++;
 			if (piItemsWaiting && (pItem->iStatus == ITEM_STATUS_WAITING))
 				(*piItemsWaiting)++;
-			if (piItemsSpeed)
-				*piItemsSpeed += 0;		/// TODO
+			if (piItemsSpeed && (pItem->iStatus == ITEM_STATUS_DOWNLOADING))
+				*piItemsSpeed += pItem->Speed.iSpeed;
 		}
 
 	} else {
