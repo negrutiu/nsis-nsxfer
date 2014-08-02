@@ -65,9 +65,10 @@ typedef struct _QUEUE_ITEM {
 	ULONG iHttpSecurityFlags;		/// SECURITY_FLAG_XXX. Default is SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
 
 	// Runtime statistics
-	FILETIME tmEnqueue;				/// Enqueue time
-	FILETIME tmTransferStart;		/// Transfer startup time
-	FILETIME tmTransferEnd;			/// Transfer completion time
+	FILETIME tmEnqueue;				/// Enqueuing timestamp
+	FILETIME tmConnect;				/// Connecting timestamp
+	FILETIME tmDisconnect;			/// Disconnecting timestamp
+
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
 

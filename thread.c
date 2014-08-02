@@ -69,7 +69,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		pItem = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
 		if ( pItem ) {
 			pItem->pThread = pThread;
-			GetLocalFileTime( &pItem->tmTransferStart );
+			GetLocalFileTime( &pItem->tmConnect );
 			pItem->iStatus = ITEM_STATUS_DOWNLOADING;
 			TRACE( _T( "  Th:%s dequeued item ID:%u, %s\n" ), pThread->szName, pItem->iId, pItem->pszURL );
 		} else {
@@ -81,7 +81,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 		if ( pItem ) {
 
 			ThreadDownload( pItem );
-			GetLocalFileTime( &pItem->tmTransferEnd );
+			GetLocalFileTime( &pItem->tmDisconnect );
 			pItem->iStatus = ITEM_STATUS_DONE;
 
 		} else {
