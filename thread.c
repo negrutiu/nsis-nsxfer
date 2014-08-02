@@ -630,7 +630,7 @@ ULONG ThreadDownload_SetRemotePosition( _Inout_ PQUEUE_ITEM pItem, _In_ PLARGE_I
 					wnsprintf( szHeader, ARRAYSIZE( szHeader ), _T( "Range: bytes=%I64u-" ), piFilePos->QuadPart );
 					if ( HttpAddRequestHeaders( pItem->hRequest, szHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW ) ) {
 						if ( HttpSendRequest( pItem->hRequest, NULL, 0, NULL, 0 ) ) {
-							/// We'll check later if the server truly supports the Range header
+							/// We'll investigate later whether the server truly supports the Range header
 							pItem->bResumeNeedsValidation = TRUE;
 							/// Success
 							err = ERROR_SUCCESS;
@@ -858,12 +858,12 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem, _Out_opt_ PULONG64 piRe
 					if ( !ThreadIsTerminating( pItem->pThread )) {
 						if ( InternetReadFile( pItem->hRequest, pBuf, iBufSize, &iBytesRecv ) ) {
 							if ( pItem->bResumeNeedsValidation ) {
-								pItem->bResumeNeedsValidation = FALSE;		/// Reset the flag. We're doing this check only once
+								pItem->bResumeNeedsValidation = FALSE;		/// Reset the flag
 								ThreadSetHttpStatus( pItem );				/// Retrieve the HTTP status
 								if ( pItem->iHttpStatus == HTTP_STATUS_OK ) {
-									/// We're resuming the download using the Range header, but the server doesn't support it
-									/// The server should have returned HTTP_STATUS_PARTIAL_CONTENT[216] HTTP status...
-									/// Abort everything
+									/// We've sent the Range header but the server ignored it
+									/// It should have returned HTTP_STATUS_PARTIAL_CONTENT[216] instead of HTTP_STATUS_OK[200]
+									/// Resuming is not supported. Abort everything
 									ThreadSetWin32Error( pItem, ERROR_HTTP_INVALID_SERVER_RESPONSE );
 									break;
 								}

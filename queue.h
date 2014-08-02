@@ -70,12 +70,12 @@ typedef struct _QUEUE_ITEM {
 	FILETIME tmTransferEnd;			/// Transfer completion time
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
-	BOOLEAN bResumeNeedsValidation;	/// Set to TRUE when The Range HTTP header is used, and we must validate whether the server truly supports it
 
 	// Runtime variables
 	HINTERNET hSession;				/// InternetOpen
 	HINTERNET hConnect;				/// InternetConnect
 	HINTERNET hRequest;				/// HttpOpenRequest
+	BOOLEAN bResumeNeedsValidation;	/// Set to TRUE when The Range HTTP header is used, and we must validate whether the server truly supports it
 
 	// Error code (Win32 and HTTP)
 	ULONG iWin32Error;				/// Last Win32 error code

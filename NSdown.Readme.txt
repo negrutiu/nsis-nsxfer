@@ -52,7 +52,7 @@ NSdown::QueryGlobal
 
 Return:
 	[Stack] Worker thread count
-	[Stack] ItemsTotal (which is ItemsDone + ItemsDownloading + ItemsWaiting)
+	[Stack] ItemsTotal (representing ItemsDone + ItemsDownloading + ItemsWaiting)
 	[Stack] ItemsDone
 	[Stack] ItemsDownloading
 	[Stack] ItemsWaiting
@@ -98,3 +98,7 @@ x resume parameter
 - Retry opening local file if ERROR_LOCK_VIOLATION
 - Measure transfer speed
 - Save the raw headers and make it available to NSIS script (support HEAD method)
+- Enumerate transfers in queue
+- Pause/Resume transfer. Create paused
+- Cancel transfer
+- Queue priorities
