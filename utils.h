@@ -68,3 +68,7 @@ typedef struct {
 	UINT FreeCalls;
 } MEMORY_STATS;
 extern MEMORY_STATS g_MemStats;
+
+
+#define VALID_FILE_HANDLE(h) \
+	((h) != NULL) && ((h) != INVALID_HANDLE_VALUE)

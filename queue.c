@@ -257,7 +257,7 @@ BOOL QueueAdd(
 			pItem->hSession = NULL;
 			pItem->hConnect = NULL;
 			pItem->hRequest = NULL;
-			pItem->bResumeNeedsValidation = FALSE;
+			pItem->bRangeSent = FALSE;
 
 			pItem->iWin32Error = ERROR_SUCCESS;
 			pItem->pszWin32Error = NULL;

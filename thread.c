@@ -151,6 +151,32 @@ VOID ThreadTraceHttpInfoImpl( _In_ PQUEUE_ITEM pItem, _In_ UINT iHttpInfo, _In_ 
 #endif ///DBG || _DEBUG
 
 
+//++ ThreadDownload_QueryContentLength64
+ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 piContentLength )
+{
+	ULONG err = ERROR_SUCCESS;
+	TCHAR szContentLength[128];
+	ULONG iDataSize = sizeof( szContentLength );
+
+	assert( hFile );
+	assert( piContentLength );
+
+	if ( HttpQueryInfo( hFile, HTTP_QUERY_CONTENT_LENGTH, szContentLength, &iDataSize, NULL ) ) {
+		if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
+			/// SUCCESS
+		} else {
+			err = ERROR_INVALID_DATA;
+			*piContentLength = INVALID_FILE_SIZE64;
+		}
+	} else {
+		err = GetLastError();
+		*piContentLength = INVALID_FILE_SIZE64;
+	}
+
+	return err;
+}
+
+
 //++ ThreadDownload_StatusCallback
 void CALLBACK ThreadDownload_StatusCallback(
 	_In_ HINTERNET hRequest,
@@ -490,11 +516,24 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 							// Check TERM event
 							if ( !ThreadIsTerminating( pItem->pThread ) ) {
 
+								/// Add the Range header if local content is present (resume)
+								/// NOTE: If the file is already downloaded, the server will return HTTP status 416 (see below!)
+								pItem->bRangeSent = FALSE;
+								if ( pItem->iRecvSize > 0 ) {
+									TCHAR szRangeHeader[255];
+									wnsprintf( szRangeHeader, ARRAYSIZE( szRangeHeader ), _T( "Range: bytes=%I64u-" ), pItem->iRecvSize );
+									pItem->bRangeSent = HttpAddRequestHeaders( pItem->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
+								}
+
 								// Send the HTTP request
+								_send_request:
 								if ( HttpSendRequest( pItem->hRequest, pItem->pszHeaders, -1, pItem->pData, pItem->iDataSize ) ) {
 
 									/// Check the HTTP status code
 									ULONG iHttpStatus = ThreadSetHttpStatus( pItem );
+
+									if ( !bReconnecting )
+										ThreadTraceHttpInfo( pItem, HTTP_QUERY_RAW_HEADERS_CRLF );
 
 									// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 									if ( iHttpStatus <= 299 ) {
@@ -502,7 +541,13 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										/// 1xx Informational
 										/// 2xx Success
 
-										//ThreadTraceHttpInfo( pThread, hRequest, HTTP_QUERY_RAW_HEADERS_CRLF );
+										// Extract the remote content length
+										ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize );
+										if ( pItem->bRangeSent ) {
+											/// If the Range header was used, the remote content length represents the amount not yet downloaded,
+											/// rather the full file size
+											pItem->iFileSize += pItem->iRecvSize;
+										}
 
 										/// Success. Break the loop
 										bRet = TRUE;
@@ -514,13 +559,27 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										/// 4xx Client Error
 										/// 5xx Server Error
 
+										if ( iHttpStatus == 416 ) {								/// 416 Requested Range Not Satisfiable
+											if ( pItem->bRangeSent ) {
+												/// Download all remote content before making another HTTP request
+												if ( TRUE ) {
+													CHAR szBufA[255];
+													DWORD iBytesRecv;
+													while ( (InternetReadFile( pItem->hRequest, szBufA, ARRAYSIZE(szBufA), &iBytesRecv )) && (iBytesRecv > 0) );
+												}
+												/// Retry without the Range header
+												pItem->bRangeSent = FALSE;
+												HttpAddRequestHeaders( pItem->hRequest, _T("Range:"), -1, HTTP_ADDREQ_FLAG_REPLACE );
+												goto _send_request;
+											}
+										}
+
 										if ( iHttpStatus != HTTP_STATUS_SERVICE_UNAVAIL &&		/// 503 Service Unavailable
 											iHttpStatus != HTTP_STATUS_GATEWAY_TIMEOUT &&		/// 504 Gateway Timeout
 											iHttpStatus != 598 &&								/// 598 Network read timeout error (Unknown)
 											iHttpStatus != 599 )								/// 599 Network connect timeout error (Unknown)
 										{
 											/// Error. Break the loop
-											ThreadDownload_RemoteDisconnect( pItem );
 											break;
 										}
 									}
@@ -565,104 +624,21 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 }
 
 
-//++ ThreadDownload_QueryContentLength64
-ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 piContentLength )
+//++ ThreadDownload_LocalCreate1
+ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pItem )
 {
-	ULONG err = ERROR_SUCCESS;
-	TCHAR szContentLength[128];
-	ULONG iDataSize = sizeof( szContentLength );
-
-	assert( hFile );
-	assert( piContentLength );
-
-	if ( HttpQueryInfo( hFile, HTTP_QUERY_CONTENT_LENGTH, szContentLength, &iDataSize, NULL ) ) {
-		if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
-			/// SUCCESS
-		} else {
-			err = ERROR_INVALID_DATA;
-			*piContentLength = INVALID_FILE_SIZE64;
-		}
-	} else {
-		err = GetLastError();
-		*piContentLength = INVALID_FILE_SIZE64;
-	}
-
-	return err;
-}
-
-
-//++ ThreadDownload_SetRemotePosition
-ULONG ThreadDownload_SetRemotePosition( _Inout_ PQUEUE_ITEM pItem, _In_ PLARGE_INTEGER piFilePos )
-{
-	ULONG err = ERROR_SUCCESS;
-	TCHAR szHeader[128];
-
-	assert( pItem );
-	assert( pItem->hRequest != NULL );
-	assert( pItem->iFileSize != INVALID_FILE_SIZE64 );
-	assert( piFilePos );
-
-	/// By design, this function is called when the remote file position is zero
-	if ((piFilePos->QuadPart > 0) &&							/// The new position must be different than the old one
-		((ULONG64)piFilePos->QuadPart < pItem->iFileSize) )		/// Don't set the postition past the EOF
-	{
-
-		if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
-
-			/// Method 1: Use InternetSetFilePointer
-			/// Doesn't work with POST method
-			/// Doesn't work if the cache is disabled
-			if ( InternetSetFilePointer( pItem->hRequest, piFilePos->LowPart, &piFilePos->HighPart, FILE_BEGIN, 0 ) == INVALID_SET_FILE_POINTER )
-				err = GetLastError();
-
-			/// Method 2: Use the "Range" HTTP header
-			/// http://www.clevercomponents.com/articles/article015/resuming.asp
-			if ( err != ERROR_SUCCESS ) {
-
-				/// Make sure the server doesn't explicitly reject ranges
-				TCHAR szAcceptRanges[128];
-				ULONG iAcceptRangesSize = sizeof( szAcceptRanges );
-				if ( !HttpQueryInfo( pItem->hRequest, HTTP_QUERY_ACCEPT_RANGES, szAcceptRanges, &iAcceptRangesSize, NULL ) )
-					szAcceptRanges[0] = _T( '\0' );
-				if ( lstrcmpi( szAcceptRanges, _T( "none" ) ) != 0 ) {
-
-					wnsprintf( szHeader, ARRAYSIZE( szHeader ), _T( "Range: bytes=%I64u-" ), piFilePos->QuadPart );
-					if ( HttpAddRequestHeaders( pItem->hRequest, szHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW ) ) {
-						if ( HttpSendRequest( pItem->hRequest, NULL, 0, NULL, 0 ) ) {
-							/// We'll investigate later whether the server truly supports the Range header
-							pItem->bResumeNeedsValidation = TRUE;
-							/// Success
-							err = ERROR_SUCCESS;
-						} else {
-							err = GetLastError();
-						}
-					} else {
-						err = GetLastError();
-					}
-				} else {
-					err = ERROR_INTERNET_INVALID_OPERATION;		/// The server explicitly rejects resuming
-				}
-			}
-
-		} else {
-			err = ERROR_INTERNET_INCORRECT_FORMAT;
-		}
-	}
-
-	return err;
-}
-
-
-//++ ThreadDownload_LocalCreate
-ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
-{
+	///
+	/// NOTE:
+	/// This function is called *before* sending the HTTP request
+	/// The remote content length (pItem->iFileSize) is unknown at this point
+	/// We'll simply open the local file and get its size
+	///
 	ULONG err = ERROR_SUCCESS;
 
 	assert( pItem );
-	assert( pItem->hRequest != NULL );
+	assert( pItem->hRequest == NULL );			/// Must not be connected
 
 	/// Cleanup
-	pItem->iFileSize = INVALID_FILE_SIZE64;
 	pItem->iRecvSize = 0;
 
 	switch ( pItem->iLocalType ) {
@@ -675,68 +651,112 @@ ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_FILE:
 		{
-			assert( pItem->Local.hFile == NULL || pItem->Local.hFile == INVALID_HANDLE_VALUE );
-			assert( pItem->Local.pszFile && *pItem->Local.pszFile );
+			assert( !VALID_FILE_HANDLE( pItem->Local.hFile ));			/// File must not be opened
+			assert( pItem->Local.pszFile && *pItem->Local.pszFile );	/// File name must not be empty
 
-			// Query the remote content length
-			ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize );
+			// Try and open already existing file (resume)
+			pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+			if ( pItem->Local.hFile != INVALID_HANDLE_VALUE ) {
+				/// TODO: Retry if ERROR_LOCK_VIOLATION
+				LARGE_INTEGER iExistingSize;
+				if ( GetFileSizeEx( pItem->Local.hFile, &iExistingSize ) ) {
+					/// SUCCESS
+					pItem->iRecvSize = iExistingSize.QuadPart;
+				} else {
+					err = GetLastError();	/// GetFileSizeEx
+				}
+			} else {
+				err = GetLastError();	/// CreateFile
+			}
 
-			// Create/Append local file
+			/// Handle errors
+			if ( (err != ERROR_SUCCESS) && VALID_FILE_HANDLE(pItem->Local.hFile) ) {
+				CloseHandle( pItem->Local.hFile );
+				pItem->Local.hFile = NULL;
+			}
+			break;
+		}
+
+		case ITEM_LOCAL_MEMORY:
+		{
+			/// Nothing to do without the remote content length
+			assert( pItem->Local.pMemory == NULL );
+			break;
+		}
+	}
+
+	/// Handle errors
+	ThreadSetWin32Error( pItem, err );
+
+	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
+}
+
+
+//++ ThreadDownload_LocalCreate2
+ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
+{
+	///
+	/// NOTE:
+	/// This function is called *after* sending the HTTP request
+	/// At this point, the remote content length is usually known, unless the server fails to report it
+	/// If it's known we'll attempt resuming the download
+	/// Otherwise, we'll start over
+	///
+	ULONG err = ERROR_SUCCESS;
+
+	assert( pItem );
+	assert( pItem->hRequest != NULL );			/// Must be connected
+
+	switch ( pItem->iLocalType ) {
+
+		case ITEM_LOCAL_NONE:
+		{
+			// Exit immediately
+			break;
+		}
+
+		case ITEM_LOCAL_FILE:
+		{
+			assert( VALID_FILE_HANDLE( pItem->Local.hFile ));		/// The file must already be opened
+
+			// Determine if resuming is possible
 			if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
-
-				pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-				if ( pItem->Local.hFile != INVALID_HANDLE_VALUE ) {
-					/// TODO: Retry if ERROR_LOCK_VIOLATION
-					LARGE_INTEGER iExistingSize;
-					if ( GetFileSizeEx( pItem->Local.hFile, &iExistingSize ) ) {
-						if ( (ULONG64)iExistingSize.QuadPart <= pItem->iFileSize ) {
-							if ( (SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
-								if ( ThreadDownload_SetRemotePosition( pItem, &iExistingSize ) == ERROR_SUCCESS ) {
-									/// SUCCESS (resume)
-									pItem->iRecvSize = iExistingSize.QuadPart;
-								} else {
-									// Full download (the remote server probably doesn't support resuming)
-									SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_BEGIN );
-									if ( SetEndOfFile( pItem->Local.hFile ) ) {
-										/// SUCCESS
-									} else {
-										err = GetLastError();	/// SetEndOfFile
-									}
-								}
-							} else {
-								err = GetLastError();	/// SetFilePointer
-							}
+				if ( !pItem->bRangeSent || (pItem->iHttpStatus == HTTP_STATUS_PARTIAL_CONTENT) ) {	/// Server supports the Range header
+					if ( pItem->iRecvSize <= pItem->iFileSize ) {
+						ULONG iZero = 0;
+						if ( (SetFilePointer( pItem->Local.hFile, 0, &iZero, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
+							/// SUCCESS (resume)
 						} else {
-							// Full download (the existing file is larger than the remote file)
-							if ( (SetFilePointer( pItem->Local.hFile, 0, NULL, FILE_BEGIN ) != INVALID_SET_FILE_POINTER ) || (GetLastError() == ERROR_SUCCESS)) {
-								if ( SetEndOfFile( pItem->Local.hFile ) ) {
-									/// SUCCESS
-								} else {
-									err = GetLastError();	/// SetEndOfFile
-								}
-							} else {
-								err = GetLastError();	/// SetFilePointer
-							}
+							err = GetLastError();		/// SetFilePointer
 						}
 					} else {
-						err = GetLastError();	/// GetFileSizeEx
+						err = ERROR_FILE_TOO_LARGE;	/// Local file larger than the remote file
 					}
 				} else {
-					err = GetLastError();	/// CreateFile
+					err = ERROR_INVALID_DATA;	/// The server doesn't support Range header
 				}
-
 			} else {
-				// Full download (remote file size is not available)
-				pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-				if ( pItem->Local.hFile != INVALID_HANDLE_VALUE ) {
-					/// SUCCESS
+				err = ERROR_INVALID_DATA;	/// The remote content length is still unknown
+			}
+
+			// Full download if we can't resume
+			if (err != ERROR_SUCCESS) {
+				ULONG iZero = 0;
+				if ( (SetFilePointer( pItem->Local.hFile, 0, &iZero, FILE_BEGIN ) != INVALID_SET_FILE_POINTER ) || (GetLastError() == ERROR_SUCCESS)) {
+					if ( SetEndOfFile( pItem->Local.hFile ) ) {
+						/// SUCCESS (full download)
+						pItem->iRecvSize = 0;
+						err = ERROR_SUCCESS;
+					} else {
+						err = GetLastError();	/// SetEndOfFile
+					}
 				} else {
-					err = GetLastError();	/// CreateFile
+					err = GetLastError();	/// SetFilePointer
 				}
 			}
 
 			/// Handle errors
-			if ( (err != ERROR_SUCCESS) && (pItem->Local.hFile != NULL) && (pItem->Local.hFile != INVALID_HANDLE_VALUE) ) {
+			if ( (err != ERROR_SUCCESS) && VALID_FILE_HANDLE(pItem->Local.hFile) ) {
 				CloseHandle( pItem->Local.hFile );
 				pItem->Local.hFile = NULL;
 			}
@@ -747,25 +767,19 @@ ULONG ThreadDownload_LocalCreate( _Inout_ PQUEUE_ITEM pItem )
 		{
 			assert( pItem->Local.pMemory == NULL );
 
-			// Query the remote content length
-			err = ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize );
-			if ( err == ERROR_SUCCESS ) {
-
-				// Size limit
-				if ( pItem->iFileSize <= MAX_MEMORY_CONTENT_LENGTH ) {
-
-					// Allocate memory
+			if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
+				if ( pItem->iFileSize <= MAX_MEMORY_CONTENT_LENGTH ) {		// Size limit
 					pItem->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
 					if ( pItem->Local.pMemory ) {
-						/// SUCCESS
+						/// SUCCESS (full download)
 					} else {
-						err = ERROR_OUTOFMEMORY;
+						err = ERROR_OUTOFMEMORY;	/// MyAlloc
 					}
-
 				} else {
-					err = ERROR_FILE_TOO_LARGE;
-					pItem->Local.pMemory = NULL;
+					err = ERROR_FILE_TOO_LARGE;	/// The remote content length exceeds the limit
 				}
+			} else {
+				err = ERROR_INVALID_DATA;	/// The remote content length is still unknown
 			}
 			break;
 		}
@@ -794,7 +808,7 @@ BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_FILE:
 		{
-			if ( (pItem->Local.hFile != NULL) && (pItem->Local.hFile != INVALID_HANDLE_VALUE) ) {
+			if ( VALID_FILE_HANDLE(pItem->Local.hFile) ) {
 				bRet = CloseHandle( pItem->Local.hFile );
 				pItem->Local.hFile = NULL;
 			}
@@ -880,6 +894,10 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 	pItem->Speed.iChunkTime = GetTickCount();
 	pItem->Speed.iChunkSize = 0;
 
+	/// Anything to download?
+	if ( pItem->iRecvSize >= pItem->iFileSize )
+		return TRUE;
+
 	// Debugging definitions
 ///#define DEBUG_XFER_MAX_BYTES		1024*1024
 ///#define DEBUG_XFER_SLOWDOWN		1000
@@ -889,8 +907,8 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_NONE:
 		{
-			/// Exit immediately
-			return TRUE;
+			/// Don't transfer anything
+			break;
 		}
 
 		case ITEM_LOCAL_FILE:
@@ -912,17 +930,6 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 #endif ///DEBUG_XFER_MAX_BYTES
 					if ( !ThreadIsTerminating( pItem->pThread )) {
 						if ( InternetReadFile( pItem->hRequest, pBuf, iBufSize, &iBytesRecv ) ) {
-							if ( pItem->bResumeNeedsValidation ) {
-								pItem->bResumeNeedsValidation = FALSE;		/// Reset the flag
-								ThreadSetHttpStatus( pItem );				/// Retrieve the HTTP status
-								if ( pItem->iHttpStatus == HTTP_STATUS_OK ) {
-									/// We've sent the Range header but the server ignored it
-									/// It should have returned HTTP_STATUS_PARTIAL_CONTENT[216] instead of HTTP_STATUS_OK[200]
-									/// Resuming is not supported. Abort everything
-									ThreadSetWin32Error( pItem, ERROR_HTTP_INVALID_SERVER_RESPONSE );
-									break;
-								}
-							}
 							if ( iBytesRecv > 0 ) {
 								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
 									/// Update fields
@@ -975,7 +982,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 		{
 			/// Transfer loop
 			ULONG iBytesRecv;
-			while ( err == ERROR_SUCCESS ) {
+			while ( err == ERROR_SUCCESS && (pItem->iRecvSize < pItem->iFileSize)) {
 #ifdef DEBUG_XFER_MAX_BYTES
 				/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
 				if ( pItem->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
@@ -1045,33 +1052,33 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 
 	if ( pItem->pszURL && *pItem->pszURL ) {
 
-		if ( ThreadDownload_OpenSession( pItem ) ) {
+		if ( ThreadDownload_LocalCreate1( pItem ) ) {
+			if ( ThreadDownload_OpenSession( pItem ) ) {
 
-			BOOL bReconnectAllowed = TRUE;
-			for (int i = 0; (i < 1000) && bReconnectAllowed; i++) {
+				BOOL bReconnectAllowed = TRUE;
+				for (int i = 0; (i < 1000) && bReconnectAllowed; i++) {
 
-				bReconnectAllowed = FALSE;
-				if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
+					bReconnectAllowed = FALSE;
+					if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
+						if ( ThreadDownload_LocalCreate2( pItem ) ) {
 
-					if ( i == 0 )
-						ThreadTraceHttpInfo( pItem, HTTP_QUERY_RAW_HEADERS_CRLF );
+							if ( ThreadDownload_Transfer( pItem ) ) {
+								// Success
+							}
 
-					if ( ThreadDownload_LocalCreate( pItem ) ) {
-						if ( ThreadDownload_Transfer( pItem ) ) {
-							// Success
+							ThreadDownload_RemoteDisconnect( pItem );
+
+							/// Reconnect and resume?
+							bReconnectAllowed =
+								pItem->iWin32Error != ERROR_SUCCESS &&
+								pItem->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
+								pItem->Xfer.iXferSize > 0 &&			/// We already received something...
+								ItemIsReconnectAllowed( pItem );
 						}
-						ThreadDownload_LocalClose( pItem );
 					}
-					ThreadDownload_RemoteDisconnect( pItem );
-
-					/// Reconnect and resume?
-					bReconnectAllowed =
-						pItem->iWin32Error != ERROR_SUCCESS &&
-						pItem->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
-						pItem->Xfer.iXferSize > 0 &&			/// We already received something...
-						ItemIsReconnectAllowed( pItem );
 				}
 			}
+			ThreadDownload_LocalClose( pItem );
 		}
 	}
 

@@ -89,7 +89,7 @@ typedef struct _QUEUE_ITEM {
 	HINTERNET hSession;				/// InternetOpen
 	HINTERNET hConnect;				/// InternetConnect
 	HINTERNET hRequest;				/// HttpOpenRequest
-	BOOLEAN bResumeNeedsValidation;	/// Set to TRUE when The Range HTTP header is used, and we must validate whether the server truly supports it
+	BOOLEAN bRangeSent;				/// The Range HTTP header has been sent
 
 	// Error code (Win32 and HTTP)
 	ULONG iWin32Error;				/// Last Win32 error code
