@@ -53,7 +53,7 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText );		/// Call
 #define MyStrDup(_dst, _src) { \
 	(_dst) = MyAllocStr( lstrlen( _src )); \
 	if (_dst) \
-		lstrcpy( _dst, _src ); \
+		lstrcpy( (LPTSTR)(_dst), (LPTSTR)(_src) ); \
 }
 
 #define MyZeroMemory(_ptr, _cnt) { \

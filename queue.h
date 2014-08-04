@@ -90,6 +90,7 @@ typedef struct _QUEUE_ITEM {
 	HINTERNET hConnect;				/// InternetConnect
 	HINTERNET hRequest;				/// HttpOpenRequest
 	BOOLEAN bRangeSent;				/// The Range HTTP header has been sent
+	LPCTSTR pszSrvHeaders;			/// HTTP headers received from server
 
 	// Error code (Win32 and HTTP)
 	ULONG iWin32Error;				/// Last Win32 error code

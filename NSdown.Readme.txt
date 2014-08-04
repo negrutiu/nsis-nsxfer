@@ -89,18 +89,18 @@ x resume parameter
 * download file with unknown size
 - HTTPS authentication
 - PROXY authentication
-- GET/POST/PUT(WebDAV)
+- HEAD/GET/POST/PUT(WebDAV)
 * POST headers
 - Multiple download sources
 * Support files > 4GB
 - Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads)
-- Use InternetSetStatusCallback
+- Use InternetSetStatusCallback (remember last status, remember server IP)
 - Retry opening local file if ERROR_LOCK_VIOLATION
-- Measure transfer speed
-- Save the raw headers and make it available to NSIS script (support HEAD method)
+* Measure transfer speed
+* Save the raw headers and make them available for querying
+- Queue priorities
 - Enumerate transfers in queue
 - Pause/Resume transfer. Create paused
-- Cancel transfer
-- Queue priorities
-- Attach the "Zone.Identifier" stream
+- Abort transfer
+- Attach the "Zone.Identifier" stream (optional)
 - Resume memory downloads as well

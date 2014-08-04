@@ -112,45 +112,6 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 }
 
 
-//++ ThreadTraceHttpInfo
-#if DBG || _DEBUG
-
-#if UNICODE
-#define ThreadTraceHttpInfo( pItem, iHttpInfo ) \
-	ThreadTraceHttpInfoImpl( pItem, iHttpInfo, L#iHttpInfo )
-#else
-#define ThreadTraceHttpInfo( pItem, iHttpInfo ) \
-	ThreadTraceHttpInfoImpl( pItem, iHttpInfo, #iHttpInfo )
-#endif
-
-VOID ThreadTraceHttpInfoImpl( _In_ PQUEUE_ITEM pItem, _In_ UINT iHttpInfo, _In_ LPCTSTR szHttpInfo )
-{
-	TCHAR szTemp[512];
-	ULONG iTempSize = sizeof(szTemp);
-	ULONG iTempErr = 0;
-
-	szTemp[0] = 0;
-	iTempErr = HttpQueryInfo( pItem->hRequest, iHttpInfo, szTemp, &iTempSize, NULL ) ? ERROR_SUCCESS : GetLastError();
-	if ( iTempErr != ERROR_HTTP_HEADER_NOT_FOUND ) {
-		if ( iTempErr == ERROR_SUCCESS ) {
-			LPTSTR psz;
-			for ( psz = szTemp; *psz; psz++ )
-				if ( *psz == _T( '\r' ) || *psz == _T( '\n' ) )
-					*psz = _T( '|' );
-			TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(%s) == \"%s\" [%u bytes]\n" ), pItem->pThread->szName, pItem->iId, szHttpInfo, szTemp, iTempSize );
-		} else {
-			LPTSTR pszTemp = NULL;
-			AllocErrorStr( iTempErr, &pszTemp );
-			TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(%s) == %u \"%s\"\n" ), pItem->pThread->szName, pItem->iId, szHttpInfo, iTempErr, pszTemp );
-			MyFree( pszTemp );
-		}
-	}
-}
-#else
-	#define ThreadTraceHttpInfo(...)
-#endif ///DBG || _DEBUG
-
-
 //++ ThreadDownload_QueryContentLength64
 ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 piContentLength )
 {
@@ -529,11 +490,34 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 								_send_request:
 								if ( HttpSendRequest( pItem->hRequest, pItem->pszHeaders, -1, pItem->pData, pItem->iDataSize ) ) {
 
-									/// Check the HTTP status code
-									ULONG iHttpStatus = ThreadSetHttpStatus( pItem );
+									ULONG iHttpStatus;
 
-									if ( !bReconnecting )
-										ThreadTraceHttpInfo( pItem, HTTP_QUERY_RAW_HEADERS_CRLF );
+									/// HTTP headers
+									if ( TRUE ) {
+
+										DWORD err = ERROR_SUCCESS;
+										TCHAR szHeaders[512];
+										ULONG iHeadersSize = sizeof(szHeaders);
+
+										szHeaders[0] = 0;
+										if (HttpQueryInfo( pItem->hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, szHeaders, &iHeadersSize, NULL )) {
+											MyFree( pItem->pszSrvHeaders );
+											MyStrDup( pItem->pszSrvHeaders, szHeaders );	/// Remember the headers
+										} else {
+											err = GetLastError();
+										}
+
+										/// Debugging
+										if (!bReconnecting) {
+											for (LPTSTR psz = szHeaders; *psz; psz++)
+												if (*psz == _T( '\r' ) || *psz == _T( '\n' ))
+													*psz = _T( '|' );
+											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(HTTP_QUERY_RAW_HEADERS_CRLF) == 0x%x, \"%s\"\n" ), pItem->pThread->szName, pItem->iId, err, szHeaders );
+										}
+									}
+
+									/// HTTP status code
+									iHttpStatus = ThreadSetHttpStatus( pItem );
 
 									// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 									if ( iHttpStatus <= 299 ) {

@@ -258,6 +258,7 @@ BOOL QueueAdd(
 			pItem->hConnect = NULL;
 			pItem->hRequest = NULL;
 			pItem->bRangeSent = FALSE;
+			pItem->pszSrvHeaders = NULL;
 
 			pItem->iWin32Error = ERROR_SUCCESS;
 			pItem->pszWin32Error = NULL;
@@ -321,6 +322,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 		MyFree( pItem->pszURL );
 		MyFree( pItem->pszHeaders );
 		MyFree( pItem->pData );
+		MyFree( pItem->pszSrvHeaders );
 		MyFree( pItem->pszWin32Error );
 		MyFree( pItem->pszHttpStatus );
 		MyFree( pItem->pszReferer );
