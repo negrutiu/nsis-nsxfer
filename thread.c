@@ -149,6 +149,11 @@ void CALLBACK ThreadDownload_StatusCallback(
 {
 #if DBG || _DEBUG
 	PQUEUE_ITEM pItem = (PQUEUE_ITEM)dwContext;
+
+	/// Remember the status
+	pItem->iLastCallbackStatus = dwInternetStatus;
+
+	/// Inspect the status
 	switch (dwInternetStatus)
 	{
 	case INTERNET_STATUS_RECEIVING_RESPONSE:
@@ -192,6 +197,13 @@ void CALLBACK ThreadDownload_StatusCallback(
 	case INTERNET_STATUS_NAME_RESOLVED:
 	{
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
+		/// Remember server's IP
+		if (pszAddrA) {
+			TCHAR szAddr[50];
+			if (MultiByteToWideChar( CP_ACP, 0, pszAddrA, -1, szAddr, ARRAYSIZE( szAddr ) ) > 0) {
+				MyStrDup( pItem->pszSrvIP, szAddr );
+			}
+		}
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_NAME_RESOLVED[%u] \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
 		break;
 	}
@@ -1067,10 +1079,10 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 	}
 
 	TRACE(
-		_T( "  Th:%s Id:%u ThreadDownload(Recv:%d%% %I64u @ %s, %s %s -> %s)\n" ),
+		_T( "  Th:%s Id:%u ThreadDownload(Recv:%d%% %I64u @ %s, %s %s [%s] -> %s)\n" ),
 		pItem->pThread->szName, pItem->iId,
 		ItemGetRecvPercent( pItem ), pItem->iFileSize, pItem->Speed.szSpeed,
-		pItem->szMethod, pItem->pszURL,
+		pItem->szMethod, pItem->pszURL, pItem->pszSrvIP,
 		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
 		);
 }
