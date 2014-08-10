@@ -233,3 +233,19 @@ _loop:
 		Goto _loop
 _done:
 SectionEnd
+
+
+Section Enum
+	!define ENUM_STATUS "all"
+
+	DetailPrint "NSdown::Enumerate ${ENUM_STATUS}"
+	Push "${ENUM_STATUS}"
+	CallInstDLL "${NSDOWN}" "Enumerate"
+	;NSdown::Enumerate ${ENUM_STATUS}
+
+	Pop $1	; Count
+	${For} $0 1 $1
+		Pop $2	; Transfer ID
+		DetailPrint "    $0. Transfer ID = $2"
+	${Next}
+SectionEnd

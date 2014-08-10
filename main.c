@@ -311,6 +311,64 @@ void __cdecl QueryGlobal(
 }
 
 
+//++ Enumerate
+EXTERN_C __declspec(dllexport)
+void __cdecl Enumerate(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	#define ITEM_STATUS_UNKNOWN			((ITEM_STATUS)-1)
+	#define ITEM_STATUS_ALL				((ITEM_STATUS)-2)
+
+	LPTSTR psz;
+	ITEM_STATUS iStatus = ITEM_STATUS_UNKNOWN;
+
+	EXDLL_INIT();
+
+	// Validate NSIS version
+	if (!IsCompatibleApiVersion())
+		return;
+
+	TRACE( _T( "NSdown!Enumerate\n" ) );
+
+	// Decide what items to enumerate
+	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
+	if (popstring( psz ) == 0) {
+		if (lstrcmpi( psz, _T( "all" ) ) == 0) {
+			iStatus = ITEM_STATUS_ALL;
+		} else if (lstrcmpi( psz, _T( "downloading" ) ) == 0) {
+			iStatus = ITEM_STATUS_DOWNLOADING;
+		} else if (lstrcmpi( psz, _T( "waiting" ) ) == 0) {
+			iStatus = ITEM_STATUS_WAITING;
+		} else if (lstrcmpi( psz, _T( "completed" ) ) == 0) {
+			iStatus = ITEM_STATUS_DONE;
+			//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
+			//	iStatus = ITEM_STATUS_PAUSED;
+		}
+	}
+	MyFree( psz );
+
+	// Enumerate
+	if (TRUE) {
+		PQUEUE_ITEM pItem;
+		int iCount = 0;
+		QueueLock( &g_Queue );
+		for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext) {
+			if (iStatus == ITEM_STATUS_ALL || iStatus == pItem->iStatus) {
+				pushint( pItem->iId );
+				iCount++;
+			}
+		}
+		pushint( iCount );
+		QueueUnlock( &g_Queue );
+	}
+}
+
+
 //++ _DllMainCRTStartup
 EXTERN_C
 BOOL WINAPI _DllMainCRTStartup(

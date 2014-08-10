@@ -48,6 +48,24 @@ Examples:
 	Pop R0	; Transfer ID
 _________________________________________________________________________________________________
 
+NSdown::Enumerate all|downloading|waiting|completed
+
+Return:
+	[Stack] Item count (N)
+	[Stack] ID1
+	[Stack] ID2
+	[Stack] ...
+	[Stack] IDn
+
+Example:
+	NSdown::Enumerate all
+	Pop $1 ; Count
+	${For} $0 1 $1
+		Pop $2
+		DetailPrint "[$0] Transfer ID = $2"
+	${Next}
+_________________________________________________________________________________________________
+
 NSdown::QueryGlobal
 
 Return:
@@ -99,8 +117,8 @@ x resume parameter
 * Measure transfer speed
 * Save the raw headers and make them available for querying
 - Queue priorities
-- Enumerate transfers in queue
+* Enumerate transfers in queue
 - Pause/Resume transfer. Create paused
 - Abort transfer
 - Attach the "Zone.Identifier" stream (optional)
-- Resume memory downloads as well
+- Resume the downloads to memory, as well
