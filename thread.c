@@ -597,6 +597,15 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 				} else {
 					ThreadSetWin32Error( pItem, GetLastError() );	/// InternetConnect error
 				}
+
+				TRACE(
+					_T( "  Th:%s Id:%u Status (#%d, %u \"%s\")\n" ),
+					pItem->pThread->szName, pItem->iId,
+					i + 1,
+					pItem->iWin32Error == ERROR_SUCCESS ? pItem->iHttpStatus : pItem->iWin32Error,
+					pItem->iWin32Error == ERROR_SUCCESS ? pItem->pszHttpStatus : pItem->pszWin32Error
+					);
+
 			}	/// for
 		} else {
 			ThreadSetWin32Error( pItem, GetLastError() );	/// InternetCrackUrl error
