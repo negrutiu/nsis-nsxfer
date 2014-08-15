@@ -91,6 +91,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="NSdown.Readme.txt" />
+    <Text Include="todo.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />
