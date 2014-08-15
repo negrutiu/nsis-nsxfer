@@ -8,23 +8,24 @@ NSdown::Transfer	[/METHOD GET|POST]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 					[/REFERER url]
 
-/METHOD GET|POST			| HTTP Method. Default is GET
-/URL url					| HTTP or HTTPS
-/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
-/HEADERS hdr				| Additional HTTP headers, separated by CRLF (\r\n)
-/DATA data					| Additional data to be sent as part of the HTTP request
-/DATAFILE file				| Additional data to be sent as part of the HTTP request (read from the specified file)
-/TIMEOUTCONNECT msec		| Keep trying to connect for "msec" milliseconds. Default is 0 (only one attempt to connect is made)
-/TIMEOUTRECONNECT msec		| Keep trying to reconnect for "msec" milliseconds, if the connection drops while downloading. Default is 0 (no attempts to reconnect are made)
-/OPTCONNECTRETRIES count	| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
-/OPTCONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
-/OPTRECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
-/PROXY server				| CERN type proxies (ex: "http=http://my_proxy:my_port"). If Internet Explorer is installed, SOCKS proxies are supported too
-/PROXYUSER user				| Optional username for authenticated proxy servers
-/PROXYPASS pass				| Optional password for authenticated proxy servers
-/REFERER url				| Optional referer URL, passed to InternetOpenRequest
-/INTERNETFLAGS flags		| Combination of INTERNET_FLAG_XXX passed to InternetOpenRequest. Default is 0x84082200 (INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD)
-/SECURITYFLAGS flags		| Combination of SECURITY_FLAG_XXX passed to InternetSetOption(INTERNET_OPTION_SECURITY_FLAGS). Default is 0x2080 (SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID)
+Parameters:
+	/METHOD GET|POST			| HTTP Method. Default is GET
+	/URL url					| HTTP or HTTPS
+	/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
+	/HEADERS hdr				| Additional HTTP headers, separated by CRLF (\r\n)
+	/DATA data					| Additional data to be sent as part of the HTTP request
+	/DATAFILE file				| Additional data to be sent as part of the HTTP request (read from the specified file)
+	/TIMEOUTCONNECT msec		| Keep trying to connect for "msec" milliseconds. Default is 0 (only one attempt to connect is made)
+	/TIMEOUTRECONNECT msec		| Keep trying to reconnect for "msec" milliseconds, if the connection drops while downloading. Default is 0 (no attempts to reconnect are made)
+	/OPTCONNECTRETRIES count	| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
+	/OPTCONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
+	/OPTRECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
+	/PROXY server				| CERN type proxies (ex: "http=http://my_proxy:my_port"). If Internet Explorer is installed, SOCKS proxies are supported too
+	/PROXYUSER user				| Optional username for authenticated proxy servers
+	/PROXYPASS pass				| Optional password for authenticated proxy servers
+	/REFERER url				| Optional referer URL, passed to InternetOpenRequest
+	/INTERNETFLAGS flags		| Combination of INTERNET_FLAG_XXX passed to InternetOpenRequest. Default is 0x84082200 (INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD)
+	/SECURITYFLAGS flags		| Combination of SECURITY_FLAG_XXX passed to InternetSetOption(INTERNET_OPTION_SECURITY_FLAGS). Default is 0x2080 (SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID)
 
 Return:
 	[Stack] An unique transfer ID. Useful to query the transfer status later
@@ -66,6 +67,53 @@ Example:
 	${Next}
 _________________________________________________________________________________________________
 
+NSdown::Query	TransferID
+				[/STATUS] [/WININETSTATUS]
+				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
+				[/SENTHEADERS] [/RECVHEADERS]
+				[/FILESIZE] [/RECVSIZE] [/PERCENT] [/SPEEDBYTES] [/SPEED]
+				[/ERRORCODE] [/ERRORTEXT]
+				/END
+
+				The TransferID is mandatory. The list must be ended with /END
+
+
+Parameters:
+	TransferID				| The transfer ID returned by NSdown::Transfer
+	/STATUS					| Transfer status (downloading|waiting|completed)
+	/WININETSTATUS			| The last status reported by the InternetCallback
+	/METHOD					| The HTTP method in use (GET, POST, HEAD, etc.)
+	/URL					| Full URL
+	/IP						| Server's IP address, or an empty string
+	/PROXY					| The proxy server, or an empty string
+	/LOCAL					| The local destination (file|MEMORY|NONE)
+	/SENTHEADERS			| The raw HTTP headers sent to the server
+	/RECVHEADERS			| The raw HTTP headers received from the server
+	/FILESIZE				| The remote content length (can exceed 4GB (32-bit boundary))
+	/RECVSIZE				| The amount of bytes received so far
+	/PERCENT				| Percent (0-100)
+	/SPEEDBYTES				| Transfer speed (bytes/second)
+	/SPEED					| Transfer speed (nicely formatted, ex: "1,4 MB/s")
+	/ERRORCODE				| Win32 error code, or HTTP status code
+	/ERRORTEXT				| The error explained
+	/END					| Must conclude the parameter list. Important!
+
+Return:
+	A value for each specified parameter, in the same order
+	[Stack] Value1
+	[Stack] Value2
+	[Stack] ...
+	[Stack] ValueN
+
+Example:
+	NSdown::Query $ID /STATUS /URL /PERCENT /SPEED /END
+	Pop $0	;Status
+	Pop $1	;URL
+	Pop $2	;Percent
+	Pop $3	;Speed
+	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
+_________________________________________________________________________________________________
+
 NSdown::QueryGlobal
 
 Return:
@@ -95,31 +143,3 @@ Example:
 	DetailPrint "Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
 _________________________________________________________________________________________________
 
-TODO:
-* Parameterized InternetOpenUrl flags
-* Parameterized HttpSendRequest flags
-* Proxy
-* reconnect during dld
-* Connect timeout parameter
-* Reconnect timeout parameter
-x resume parameter
-* query file size
-* download file with unknown size
-- HTTPS authentication
-- PROXY authentication
-- HEAD/GET/POST/PUT(WebDAV)
-* POST headers
-- Multiple download sources
-* Support files > 4GB
-- Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads)
-* Use InternetSetStatusCallback (remember last status, remember server IP)
-- Retry opening local file if ERROR_LOCK_VIOLATION
-* Measure transfer speed
-* Save the raw headers and make them available for querying
-- Queue priorities
-* Enumerate transfers in queue
-- Pause/Resume transfer. Create paused
-- Abort transfer
-- Attach the "Zone.Identifier" stream (optional)
-- Resume the downloads to memory, as well
-- Download to temporary file

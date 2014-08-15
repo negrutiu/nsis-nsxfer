@@ -83,6 +83,122 @@ Function .onInit
 
 FunctionEnd
 
+
+Function PrintStatus
+
+	Push $0
+	Push $1
+	Push $2
+	Push $3
+	Push $R0
+	Push $R1
+	Push $R2
+	Push $R3
+	Push $R4
+	Push $R5
+
+	!define ENUM_STATUS "all"
+
+	DetailPrint "NSdown::Enumerate ${ENUM_STATUS}"
+	Push "${ENUM_STATUS}"
+	CallInstDLL "${NSDOWN}" "Enumerate"
+	;NSdown::Enumerate ${ENUM_STATUS}
+
+	Pop $1	; Count
+	${For} $0 1 $1
+
+		Pop $2	; Transfer ID
+
+		Push "/END"
+		Push "/ERRORTEXT"
+		Push "/ERRORCODE"
+		Push "/SPEED"
+		Push "/SPEEDBYTES"
+		Push "/PERCENT"
+		Push "/FILESIZE"
+		Push "/RECVSIZE"
+		Push "/RECVHEADERS"
+		Push "/SENTHEADERS"
+		Push "/LOCAL"
+		Push "/PROXY"
+		Push "/IP"
+		Push "/URL"
+		Push "/METHOD"
+		Push "/WININETSTATUS"
+		Push "/STATUS"
+		Push $2	; Transfer ID
+		CallInstDLL "${NSDOWN}" "Query"
+		;NSdown::Query $2 /STATUS ... /END
+
+		StrCpy $R0 "    ID:$2"
+		Pop $3 ;STATUS
+		StrCpy $R0 "$R0 [$3]"
+		Pop $3 ;WININETSTATUS
+		;StrCpy $R0 "$R0 [$3]"
+		Pop $3 ;METHOD
+		StrCpy $R0 "$R0 $3"
+		Pop $3 ;URL
+		StrCpy $R0 "$R0 $3"
+		Pop $3 ;IP
+		StrCmp $3 "" +2 +1
+			StrCpy $R0 "$R0 [$3]"
+		Pop $3 ;PROXY
+		StrCmp $3 "" +2 +1
+			StrCpy $R0 "$R0 [Proxy:$3]"
+		Pop $3 ;LOCAL
+		;StrCpy $R0 "$R0 -> $3"
+		Pop $3 ;SENTHEADERS
+		;StrCpy $R0 "$R0 [$3]"
+		Pop $3 ;RECVHEADERS
+		;StrCpy $R0 "$R0 [$3]"
+		Pop $3 ;RECVSIZE
+		StrCpy $R0 "$R0 $3"
+		Pop $3 ;FILESIZE
+		StrCpy $R0 "$R0/$3"
+		Pop $3 ;PERCENT
+		StrCpy $R0 "$R0($3%)"
+		Pop $3 ;SPEEDBYTES
+		;StrCpy $R0 "$R0 [$3]"
+		Pop $3 ;SPEED
+		StrCpy $R0 "$R0 @ $3"
+		Pop $3 ;ERRORCODE
+		StrCpy $R0 "$R0 = $3"
+		Pop $3 ;ERRORTEXT
+		StrCpy $R0 '$R0 "$3"'
+
+		DetailPrint $R0
+	${Next}
+
+
+	CallInstDLL "${NSDOWN}" "QueryGlobal"
+	;NSdown::QueryGlobal
+	Pop $R0 ; Worker threads
+	Pop $R1 ; ItemsTotal
+	Pop $R2 ; ItemsDone
+	Pop $R3 ; ItemsDownloading
+	Pop $R4 ; ItemsWaiting
+	Pop $R5 ; Speed bps
+!ifdef NSIS_UNICODE
+	System::Call 'shlwapi::StrFormatByteSizeW( l r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
+!else
+	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
+!endif
+	DetailPrint "    Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
+
+	Pop $R5
+	Pop $R4
+	Pop $R3
+	Pop $R2
+	Pop $R1
+	Pop $R0
+	Pop $3
+	Pop $2
+	Pop $1
+	Pop $0
+
+FunctionEnd
+
+
 !define LINK0 `https://nefertiti`
 !define FILE0 "$EXEDIR\_Nefertiti.html"
 
@@ -98,8 +214,8 @@ FunctionEnd
 !define FILE3       "$EXEDIR\_SysinternalsSuiteLive.zip"
 !define FILE3_PROXY "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
 
-!define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (May 13, 2014).zip`
-!define FILE4 "$EXEDIR\_SysinternalsSuite (May 13, 2014).zip"
+!define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (August 5, 2014).zip`
+!define FILE4 "$EXEDIR\_SysinternalsSuite (August 5, 2014).zip"
 
 !define LINK5 `http://httpbin.org/post`
 !define FILE5 "$EXEDIR\_Post1.txt"
@@ -224,11 +340,15 @@ Section "-Test"
 	Pop $0	; ItemID
 */
 
+	Call PrintStatus
+
 SectionEnd
 
 
 Section Wait
 _loop:
+	Call PrintStatus
+
 	CallInstDLL "${NSDOWN}" "QueryGlobal"
 	;NSdown::QueryGlobal
 	Pop $R0 ; Worker threads
@@ -237,32 +357,15 @@ _loop:
 	Pop $R3 ; ItemsDownloading
 	Pop $R4 ; ItemsWaiting
 	Pop $R5 ; Speed bps
-!ifdef NSIS_UNICODE
-	System::Call 'shlwapi::StrFormatByteSizeW( l r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
-!else
-	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
-!endif
-	DetailPrint "    Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
 
 	; Loop until ItemsTotal == ItemsDone
 	IntCmp $R1 $R2 _done +1 +1
-		Sleep 1000
+		Sleep 5000
 		Goto _loop
 _done:
 SectionEnd
 
 
 Section Enum
-	!define ENUM_STATUS "all"
-
-	DetailPrint "NSdown::Enumerate ${ENUM_STATUS}"
-	Push "${ENUM_STATUS}"
-	CallInstDLL "${NSDOWN}" "Enumerate"
-	;NSdown::Enumerate ${ENUM_STATUS}
-
-	Pop $1	; Count
-	${For} $0 1 $1
-		Pop $2	; Transfer ID
-		DetailPrint "    $0. Transfer ID = $2"
-	${Next}
+	Call PrintStatus
 SectionEnd

@@ -2,6 +2,7 @@
 #include "thread.h"
 
 #define QUEUE_MAX_THREADS			20
+#define INVALID_FILE_SIZE64			(ULONG64)-1
 
 /*
 	Queue facts:

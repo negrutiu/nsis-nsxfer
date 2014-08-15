@@ -5,7 +5,6 @@
 
 
 #define NSDOWN_USERAGENT			_T("NSdown (WinInet)")
-#define INVALID_FILE_SIZE64			(ULONG64)-1
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds

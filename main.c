@@ -112,7 +112,7 @@ void __cdecl Transfer(
 
 		if ( lstrcmpi( psz, _T( "/METHOD" ) ) == 0 ) {
 			if ( popstring( psz ) == 0 ) {
-				if ( lstrcmpi( psz, _T( "GET" ) ) == 0 || lstrcmpi( psz, _T( "POST" ) ) == 0 ) {
+				if (lstrcmpi( psz, _T( "GET" ) ) == 0 || lstrcmpi( psz, _T( "POST" ) ) == 0 || lstrcmpi( psz, _T( "HEAD" ) ) == 0) {
 					MyFree( pszMethod );
 					MyStrDup( pszMethod, psz );
 				} else {
@@ -309,6 +309,147 @@ void __cdecl QueryGlobal(
 	pushint( iItemsDone );
 	pushint( iItemsTotal );
 	pushint( iThreadCount );
+}
+
+
+//++ Query
+EXTERN_C __declspec(dllexport)
+void __cdecl Query(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	LPTSTR psz;
+	PQUEUE_ITEM pItem = NULL;
+
+	LPTSTR pParam[30];
+	int iParamCount = 0, iDropCount = 0, i;
+
+	EXDLL_INIT();
+
+	// Validate NSIS version
+	if (!IsCompatibleApiVersion())
+		return;
+
+	TRACE( _T( "NSdown!Query\n" ) );
+
+	/// Allocate the working buffer
+	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
+	assert( psz );
+
+	// Lock the queue
+	QueueLock( &g_Queue );
+
+	/// Look for the transfer ID
+	i = popint();
+	for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext)
+		if (pItem->iId == (ULONG)i)
+			break;
+
+	/// Pop all parameters and remember them
+	while (TRUE) {
+		if (popstring( psz ) != 0)
+			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
+			break;
+		if (iParamCount < ARRAYSIZE( pParam )) {
+			MyStrDup( pParam[iParamCount], psz );
+			iParamCount++;
+		} else {
+			/// too many parameters
+			iDropCount++;
+		}
+	}
+
+	/// Return empty strings for dropped parameters
+	for (i = 0; i < iDropCount; i++)
+		pushstring( _T( "" ) );
+
+	/// Iterate all parameters (in reverse order) and return their values
+	for (i = iParamCount - 1; i >= 0; i--) {
+		if (pItem) {
+			if (lstrcmpi( pParam[i], _T( "/STATUS" ) ) == 0) {
+				switch (pItem->iStatus) {
+				case ITEM_STATUS_WAITING:
+					pushstring( _T( "waiting" ) );
+					break;
+				case ITEM_STATUS_DOWNLOADING:
+					pushstring( _T( "downloading" ) );
+					break;
+				case ITEM_STATUS_DONE:
+					pushstring( _T( "completed" ) );
+					break;
+				default:
+					pushstring( _T( "" ) );
+				}
+			} else if (lstrcmpi( pParam[i], _T( "/WININETSTATUS" ) ) == 0) {
+				pushint( pItem->iLastCallbackStatus );
+			} else if (lstrcmpi( pParam[i], _T( "/METHOD" ) ) == 0) {
+				pushstring( pItem->szMethod );
+			} else if (lstrcmpi( pParam[i], _T( "/URL" ) ) == 0) {
+				pushstring( pItem->pszURL );
+			} else if (lstrcmpi( pParam[i], _T( "/IP" ) ) == 0) {
+				pushstring( pItem->pszSrvIP );
+			} else if (lstrcmpi( pParam[i], _T( "/PROXY" ) ) == 0) {
+				pushstring( pItem->pszProxy );
+			} else if (lstrcmpi( pParam[i], _T( "/LOCAL" ) ) == 0) {
+				switch (pItem->iLocalType) {
+				case ITEM_LOCAL_NONE:
+					pushstring( _T( "None" ) );
+					break;
+				case ITEM_LOCAL_FILE:
+					pushstring( pItem->Local.pszFile );
+					break;
+				case ITEM_LOCAL_MEMORY:
+					pushstring( _T( "Memory" ) );
+					break;
+				default:
+					pushstring( _T( "" ) );
+				}
+			} else if (lstrcmpi( pParam[i], _T( "/SENTHEADERS" ) ) == 0) {
+				pushstring( pItem->pszHeaders );
+			} else if (lstrcmpi( pParam[i], _T( "/RECVHEADERS" ) ) == 0) {
+				pushstring( pItem->pszSrvHeaders );
+			} else if (lstrcmpi( pParam[i], _T( "/FILESIZE" ) ) == 0) {
+				if (pItem->iFileSize != INVALID_FILE_SIZE64) {
+					TCHAR sz[30];
+					wnsprintf( sz, ARRAYSIZE( sz ), _T( "%I64u" ), pItem->iFileSize );
+					pushstring( sz );
+				} else {
+					pushstring( _T( "" ) );
+				}
+			} else if (lstrcmpi( pParam[i], _T( "/RECVSIZE" ) ) == 0) {
+				TCHAR sz[30];
+				wnsprintf( sz, ARRAYSIZE( sz ), _T( "%I64u" ), pItem->iRecvSize );
+				pushstring( sz );
+			} else if (lstrcmpi( pParam[i], _T( "/PERCENT" ) ) == 0) {
+				pushint( ItemGetRecvPercent( pItem ) );
+			} else if (lstrcmpi( pParam[i], _T( "/SPEEDBYTES" ) ) == 0) {
+				pushint( pItem->Speed.iSpeed );
+			} else if (lstrcmpi( pParam[i], _T( "/SPEED" ) ) == 0) {
+				pushstring( pItem->Speed.szSpeed );
+			} else if (lstrcmpi( pParam[i], _T( "/ERRORCODE" ) ) == 0) {
+				pushint( pItem->iWin32Error == ERROR_SUCCESS ? pItem->iHttpStatus : pItem->iWin32Error );
+			} else if (lstrcmpi( pParam[i], _T( "/ERRORTEXT" ) ) == 0) {
+				pushstring( pItem->iWin32Error == ERROR_SUCCESS ? pItem->pszHttpStatus : pItem->pszWin32Error );
+			} else {
+				/// Unknown parameter. Return an empty string
+				pushstring( _T( "" ) );
+			}
+		} else {
+			/// Unknown transfer ID
+			pushstring( _T( "" ) );
+		}
+		MyFree( pParam[i] );
+	}
+
+	// Unlock the queue
+	QueueUnlock( &g_Queue );
+
+	MyFree( psz );
 }
 
 

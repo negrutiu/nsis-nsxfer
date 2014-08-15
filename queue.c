@@ -285,7 +285,7 @@ BOOL QueueAdd(
 			pItem->pszWin32Error = NULL;
 			AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
 
-			pItem->iHttpStatus = 666;
+			pItem->iHttpStatus = 0;
 			pItem->pszHttpStatus = NULL;
 			MyStrDup( pItem->pszHttpStatus, _T( "N/A" ) );
 
