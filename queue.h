@@ -40,6 +40,10 @@ typedef struct _QUEUE_ITEM {
 	// Source
 	LPTSTR pszURL;
 
+	LPTSTR pszProxy;				/// CERN type proxies (ex: "HTTP=http://my_http_proxy:port HTTPS=https://my_https_proxy:port")
+	LPTSTR pszProxyUser;
+	LPTSTR pszProxyPass;
+
 	// Destination
 	ITEM_LOCAL_TYPE iLocalType;
 	union {
@@ -156,6 +160,9 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
+	_In_opt_ LPCTSTR pszProxy,					/// can be NULL
+	_In_opt_ LPCTSTR pszProxyUser,				/// can be NULL
+	_In_opt_ LPCTSTR pszProxyPass,				/// can be NULL
 	_In_opt_ LPCTSTR pszMethod,					/// can be NULL
 	_In_opt_ LPCTSTR pszHeaders,				/// can be NULL
 	_In_opt_ LPVOID pData,						/// can be NULL

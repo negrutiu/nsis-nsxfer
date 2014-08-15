@@ -157,6 +157,9 @@ BOOL QueueAdd(
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
+	_In_opt_ LPCTSTR pszProxy,
+	_In_opt_ LPCTSTR pszProxyUser,
+	_In_opt_ LPCTSTR pszProxyPass,
 	_In_opt_ LPCTSTR pszMethod,
 	_In_opt_ LPCTSTR pszHeaders,
 	_In_opt_ LPVOID pData,
@@ -202,6 +205,22 @@ BOOL QueueAdd(
 				break;
 			default:
 				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
+			}
+
+			if (pszProxy && *pszProxy) {
+				MyStrDup( pItem->pszProxy, pszProxy );
+			} else {
+				pItem->pszProxy = NULL;
+			}
+			if (pszProxyUser && *pszProxyUser) {
+				MyStrDup( pItem->pszProxyUser, pszProxyUser );
+			} else {
+				pItem->pszProxyUser = NULL;
+			}
+			if (pszProxyPass && *pszProxyPass) {
+				MyStrDup( pItem->pszProxyPass, pszProxyPass );
+			} else {
+				pItem->pszProxyPass = NULL;
 			}
 
 			if ( pszMethod && *pszMethod ) {
@@ -322,6 +341,9 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 
 		// Free item's content
 		MyFree( pItem->pszURL );
+		MyFree( pItem->pszProxy );
+		MyFree( pItem->pszProxyUser );
+		MyFree( pItem->pszProxyPass );
 		MyFree( pItem->pszHeaders );
 		MyFree( pItem->pData );
 		MyFree( pItem->pszSrvHeaders );

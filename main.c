@@ -248,6 +248,7 @@ void __cdecl Transfer(
 	QueueAdd(
 		&g_Queue,
 		pszUrl, iLocalType, pszFile,
+		pszProxyHost, pszProxyUser, pszProxyPass,
 		pszMethod, pszHeaders, pData, iDataSize,
 		iTimeoutConnect, iTimeoutReconnect,
 		iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout,

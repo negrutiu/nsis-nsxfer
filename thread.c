@@ -294,19 +294,27 @@ BOOL ThreadDownload_OpenSession(_Inout_ PQUEUE_ITEM pItem)
 	assert( pItem );
 	assert( pItem->hSession == NULL );
 
-	pItem->hSession = InternetOpen( NSDOWN_USERAGENT, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0 );
+	pItem->hSession = InternetOpen( NSDOWN_USERAGENT, pItem->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pItem->pszProxy, NULL, 0 );
 	if ( pItem->hSession ) {
 
 		// Set callback function
 		InternetSetStatusCallback(pItem->hSession, ThreadDownload_StatusCallback);
 
+		/// Authenticated proxy
+		if (pItem->pszProxy) {
+			if (pItem->pszProxyUser && *pItem->pszProxyUser)
+				verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_PROXY_USERNAME, pItem->pszProxyUser, lstrlen( pItem->pszProxyUser ) ) );
+			if (pItem->pszProxyPass && *pItem->pszProxyPass)
+				verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_PROXY_PASSWORD, pItem->pszProxyPass, lstrlen( pItem->pszProxyPass ) ) );
+		}
+
 		/// Options
-		if ( pItem->iOptConnectRetries != DEFAULT_VALUE )
-			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iOptConnectRetries, sizeof( pItem->iOptConnectRetries ) );
-		if ( pItem->iOptConnectTimeout != DEFAULT_VALUE )
-			InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iOptConnectTimeout, sizeof( pItem->iOptConnectTimeout ) );
-		if ( pItem->iOptReceiveTimeout != DEFAULT_VALUE )
-			InternetSetOption( pItem->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iOptReceiveTimeout, sizeof( pItem->iOptReceiveTimeout ) );
+		if (pItem->iOptConnectRetries != DEFAULT_VALUE)
+			verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iOptConnectRetries, sizeof( pItem->iOptConnectRetries ) ) );
+		if (pItem->iOptConnectTimeout != DEFAULT_VALUE)
+			verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iOptConnectTimeout, sizeof( pItem->iOptConnectTimeout ) ) );
+		if (pItem->iOptReceiveTimeout != DEFAULT_VALUE)
+			verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iOptReceiveTimeout, sizeof( pItem->iOptReceiveTimeout ) ) );
 
 		/// Reconnect if disconnected by user
 		if ( TRUE ) {
@@ -316,7 +324,7 @@ BOOL ThreadDownload_OpenSession(_Inout_ PQUEUE_ITEM pItem)
 				(dwConnectState & INTERNET_STATE_DISCONNECTED_BY_USER) )
 			{
 				INTERNET_CONNECTED_INFO ci = { INTERNET_STATE_CONNECTED, 0 };
-				InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof( ci ) );
+				verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof( ci ) ) );
 			}
 		}
 

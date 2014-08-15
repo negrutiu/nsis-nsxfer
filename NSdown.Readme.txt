@@ -19,9 +19,9 @@ NSdown::Transfer	[/METHOD GET|POST]
 /OPTCONNECTRETRIES count	| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
 /OPTCONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 /OPTRECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
-/PROXY server				| Not implemented yet. The default proxy settings are used
-/PROXYUSER user				| Not implemented yet. The default proxy settings are used
-/PROXYPASS pass				| Not implemented yet. The default proxy settings are used
+/PROXY server				| CERN type proxies (ex: "http=http://my_proxy:my_port"). If Internet Explorer is installed, SOCKS proxies are supported too
+/PROXYUSER user				| Optional username for authenticated proxy servers
+/PROXYPASS pass				| Optional password for authenticated proxy servers
 /REFERER url				| Optional referer URL, passed to InternetOpenRequest
 /INTERNETFLAGS flags		| Combination of INTERNET_FLAG_XXX passed to InternetOpenRequest. Default is 0x84082200 (INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD)
 /SECURITYFLAGS flags		| Combination of SECURITY_FLAG_XXX passed to InternetSetOption(INTERNET_OPTION_SECURITY_FLAGS). Default is 0x2080 (SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID)
@@ -98,7 +98,7 @@ ________________________________________________________________________________
 TODO:
 * Parameterized InternetOpenUrl flags
 * Parameterized HttpSendRequest flags
-- Proxy
+* Proxy
 * reconnect during dld
 * Connect timeout parameter
 * Reconnect timeout parameter
@@ -122,3 +122,4 @@ x resume parameter
 - Abort transfer
 - Attach the "Zone.Identifier" stream (optional)
 - Resume the downloads to memory, as well
+- Download to temporary file

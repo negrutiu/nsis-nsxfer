@@ -94,8 +94,9 @@ FunctionEnd
 ;!define FILE2 "$EXEDIR\CCleanerSetup.exe"
 !define FILE2 "MEMORY"
 
-!define LINK3 `http://live.sysinternals.com/Files/SysinternalsSuite.zip`
-!define FILE3 "$EXEDIR\_SysinternalsSuiteLive.zip"
+!define LINK3       "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
+!define FILE3       "$EXEDIR\_SysinternalsSuiteLive.zip"
+!define FILE3_PROXY "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
 
 !define LINK4 `http://nefertiti.homenet.org:8008/SysinternalsSuite (May 13, 2014).zip`
 !define FILE4 "$EXEDIR\_SysinternalsSuite (May 13, 2014).zip"
@@ -139,6 +140,22 @@ Section "-Test"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
 	;NSdown::Transfer /URL "${LINK2}" /LOCAL "${FILE2}"
+	Pop $0	; ItemID
+
+	!define PROXY3 "http=http://176.9.52.230:3128"
+	DetailPrint 'NSdown::Transfer /proxy ${PROXY3} "${LINK3}" "${FILE3_PROXY}"'
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "${PROXY3}"
+	Push "/PROXY"
+	Push "${FILE3_PROXY}"
+	Push "/LOCAL"
+	Push "${LINK3}"
+	Push "/URL"
+	CallInstDLL "${NSDOWN}" "Transfer"
+	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3} /PROXY "${PROXY3}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Transfer "${LINK3}" "${FILE3}"'
