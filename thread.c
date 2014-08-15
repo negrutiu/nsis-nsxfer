@@ -156,44 +156,12 @@ void CALLBACK ThreadDownload_StatusCallback(
 	/// Inspect the status
 	switch (dwInternetStatus)
 	{
-	case INTERNET_STATUS_RECEIVING_RESPONSE:
-		/// Too noisy...
-		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_RECEIVING_RESPONSE[%u] )\n"), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_RESPONSE_RECEIVED:
-		/// Too noisy...
-		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_RESPONSE_RECEIVED[%u] )\n"), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_CLOSING_CONNECTION:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_CLOSING_CONNECTION[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_CONNECTED_TO_SERVER:
+	case INTERNET_STATUS_RESOLVING_NAME:
 	{
-		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_CONNECTED_TO_SERVER[%u] \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		PCTSTR pszName = (PCTSTR)lpvStatusInformation;
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RESOLVING_NAME \"%s\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszName );
 		break;
 	}
-	case INTERNET_STATUS_CONNECTING_TO_SERVER:
-	{
-		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_CONNECTING_TO_SERVER[%u] \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
-		break;
-	}
-	case INTERNET_STATUS_CONNECTION_CLOSED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_CONNECTION_CLOSED[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_HANDLE_CLOSING:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_HANDLE_CLOSING[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_HANDLE_CREATED:
-	{
-		HINTERNET hNewHandle = *((HINTERNET*)lpvStatusInformation);
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_HANDLE_CREATED[%u], Handle:0x%p )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, hNewHandle );
-		break;
-	}
-	case INTERNET_STATUS_INTERMEDIATE_RESPONSE:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_INTERMEDIATE_RESPONSE[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
 	case INTERNET_STATUS_NAME_RESOLVED:
 	{
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
@@ -204,83 +172,115 @@ void CALLBACK ThreadDownload_StatusCallback(
 				MyStrDup( pItem->pszSrvIP, szAddr );
 			}
 		}
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_NAME_RESOLVED[%u] \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_NAME_RESOLVED \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		break;
+	}
+	case INTERNET_STATUS_CONNECTING_TO_SERVER:
+	{
+		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTING_TO_SERVER \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		break;
+	}
+	case INTERNET_STATUS_CONNECTED_TO_SERVER:
+	{
+		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTED_TO_SERVER \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		break;
+	}
+	case INTERNET_STATUS_SENDING_REQUEST:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_SENDING_REQUEST )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_REQUEST_SENT:
+	{
+		DWORD dwBytesSent = *((LPDWORD)lpvStatusInformation);
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_SENT BytesSent:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwBytesSent );
+		break;
+	}
+	case INTERNET_STATUS_RECEIVING_RESPONSE:
+		/// Too noisy...
+		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RECEIVING_RESPONSE )\n"), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_RESPONSE_RECEIVED:
+		/// Too noisy...
+		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RESPONSE_RECEIVED )\n"), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_CTL_RESPONSE_RECEIVED:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CTL_RESPONSE_RECEIVED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_PREFETCH:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_PREFETCH )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_CLOSING_CONNECTION:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CLOSING_CONNECTION )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_CONNECTION_CLOSED:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTION_CLOSED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_HANDLE_CREATED:
+	{
+		HINTERNET hNewHandle = *((HINTERNET*)lpvStatusInformation);
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_HANDLE_CREATED, Handle:0x%p )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, hNewHandle );
+		break;
+	}
+	case INTERNET_STATUS_HANDLE_CLOSING:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_HANDLE_CLOSING )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_DETECTING_PROXY:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_DETECTING_PROXY )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		break;
+	case INTERNET_STATUS_REQUEST_COMPLETE:
+	{
+		LPINTERNET_ASYNC_RESULT pResult = (LPINTERNET_ASYNC_RESULT)lpvStatusInformation;
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_COMPLETE )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	}
 	case INTERNET_STATUS_REDIRECT:
 	{
 		PCTSTR pszNewURL = (PCTSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_REDIRECT[%u] \"%s\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszNewURL );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REDIRECT \"%s\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszNewURL );
 		break;
 	}
-	case INTERNET_STATUS_REQUEST_COMPLETE:
-	{
-		LPINTERNET_ASYNC_RESULT pResult = (LPINTERNET_ASYNC_RESULT)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_REQUEST_COMPLETE[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+	case INTERNET_STATUS_INTERMEDIATE_RESPONSE:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_INTERMEDIATE_RESPONSE )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
-	}
-	case INTERNET_STATUS_REQUEST_SENT:
-	{
-		DWORD dwBytesSent = *((LPDWORD)lpvStatusInformation);
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_REQUEST_SENT[%u] BytesSent:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwBytesSent );
-		break;
-	}
-	case INTERNET_STATUS_RESOLVING_NAME:
-	{
-		PCTSTR pszName = (PCTSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_RESOLVING_NAME[%u] \"%s\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszName );
-		break;
-	}
-	case INTERNET_STATUS_SENDING_REQUEST:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_SENDING_REQUEST[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+	case INTERNET_STATUS_USER_INPUT_REQUIRED:
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_USER_INPUT_REQUIRED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_STATE_CHANGE:
 	{
 		DWORD dwFlags = *((LPDWORD)lpvStatusInformation);
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_STATE_CHANGE[%u] Flags:0x%08x )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwFlags );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_STATE_CHANGE Flags:0x%08x )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwFlags );
 		break;
 	}
-	case INTERNET_STATUS_DETECTING_PROXY:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_DETECTING_PROXY[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_CTL_RESPONSE_RECEIVED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_CTL_RESPONSE_RECEIVED[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_PREFETCH:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_PREFETCH[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
-	case INTERNET_STATUS_USER_INPUT_REQUIRED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_USER_INPUT_REQUIRED[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
-		break;
 	case INTERNET_STATUS_COOKIE_SENT:
 	{
 		DWORD dwSentCookies = (DWORD)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_COOKIE_SENT[%u] CookiesSent:%u)\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwSentCookies );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_SENT CookiesSent:%u)\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwSentCookies );
 		break;
 	}
 	case INTERNET_STATUS_COOKIE_RECEIVED:
 	{
 		DWORD dwRecvCookies = (DWORD)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_COOKIE_RECEIVED[%u] CookiesRecv:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwRecvCookies );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_RECEIVED CookiesRecv:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwRecvCookies );
 		break;
 	}
 	case INTERNET_STATUS_PRIVACY_IMPACTED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_PRIVACY_IMPACTED[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_PRIVACY_IMPACTED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_P3P_HEADER:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_P3P_HEADER[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_P3P_HEADER )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_P3P_POLICYREF:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_P3P_POLICYREF[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_P3P_POLICYREF )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_COOKIE_HISTORY:
 	{
 		InternetCookieHistory *pHistory = (InternetCookieHistory*)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_COOKIE_HISTORY[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_HISTORY )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	}
 	default:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, INTERNET_STATUS_UNKNOWN[%u] )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_UNKNOWN )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	}
 #endif ///DBG || _DEBUG
