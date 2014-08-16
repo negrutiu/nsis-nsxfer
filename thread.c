@@ -166,10 +166,14 @@ void CALLBACK ThreadDownload_StatusCallback(
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
 		/// Remember server's IP
 		if (pszAddrA) {
+#ifdef _UNICODE
 			TCHAR szAddr[50];
 			if (MultiByteToWideChar( CP_ACP, 0, pszAddrA, -1, szAddr, ARRAYSIZE( szAddr ) ) > 0) {
 				MyStrDup( pItem->pszSrvIP, szAddr );
 			}
+#else
+			MyStrDup( pItem->pszSrvIP, pszAddrA );
+#endif
 		}
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_NAME_RESOLVED \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
 		break;
