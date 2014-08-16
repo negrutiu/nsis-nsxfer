@@ -106,7 +106,6 @@ Function PrintStatus
 	Push $R2
 	Push $R3
 	Push $R4
-	Push $R5
 
 	!define ENUM_STATUS "all"
 
@@ -186,23 +185,22 @@ Function PrintStatus
 		DetailPrint $R0
 	${Next}
 
-
+	Push "/END"
+	Push "/COUNTTHREADS"
+	Push "/SPEED"
+	Push "/COUNTDOWNLOADING"
+	Push "/COUNTCOMPLETED"
+	Push "/COUNTTOTAL"
 	CallInstDLL "${NSDOWN}" "QueryGlobal"
-	;NSdown::QueryGlobal
-	Pop $R0 ; Worker threads
-	Pop $R1 ; ItemsTotal
-	Pop $R2 ; ItemsDone
-	Pop $R3 ; ItemsDownloading
-	Pop $R4 ; ItemsWaiting
-	Pop $R5 ; Speed bps
-!ifdef NSIS_UNICODE
-	System::Call 'shlwapi::StrFormatByteSizeW( l r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
-!else
-	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
-!endif
-	DetailPrint "    Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
+	;NSdown::QueryGlobal /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+	Pop $R0 ; Total
+	Pop $R1 ; Completed
+	Pop $R2 ; Downloading
+	Pop $R3 ; Speed
+	Pop $R4 ; Worker threads
 
-	Pop $R5
+	DetailPrint "Transferring $R1+$R2/$R0 items at $R3 using $R4 worker threads"
+	
 	Pop $R4
 	Pop $R3
 	Pop $R2
@@ -378,17 +376,16 @@ Section Wait
 _loop:
 	Call PrintStatus
 
+	Push "/END"
+	Push "/COUNTCOMPLETED"
+	Push "/COUNTTOTAL"
 	CallInstDLL "${NSDOWN}" "QueryGlobal"
-	;NSdown::QueryGlobal
-	Pop $R0 ; Worker threads
-	Pop $R1 ; ItemsTotal
-	Pop $R2 ; ItemsDone
-	Pop $R3 ; ItemsDownloading
-	Pop $R4 ; ItemsWaiting
-	Pop $R5 ; Speed bps
+	;NSdown::QueryGlobal /COUNTTOTAL /COUNTCOMPLETED /END
+	Pop $R0 ; Total
+	Pop $R1 ; Completed
 
 	; Loop until ItemsTotal == ItemsDone
-	IntCmp $R1 $R2 _done +1 +1
+	IntCmp $R0 $R1 _done +1 +1
 		Sleep 5000
 		Goto _loop
 _done:

@@ -289,9 +289,13 @@ void __cdecl QueryGlobal(
 	extra_parameters *extra
 	)
 {
+	LPTSTR psz;
+	LPTSTR pParam[30];
+	int iParamCount = 0, iDropCount = 0, i;
+
 	ULONG iThreadCount;
-	ULONG iItemsTotal, iItemsDone, iItemsDownloading, iItemsWaiting;
-	ULONG iItemsSpeed;
+	ULONG iCountTotal, iCountDone, iCountDownloading, iCountWaiting;
+	ULONG iSpeed;
 
 	EXDLL_INIT();
 
@@ -301,21 +305,74 @@ void __cdecl QueryGlobal(
 
 	TRACE( _T( "NSdown!QueryGlobal\n" ) );
 
+	/// Allocate the working buffer
+	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
+	assert( psz );
+
+	// Lock the queue
 	QueueLock( &g_Queue );
+
+	/// Statistics
 	QueueStatistics(
 		&g_Queue,
 		&iThreadCount,
-		&iItemsTotal, &iItemsDone, &iItemsDownloading, &iItemsWaiting,
-		&iItemsSpeed
+		&iCountTotal, &iCountDone, &iCountDownloading, &iCountWaiting,
+		&iSpeed
 		);
+
+	/// Pop all parameters and remember them
+	while (TRUE) {
+		if (popstring( psz ) != 0)
+			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
+			break;
+		if (iParamCount < ARRAYSIZE( pParam )) {
+			MyStrDup( pParam[iParamCount], psz );
+			iParamCount++;
+		} else {
+			/// too many parameters
+			iDropCount++;
+		}
+	}
+
+	/// Return empty strings for dropped parameters
+	for (i = 0; i < iDropCount; i++)
+		pushstring( _T( "" ) );
+
+	/// Iterate all parameters (in reverse order) and return their values
+	for (i = iParamCount - 1; i >= 0; i--) {
+		if (lstrcmpi( pParam[i], _T( "/COUNTTOTAL" ) ) == 0) {
+			pushint( iCountTotal );
+		} else if (lstrcmpi( pParam[i], _T( "/COUNTWAITING" ) ) == 0) {
+			pushint( iCountWaiting );
+		} else if (lstrcmpi( pParam[i], _T( "/COUNTDOWNLOADING" ) ) == 0) {
+			pushint( iCountDownloading );
+		} else if (lstrcmpi( pParam[i], _T( "/COUNTCOMPLETED" ) ) == 0) {
+			pushint( iCountDone );
+		} else if (lstrcmpi( pParam[i], _T( "/SPEEDBYTES" ) ) == 0) {
+			pushint( iSpeed );
+		} else if (lstrcmpi( pParam[i], _T( "/SPEED" ) ) == 0) {
+			TCHAR szSpeed[50];
+#ifdef UNICODE
+			StrFormatByteSizeW( (LONGLONG)iSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
+#else
+			StrFormatByteSizeA( iSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
+#endif
+			lstrcat( szSpeed, _T( "/s" ) );
+			pushstring( szSpeed );
+		} else if (lstrcmpi( pParam[i], _T( "/COUNTTHREADS" ) ) == 0) {
+			pushint( iThreadCount );
+		} else {
+			/// Unknown parameter. Return an empty string
+			pushstring( _T( "" ) );
+		}
+		MyFree( pParam[i] );
+	}
+
+	// Unlock the queue
 	QueueUnlock( &g_Queue );
 
-	pushint( iItemsSpeed );
-	pushint( iItemsWaiting );
-	pushint( iItemsDownloading );
-	pushint( iItemsDone );
-	pushint( iItemsTotal );
-	pushint( iThreadCount );
+	MyFree( psz );
 }
 
 

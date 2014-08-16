@@ -104,7 +104,7 @@ Parameters:
 	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
-	A value for each specified parameter, in the same order
+	A value for each parameter, in the same order
 	[Stack] Value1
 	[Stack] Value2
 	[Stack] ...
@@ -119,32 +119,36 @@ Example:
 	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
 _________________________________________________________________________________________________
 
-NSdown::QueryGlobal
+NSdown::QueryGlobal [/COUNTTOTAL] [/COUNTWAITING] [/COUNTDOWNLOADING] [/COUNTCOMPLETED]
+					[/SPEEDBYTES] [/SPEED]
+					[/COUNTTHREADS]
+					/END
+
+Parameters:
+	/COUNTTOTAL				| The overall number of transfers (waiting + downloading + completed)
+	/COUNTWAITING			| The number of waiting transfers
+	/COUNTDOWNLOADING		| The number of transfers in progress
+	/COUNTCOMPLETED			| The number of completed transfers
+	/SPEEDBYTES				| The combined speed of transfers in progress (bytes/second)
+	/SPEED					| The combined speed of transfers in progress (nicely formatted, ex: "1,4 MB/s")
+	/COUNTTHREADS			| Worker thread count
+	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
-	[Stack] Worker thread count
-	[Stack] ItemsTotal (representing ItemsDone + ItemsDownloading + ItemsWaiting)
-	[Stack] ItemsDone
-	[Stack] ItemsDownloading
-	[Stack] ItemsWaiting
-	[Stack] Combined speed of transfers in progress (in bytes/s)
+	A value for each parameter, in the same order
+	[Stack] Value1
+	[Stack] Value2
+	[Stack] ...
+	[Stack] ValueN
 
 Example:
-	NSdown::QueryGlobal
-	Pop $R0 ; Worker threads
-	Pop $R1 ; ItemsTotal
-	Pop $R2 ; ItemsDone
-	Pop $R3 ; ItemsDownloading
-	Pop $R4 ; ItemsWaiting
-	Pop $R5 ; Speed bps
+	NSdown::QueryGlobal /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+	Pop $R0 ; Total
+	Pop $R1 ; Completed
+	Pop $R2 ; Downloading
+	Pop $R3 ; Speed
+	Pop $R4 ; Worker threads
 
-	; Format $R5 (b/s) -> $R6 (KB/s, MB/s, ...)
-!ifdef NSIS_UNICODE
-	System::Call 'shlwapi::StrFormatByteSizeW( l r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
-!else
-	System::Call 'shlwapi::StrFormatByteSizeA( i r15, t .r16, i ${NSIS_MAX_STRLEN} ) p'
-!endif
-
-	DetailPrint "Transferring $R2+$R3/$R1 items at $R6/s by $R0 worker threads"
+	DetailPrint "Transferring $R1+$R2/$R0 items at $R3 using $R4 worker threads"
 _________________________________________________________________________________________________
 
