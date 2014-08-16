@@ -109,10 +109,17 @@ void __cdecl Transfer(
 	{
 		if ( popstring( psz ) != 0 )
 			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
+			break;
 
 		if ( lstrcmpi( psz, _T( "/METHOD" ) ) == 0 ) {
 			if ( popstring( psz ) == 0 ) {
-				if (lstrcmpi( psz, _T( "GET" ) ) == 0 || lstrcmpi( psz, _T( "POST" ) ) == 0 || lstrcmpi( psz, _T( "HEAD" ) ) == 0) {
+				assert(
+					lstrcmpi( psz, _T( "GET" ) ) == 0 ||
+					lstrcmpi( psz, _T( "POST" ) ) == 0 ||
+					lstrcmpi( psz, _T( "HEAD" ) ) == 0
+					);
+				if (*psz) {
 					MyFree( pszMethod );
 					MyStrDup( pszMethod, psz );
 				} else {

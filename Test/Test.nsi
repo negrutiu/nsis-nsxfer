@@ -69,6 +69,16 @@ XPStyle on
 RequestExecutionLevel user ; don't require UAC elevation
 ShowInstDetails show
 
+!macro STACK_VERIFY_START
+	Push 666
+!macroend
+
+!macro STACK_VERIFY_END
+	Pop $R9
+	IntCmp $R9 666 +2 +1 +1
+		MessageBox MB_ICONSTOP "Stack is NOT OK"
+!macroend
+
 #---------------------------------------------------------------#
 # .onInit                                                       #
 #---------------------------------------------------------------#
@@ -86,6 +96,7 @@ FunctionEnd
 
 Function PrintStatus
 
+	!insertmacro STACK_VERIFY_START
 	Push $0
 	Push $1
 	Push $2
@@ -201,6 +212,7 @@ Function PrintStatus
 	Pop $2
 	Pop $1
 	Pop $0
+	!insertmacro STACK_VERIFY_END
 
 FunctionEnd
 
@@ -230,8 +242,10 @@ FunctionEnd
 !define FILE6 "$EXEDIR\_Priest.mkv"
 
 Section "-Test"
+	!insertmacro STACK_VERIFY_START
 
 	DetailPrint 'NSdown::Transfer "${LINK0}" "${FILE0}"'
+	Push "/END"
 	Push "0x2080|0x100"
 	Push "/SECURITYFLAGS"
 	Push "15000"
@@ -241,10 +255,11 @@ Section "-Test"
 	Push "${LINK0}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK0}" /LOCAL "${FILE0}" /RETRYCOUNT 3 /RETRYDELAY 5000
+	;NSdown::Transfer /URL "${LINK0}" /LOCAL "${FILE0}" /RETRYCOUNT 3 /RETRYDELAY 5000 /END
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Transfer "${LINK1}" "${FILE1}"'
+	Push "/END"
 	Push "15000"
 	Push "/TIMEOUTCONNECT"
 	Push "${FILE1}"
@@ -252,20 +267,22 @@ Section "-Test"
 	Push "${LINK1}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000
+	;NSdown::Transfer /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000 /END
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Transfer "${LINK2}" "${FILE2}"'
+	Push "/END"
 	Push "${FILE2}"
 	Push "/LOCAL"
 	Push "${LINK2}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK2}" /LOCAL "${FILE2}"
+	;NSdown::Transfer /URL "${LINK2}" /LOCAL "${FILE2}" /END
 	Pop $0	; ItemID
 
 	!define PROXY3 "http=http://176.9.52.230:3128"
 	DetailPrint 'NSdown::Transfer /proxy ${PROXY3} "${LINK3}" "${FILE3_PROXY}"'
+	Push "/END"
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
 	Push "15000"
@@ -277,10 +294,11 @@ Section "-Test"
 	Push "${LINK3}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3} /PROXY "${PROXY3}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
+	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3} /PROXY "${PROXY3}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Transfer "${LINK3}" "${FILE3}"'
+	Push "/END"
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
 	Push "15000"
@@ -290,10 +308,11 @@ Section "-Test"
 	Push "${LINK3}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3}"
+	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3}" /END
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Transfer "${LINK4}" "${FILE4}"'
+	Push "/END"
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
 	Push "15000"
@@ -305,10 +324,11 @@ Section "-Test"
 	Push "POST"
 	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000
+	;NSdown::Transfer /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 	Pop $0	; ItemID
 
 	DetailPrint 'NSdown::Transfer "${LINK5}" "${FILE5}"'
+	Push "/END"
 	Push "${LINK5}"
 	Push "/REFERER"
 	Push "60000"
@@ -328,11 +348,12 @@ Section "-Test"
 	Push "POST"
 	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}"
+	;NSdown::Transfer /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}" /END
 	Pop $0	; ItemID
 
 /*
 	DetailPrint 'NSdown::Transfer "${LINK6}" "${FILE6}"'
+	Push "/END"
 	Push "10000"
 	Push "/TIMEOUTRECONNECT"
 	Push "${FILE6}"
@@ -342,16 +363,18 @@ Section "-Test"
 	Push "POST"
 	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /METHOD POST /URL "${LINK6}" /LOCAL "${FILE6}" /TIMEOUTRECONNECT 60000
+	;NSdown::Transfer /METHOD POST /URL "${LINK6}" /LOCAL "${FILE6}" /TIMEOUTRECONNECT 60000 /END
 	Pop $0	; ItemID
 */
 
 	Call PrintStatus
 
+	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
 Section Wait
+	!insertmacro STACK_VERIFY_START
 _loop:
 	Call PrintStatus
 
@@ -369,6 +392,7 @@ _loop:
 		Sleep 5000
 		Goto _loop
 _done:
+	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 

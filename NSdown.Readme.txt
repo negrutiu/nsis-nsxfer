@@ -7,6 +7,7 @@ NSdown::Transfer	[/METHOD GET|POST]
 					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 					[/REFERER url]
+					/END
 
 Parameters:
 	/METHOD GET|POST			| HTTP Method. Default is GET
@@ -26,6 +27,7 @@ Parameters:
 	/REFERER url				| Optional referer URL, passed to InternetOpenRequest
 	/INTERNETFLAGS flags		| Combination of INTERNET_FLAG_XXX passed to InternetOpenRequest. Default is 0x84082200 (INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD)
 	/SECURITYFLAGS flags		| Combination of SECURITY_FLAG_XXX passed to InternetSetOption(INTERNET_OPTION_SECURITY_FLAGS). Default is 0x2080 (SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID)
+	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
 	[Stack] An unique transfer ID. Useful to query the transfer status later
@@ -33,19 +35,19 @@ Return:
 Examples:
 
 	; Download to local file
-	NSdown::Transfer /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000
+	NSdown::Transfer /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
 	Pop $0	; Transfer ID
 
 	; Download to memory
-	NSdown::Transfer /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY
+	NSdown::Transfer /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
 	Pop $0	; Transfer ID
 
 	; Send the HTTP request but don't download the content
-	NSdown::Transfer /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE
+	NSdown::Transfer /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
 	Pop $0	; Transfer ID
 
 	; POST a form
-	NSdown::Transfer /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD"
+	NSdown::Transfer /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
 	Pop R0	; Transfer ID
 _________________________________________________________________________________________________
 
