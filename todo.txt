@@ -32,5 +32,5 @@ ________________________________________________________________________________
 - Attach the "Zone.Identifier" stream (optional)
 - Support for NSIS script to retrieve the content of MEMORY files
 - All functions with variable number of arguments must receive /END
-- NSdown::Query return time information (elapsed waiting, elapsed transferring, etc)
+* NSdown::Query return time information (elapsed waiting, elapsed transferring, etc)
 - NSdown::QueryGlobal converted to receive variable number of arguments + /END

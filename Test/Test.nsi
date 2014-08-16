@@ -112,6 +112,8 @@ Function PrintStatus
 		Push "/END"
 		Push "/ERRORTEXT"
 		Push "/ERRORCODE"
+		Push "/TIMEDOWNLOADING"
+		Push "/TIMEWAITING"
 		Push "/SPEED"
 		Push "/SPEEDBYTES"
 		Push "/PERCENT"
@@ -161,6 +163,10 @@ Function PrintStatus
 		;StrCpy $R0 "$R0 [$3]"
 		Pop $3 ;SPEED
 		StrCpy $R0 "$R0 @ $3"
+		Pop $3 ;TIMEWAITING
+		StrCpy $R0 "$R0 (wait:$3ms"
+		Pop $3 ;TIMEDOWNLOADING
+		StrCpy $R0 "$R0, dnld:$3ms)"
 		Pop $3 ;ERRORCODE
 		StrCpy $R0 "$R0 = $3"
 		Pop $3 ;ERRORTEXT

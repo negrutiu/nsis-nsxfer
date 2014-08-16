@@ -72,6 +72,7 @@ NSdown::Query	TransferID
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
 				[/SENTHEADERS] [/RECVHEADERS]
 				[/FILESIZE] [/RECVSIZE] [/PERCENT] [/SPEEDBYTES] [/SPEED]
+				[/TIMEWAITING] [/TIMEDOWNLOADING]
 				[/ERRORCODE] [/ERRORTEXT]
 				/END
 
@@ -81,7 +82,7 @@ NSdown::Query	TransferID
 Parameters:
 	TransferID				| The transfer ID returned by NSdown::Transfer
 	/STATUS					| Transfer status (downloading|waiting|completed)
-	/WININETSTATUS			| The last status reported by the InternetCallback
+	/WININETSTATUS			| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
 	/METHOD					| The HTTP method in use (GET, POST, HEAD, etc.)
 	/URL					| Full URL
 	/IP						| Server's IP address, or an empty string
@@ -94,9 +95,11 @@ Parameters:
 	/PERCENT				| Percent (0-100)
 	/SPEEDBYTES				| Transfer speed (bytes/second)
 	/SPEED					| Transfer speed (nicely formatted, ex: "1,4 MB/s")
+	/TIMEWAITING			| Amount of time (milliseconds) spent waiting in queue
+	/TIMEDOWNLOADING		| Amount of time (milliseconds) spent transferring
 	/ERRORCODE				| Win32 error code, or HTTP status code
 	/ERRORTEXT				| The error explained
-	/END					| Must conclude the parameter list. Important!
+	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
 	A value for each specified parameter, in the same order

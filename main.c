@@ -431,6 +431,50 @@ void __cdecl Query(
 				pushint( pItem->Speed.iSpeed );
 			} else if (lstrcmpi( pParam[i], _T( "/SPEED" ) ) == 0) {
 				pushstring( pItem->Speed.szSpeed );
+			} else if (lstrcmpi( pParam[i], _T( "/TIMEWAITING" ) ) == 0) {
+				switch (pItem->iStatus) {
+				case ITEM_STATUS_WAITING:
+				{
+					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmEnqueue;
+					ULARGE_INTEGER ulNow;
+					GetLocalFileTime( (LPFILETIME)&ulNow );
+					pushint( (int)((ulNow.QuadPart - pulaStart->QuadPart) / 10000) );		/// Now - Enqueue
+					break;
+				}
+				case ITEM_STATUS_DOWNLOADING:
+				case ITEM_STATUS_DONE:
+				{
+					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmEnqueue;
+					PULARGE_INTEGER pulaEnd = (PULARGE_INTEGER)&pItem->tmConnect;
+					pushint( (int)((pulaEnd->QuadPart - pulaStart->QuadPart) / 10000) );	/// Connect - Enqueue
+					break;
+				}
+				default:
+					pushstring( _T( "" ) );
+				}
+			} else if (lstrcmpi( pParam[i], _T( "/TIMEDOWNLOADING" ) ) == 0) {
+				switch (pItem->iStatus) {
+				case ITEM_STATUS_WAITING:
+					pushstring( _T( "" ) );		/// No downloading time
+					break;
+				case ITEM_STATUS_DOWNLOADING:
+				{
+					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmConnect;
+					ULARGE_INTEGER ulNow;
+					GetLocalFileTime( (LPFILETIME)&ulNow );
+					pushint( (int)((ulNow.QuadPart - pulaStart->QuadPart) / 10000) );		/// Now - Connect
+					break;
+				}
+				case ITEM_STATUS_DONE:
+				{
+					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmConnect;
+					PULARGE_INTEGER pulaEnd = (PULARGE_INTEGER)&pItem->tmDisconnect;
+					pushint( (int)((pulaEnd->QuadPart - pulaStart->QuadPart) / 10000) );	/// Disconnect - Connect
+					break;
+				}
+				default:
+					pushstring( _T( "" ) );
+				}
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORCODE" ) ) == 0) {
 				pushint( pItem->iWin32Error == ERROR_SUCCESS ? pItem->iHttpStatus : pItem->iWin32Error );
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORTEXT" ) ) == 0) {
