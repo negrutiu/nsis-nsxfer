@@ -528,9 +528,12 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 										/// Debugging
 										if (!bReconnecting) {
-											for (LPTSTR psz = szHeaders; *psz; psz++)
-												if (*psz == _T( '\r' ) || *psz == _T( '\n' ))
-													*psz = _T( '|' );
+											for (LPTSTR psz = szHeaders; *psz; psz++) {
+												if (*psz == _T( '\r' ))
+													*psz = _T( '\\' );
+												if (*psz == _T( '\n' ))
+													*psz = _T( 'n' );
+											}
 											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(HTTP_QUERY_RAW_HEADERS_CRLF) == 0x%x, \"%s\"\n" ), pItem->pThread->szName, pItem->iId, err, szHeaders );
 										}
 									}
