@@ -125,7 +125,7 @@ ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 
 		if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
 			/// SUCCESS
 		} else {
-			err = ERROR_INVALID_DATA;
+			err = ERROR_DATATYPE_MISMATCH;
 			*piContentLength = INVALID_FILE_SIZE64;
 		}
 	} else {
@@ -752,7 +752,7 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
 						err = ERROR_FILE_TOO_LARGE;	/// Local file larger than the remote file
 					}
 				} else {
-					err = ERROR_INVALID_DATA;	/// The server doesn't support Range header
+					err = ERROR_UNSUPPORTED_TYPE;/// The server doesn't support Range header
 				}
 			} else {
 				err = ERROR_INVALID_DATA;	/// The remote content length is still unknown
