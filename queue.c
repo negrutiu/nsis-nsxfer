@@ -49,41 +49,58 @@ VOID QueueInitialize(
 	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, iThreadCount );
 }
 
-VOID QueueDestroy( _Inout_ PQUEUE pQueue )
+VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bDllDetach )
 {
 	assert( pQueue );
 
 	// Worker threads
 	if ( pQueue->iThreadCount > 0 ) {
 
-		HANDLE pObj[QUEUE_MAX_THREADS];
-		int iObjCnt = 0;
-
 		/// Signal thread termination
 		SetEvent( pQueue->hThreadTermEvent );
 
-		/// Make a list of thread handles
-		for ( int i = 0; i < pQueue->iThreadCount; i++ )
-			if ( pQueue->pThreads[i].hThread )
-				pObj[iObjCnt++] = pQueue->pThreads[i].hThread;
-		if ( iObjCnt > 0 ) {
+		if (bDllDetach) {
+
+			/// During DLL_PROCESS_DETACH only one thread is running, the others are suspended or something (check out CreateThread on MSDN)
+			/// Waiting for them to close gracefully would be pointless
+			for (int i = 0; i < pQueue->iThreadCount; i++) {
+				if (pQueue->pThreads[i].hThread) {
+					DWORD err = TerminateThread( pQueue->pThreads[i].hThread, 666 ) ? ERROR_SUCCESS : GetLastError();
+					TRACE( _T( "  TerminateThread(%s) == 0x%x\n" ), pQueue->pThreads[i].szName, err );
+				}
+			}
+
+		} else {
+
+			HANDLE pObj[QUEUE_MAX_THREADS];
+			int iObjCnt = 0;
+			const ULONG QUEUE_WAIT_FOR_THREADS = 12000;
+
+			/// Make a list of thread handles
+			for (int i = 0; i < pQueue->iThreadCount; i++)
+				if (pQueue->pThreads[i].hThread)
+					pObj[iObjCnt++] = pQueue->pThreads[i].hThread;
+
+			TRACE( _T( "  Waiting for %d threads (max. %ums)...\n" ), iObjCnt, QUEUE_WAIT_FOR_THREADS );
 
 			/// Wait for all threads to terminate
-			DWORD dwTime = dwTime = GetTickCount();
-			DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, 12000 );
-			dwTime = GetTickCount() - dwTime;
-			if ( iWait == WAIT_OBJECT_0 || iWait == WAIT_ABANDONED_0 ) {
-				TRACE( _T( "  Threads closed in %ums\n" ), dwTime );
-				MyZeroMemory( pQueue->pThreads, ARRAYSIZE( pQueue->pThreads ) * sizeof(THREAD) );
-			} else if ( iWait == WAIT_TIMEOUT ) {
-				TRACE( _T( "  Threads failed to stop after %ums. Will terminate them forcedly\n" ), dwTime );
-				for ( int i = 0; i < iObjCnt; i++ )
-					TerminateThread( pObj[i], 666 );
-			} else {
-				DWORD err = GetLastError();
-				TRACE( _T( "  [!] WaitForMultipleObjects( ObjCnt:%d ) == 0x%x, GLE == 0x%x\n" ), iObjCnt, iWait, err );
-				for ( int i = 0; i < iObjCnt; i++ )
-					TerminateThread( pObj[i], 666 );
+			if (iObjCnt > 0) {
+				DWORD dwTime = dwTime = GetTickCount();
+				DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, QUEUE_WAIT_FOR_THREADS );
+				dwTime = GetTickCount() - dwTime;
+				if (iWait == WAIT_OBJECT_0 || iWait == WAIT_ABANDONED_0) {
+					TRACE( _T( "  Threads closed in %ums\n" ), dwTime );
+					MyZeroMemory( pQueue->pThreads, ARRAYSIZE( pQueue->pThreads ) * sizeof( THREAD ) );
+				} else if (iWait == WAIT_TIMEOUT) {
+					TRACE( _T( "  Threads failed to stop after %ums. Will terminate them forcedly\n" ), dwTime );
+					for (int i = 0; i < iObjCnt; i++)
+						TerminateThread( pObj[i], 666 );
+				} else {
+					DWORD err = GetLastError();
+					TRACE( _T( "  [!] WaitForMultipleObjects( ObjCnt:%d ) == 0x%x, GLE == 0x%x\n" ), iObjCnt, iWait, err );
+					for (int i = 0; i < iObjCnt; i++)
+						TerminateThread( pObj[i], 666 );
+				}
 			}
 		}
 	}
@@ -94,12 +111,13 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 	pQueue->iThreadCount = 0;
 
 	// Queue
-	QueueLock( pQueue );
+	if (!bDllDetach)
+		QueueLock( pQueue );
 	QueueReset( pQueue );
 	DeleteCriticalSection( &pQueue->csLock );
 
 	// Name
-	TRACE( _T( "  QueueDestroy(%s)\n" ), pQueue->szName );
+	TRACE( _T( "  QueueDestroy(%s, DllDetach:%u)\n" ), pQueue->szName, (ULONG)bDllDetach );
 	*pQueue->szName = _T( '\0' );
 }
 

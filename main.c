@@ -34,14 +34,14 @@ BOOL PluginInit()
 
 
 //++ PluginUninit
-BOOL PluginUninit()
+BOOL PluginUninit( _In_ BOOLEAN bDllDetach )
 {
 	BOOL bRet = FALSE;
 	if ( g_bInitialized ) {
 
-		TRACE( _T( "PluginUninit\n" ) );
+		TRACE( _T( "PluginUninit(DllDetach:%u)\n" ), (ULONG)bDllDetach );
 
-		QueueDestroy( &g_Queue );
+		QueueDestroy( &g_Queue, bDllDetach );
 		UtilsDestroy();
 
 		g_bInitialized = FALSE;
@@ -58,7 +58,7 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage )
 	{
 	case NSPIM_UNLOAD:
 		TRACE( _T( "NSPIM_UNLOAD\n" ) );
-		PluginUninit();
+		PluginUninit( FALSE );
 		break;
 
 	case NSPIM_GUIUNLOAD:
@@ -632,7 +632,7 @@ BOOL WINAPI _DllMainCRTStartup(
 		PluginInit();
 	}
 	else if ( iReason == DLL_PROCESS_DETACH ) {
-		PluginUninit();
+		PluginUninit( TRUE );
 	}
 	return TRUE;
 }

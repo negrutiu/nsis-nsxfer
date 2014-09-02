@@ -138,7 +138,7 @@ typedef struct _QUEUE {
 
 // Initializing
 VOID QueueInitialize( _Inout_ PQUEUE pQueue, _In_ LPCTSTR szName, _In_ int iThreadCount );
-VOID QueueDestroy( _Inout_ PQUEUE pQueue );
+VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bFromDllUnload );
 
 // Queue locking
 VOID QueueLock( _Inout_ PQUEUE pQueue );
