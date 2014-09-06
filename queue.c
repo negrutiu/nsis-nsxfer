@@ -49,7 +49,7 @@ VOID QueueInitialize(
 	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, iThreadCount );
 }
 
-VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bDllDetach )
+VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
 {
 	assert( pQueue );
 
@@ -59,7 +59,7 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bDllDetach )
 		/// Signal thread termination
 		SetEvent( pQueue->hThreadTermEvent );
 
-		if (bDllDetach) {
+		if (bForced) {
 
 			/// During DLL_PROCESS_DETACH only one thread is running, the others are suspended or something (check out CreateThread on MSDN)
 			/// Waiting for them to close gracefully would be pointless
@@ -111,13 +111,12 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bDllDetach )
 	pQueue->iThreadCount = 0;
 
 	// Queue
-	if (!bDllDetach)
-		QueueLock( pQueue );
+	///QueueLock( pQueue );
 	QueueReset( pQueue );
 	DeleteCriticalSection( &pQueue->csLock );
 
 	// Name
-	TRACE( _T( "  QueueDestroy(%s, DllDetach:%u)\n" ), pQueue->szName, (ULONG)bDllDetach );
+	TRACE( _T( "  QueueDestroy(%s, Forced:%u)\n" ), pQueue->szName, (ULONG)bForced );
 	*pQueue->szName = _T( '\0' );
 }
 

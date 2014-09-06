@@ -6,6 +6,7 @@
 HINSTANCE g_hInst = NULL;
 BOOL g_bInitialized = FALSE;
 QUEUE g_Queue = { 0 };
+HMODULE g_hInstLocked = NULL;
 
 
 /// Forward declarations
@@ -16,9 +17,14 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage );
 BOOL PluginInit()
 {
 	BOOL bRet = TRUE;
+	TCHAR szModule[MAX_PATH];
 	if ( !g_bInitialized ) {
 
 		TRACE( _T( "PluginInit\n" ) );
+
+		/// Lock the module in memory. Don't allow NSIS to unload us
+		if (GetModuleFileName( g_hInst, szModule, ARRAYSIZE( szModule ) ) > 0)
+			g_hInstLocked = LoadLibrary( szModule );	/// Increment the reference count
 
 		UtilsInitialize();
 		QueueInitialize( &g_Queue, _T("MAIN"), 2 );
@@ -34,14 +40,20 @@ BOOL PluginInit()
 
 
 //++ PluginUninit
-BOOL PluginUninit( _In_ BOOLEAN bDllDetach )
+BOOL PluginUninit( _In_ BOOLEAN bForced )
 {
 	BOOL bRet = FALSE;
 	if ( g_bInitialized ) {
 
-		TRACE( _T( "PluginUninit(DllDetach:%u)\n" ), (ULONG)bDllDetach );
+		TRACE( _T( "PluginUninit(Forced:%u)\n" ), (ULONG)bForced );
 
-		QueueDestroy( &g_Queue, bDllDetach );
+		/// Unlock the module, allow it to be unloaded
+		if (g_hInstLocked) {
+			FreeLibrary( g_hInstLocked );				/// Decrement reference count
+			g_hInstLocked = NULL;
+		}
+
+		QueueDestroy( &g_Queue, bForced );
 		UtilsDestroy();
 
 		g_bInitialized = FALSE;
@@ -596,8 +608,8 @@ void __cdecl Enumerate(
 			iStatus = ITEM_STATUS_WAITING;
 		} else if (lstrcmpi( psz, _T( "completed" ) ) == 0) {
 			iStatus = ITEM_STATUS_DONE;
-			//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
-			//	iStatus = ITEM_STATUS_PAUSED;
+		//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
+		//	iStatus = ITEM_STATUS_PAUSED;
 		}
 	}
 	MyFree( psz );
