@@ -85,4 +85,4 @@ ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator );
 ULONGLONG MyMulDiv64( __in ULONGLONG iNumber, __in ULONGLONG iNumerator, __in ULONGLONG iDenominator );
 
 //+ MyTimeDiff (returns milliseconds)
-ULONG MyTimeDiff( __in PFILETIME pStartTime, __in PFILETIME pEndTime );
+ULONG MyTimeDiff( __in PFILETIME pEndTime, __in PFILETIME pStartTime );

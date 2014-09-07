@@ -8,7 +8,7 @@
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
-#define SPEED_MEASURE_INTERVAL		2000		/// milliseconds
+#define SPEED_MEASURE_INTERVAL		1000		/// milliseconds
 
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
@@ -858,7 +858,7 @@ void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bXferFini
 	if (bXferFinished) {
 
 		ULONG iTimeDiff = MyTimeDiff( &pItem->Xfer.tmEnd, &pItem->Xfer.tmStart );		/// Milliseconds
-		if (iTimeDiff > 0) {
+		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
 			pItem->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pItem->Xfer.iXferSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
 		} else {
 			pItem->Speed.iSpeed = (ULONG)pItem->Xfer.iXferSize;
