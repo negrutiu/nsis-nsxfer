@@ -21,8 +21,9 @@ VOID UtilsDestroy();
 		if ( !(expr)) { \
 			TCHAR szMsg[512]; \
 			TRACE( _T("  [!] %s, %s:%u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
-			wnsprintf( szMsg, (int)ARRAYSIZE( szMsg ), _T("Expression: %s\n%s:%u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
-			MessageBox( NULL, szMsg, _T("ASSERT"), MB_ICONERROR ); \
+			wnsprintf( szMsg, (int)ARRAYSIZE( szMsg ), _T("%s\n%s : %u\n"), _T(#expr), _T( __FILE__ ), __LINE__ ); \
+			if (MessageBox( NULL, szMsg, _T("ASSERT"), MB_ICONERROR|MB_OKCANCEL ) != IDOK) \
+				ExitProcess( 666 ); \
 		}
 	#define verify assert
 #else
