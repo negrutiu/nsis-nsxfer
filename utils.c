@@ -2,7 +2,7 @@
 #include "main.h"
 #include "utils.h"
 
-
+int _fltused = 0;
 MEMORY_STATS g_MemStats = { 0 };
 
 
@@ -82,4 +82,80 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText )
 			MyStrDup( *ppszErrText, szTextError );
 		}
 	}
+}
+
+
+/// ULONLONG <-> double conversion groups
+///	ULLONG_MAX == 18446744073709551615
+ULONGLONG ULONGLONG_groups[19] = { 1000000000000000000, 100000000000000000, 10000000000000000, 1000000000000000, 100000000000000, 10000000000000, 1000000000000, 100000000000, 10000000000, 1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1 };
+double double_groups[19] = { 1000000000000000000.0F, 100000000000000000.0F, 10000000000000000.0F, 1000000000000000.0F, 100000000000000.0F, 10000000000000.0F, 1000000000000.0F, 100000000000.0F, 10000000000.0F, 1000000000.0F, 100000000.0F, 10000000.0F, 1000000.0F, 100000.0F, 10000.0F, 1000.0F, 100.0F, 10.0F, 1.0F };
+
+
+//++ MyUlonglongToDouble
+double MyUlonglongToDouble( __in ULONGLONG ull )
+{
+	double d = 0.0F;
+	int i;
+	for (i = 0; i < 19; i++) {
+		while (ull >= ULONGLONG_groups[i]) {
+			d += double_groups[i];
+			ull -= ULONGLONG_groups[i];
+		}
+	}
+	return d;
+}
+
+
+//++ MyDoubleToUlonglong
+ULONGLONG MyDoubleToUlonglong( __in double d )
+{
+	ULONGLONG ull = 0;
+	int i;
+	for (i = 0; i < 19; i++) {
+		while (d >= double_groups[i]) {
+			ull += ULONGLONG_groups[i];
+			d -= double_groups[i];
+		}
+	}
+	return ull;
+}
+
+//++ MyDiv64
+ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator )
+{
+/*	ULONGLONG iQuotient = 0;
+	if (iDenominator != 0) {
+		while (iNumerator >= iDenominator) {
+			iNumerator -= iDenominator;
+			iQuotient++;
+		}
+	}
+	return iQuotient;*/
+
+	if (iDenominator == 0)
+		iDenominator = 1;
+	return MyDoubleToUlonglong( MyUlonglongToDouble( iNumerator ) / MyUlonglongToDouble( iDenominator ) );
+}
+
+
+//++ MyMulDiv64
+ULONGLONG MyMulDiv64( __in ULONGLONG iNumber, __in ULONGLONG iNumerator, __in ULONGLONG iDenominator )
+{
+	/// iNumber*(iNumerator/iDenominator)
+	return MyDoubleToUlonglong( MyUlonglongToDouble( iNumber ) * (MyUlonglongToDouble( iNumerator ) / MyUlonglongToDouble( iDenominator )) );
+}
+
+
+//++ MyTimeDiff
+ULONG MyTimeDiff( __in PFILETIME pEndTime, __in PFILETIME pStartTime )
+{
+	/// NOTE: Large integer operations are not available because we're not linking to CRT
+	if (pStartTime && pEndTime) {
+		ULONGLONG iDiff = MyDiv64( ((PULARGE_INTEGER)pEndTime)->QuadPart - ((PULARGE_INTEGER)pStartTime)->QuadPart, 10000 );
+		if (iDiff < UINT_MAX)
+			return (ULONG)iDiff;
+		else
+			return UINT_MAX;			/// ~49 days
+	}
+	return 0;
 }

@@ -72,3 +72,17 @@ extern MEMORY_STATS g_MemStats;
 
 #define VALID_FILE_HANDLE(h) \
 	((h) != NULL) && ((h) != INVALID_HANDLE_VALUE)
+
+
+//+ ULONGLONG <-> double
+double MyUlonglongToDouble( __in ULONGLONG ull );
+ULONGLONG MyDoubleToUlonglong( __in double d );
+
+//+ MyDiv64
+ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator );
+
+//+ MyMulDiv64
+ULONGLONG MyMulDiv64( __in ULONGLONG iNumber, __in ULONGLONG iNumerator, __in ULONGLONG iDenominator );
+
+//+ MyTimeDiff (returns milliseconds)
+ULONG MyTimeDiff( __in PFILETIME pStartTime, __in PFILETIME pEndTime );

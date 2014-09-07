@@ -2,8 +2,8 @@
 #include "winres.h"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,2014,8,10
- PRODUCTVERSION 1,2014,8,10
+ FILEVERSION 1,2014,9,7
+ PRODUCTVERSION 1,2014,9,7
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -20,12 +20,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Marius Negrutiu (marius.negrutiu@gmail.com)"
             VALUE "FileDescription", "NSIS Background Download"
-            VALUE "FileVersion", "1.2014.8.9"
+            VALUE "FileVersion", "1.2014.9.7"
             VALUE "InternalName", "NSdown.dll"
             VALUE "LegalCopyright", "(C)2014, by Marius Negrutiu. All rights reserved."
             VALUE "OriginalFilename", "NSdown.dll"
             VALUE "ProductName", "NSIS Background Download"
-            VALUE "ProductVersion", "1.2014.8.9"
+            VALUE "ProductVersion", "1.2014.9.7"
         END
     END
     BLOCK "VarFileInfo"

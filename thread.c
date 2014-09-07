@@ -856,11 +856,9 @@ void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bXferFini
 	// Compute speed
 	if (bXferFinished) {
 
-		ULONG64 iTimeDiff = ((PULARGE_INTEGER)&pItem->Xfer.tmEnd)->QuadPart - ((PULARGE_INTEGER)&pItem->Xfer.tmStart)->QuadPart;
-		iTimeDiff /= 10000;		/// Convert to milliseconds
-
+		ULONG iTimeDiff = MyTimeDiff( &pItem->Xfer.tmEnd, &pItem->Xfer.tmStart );		/// Milliseconds
 		if (iTimeDiff > 0) {
-			pItem->Speed.iSpeed = (ULONG)(pItem->Xfer.iXferSize / (iTimeDiff / 1000.0F));
+			pItem->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pItem->Xfer.iXferSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
 		} else {
 			pItem->Speed.iSpeed = (ULONG)pItem->Xfer.iXferSize;
 		}
@@ -874,7 +872,7 @@ void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bXferFini
 		ULONG iTimeDiff = GetTickCount() - pItem->Speed.iChunkTime;
 		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
 
-			pItem->Speed.iSpeed = (ULONG)(pItem->Speed.iChunkSize / (iTimeDiff / 1000.0F));
+			pItem->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pItem->Speed.iChunkSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
 			bFormatString = TRUE;
 
 			pItem->Speed.iChunkSize = 0;

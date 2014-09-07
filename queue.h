@@ -115,7 +115,7 @@ typedef struct _QUEUE_ITEM {
 	((pItem)->iTimeoutReconnect > 0)
 
 #define ItemGetRecvPercent(pItem) \
-	(int)(((pItem)->iFileSize == 0 || (pItem)->iFileSize == INVALID_FILE_SIZE64) ? 0 : (((pItem)->iRecvSize * 100) / (pItem)->iFileSize))
+	(int)(((pItem)->iFileSize == 0 || (pItem)->iFileSize == INVALID_FILE_SIZE64) ? 0 : MyMulDiv64((pItem)->iRecvSize, 100, (pItem)->iFileSize))
 
 
 typedef struct _QUEUE {
