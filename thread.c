@@ -552,11 +552,12 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										/// 2xx Success
 
 										// Extract the remote content length
-										ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize );
-										if ( pItem->bRangeSent ) {
-											/// If the Range header was used, the remote content length represents the amount not yet downloaded,
-											/// rather the full file size
-											pItem->iFileSize += pItem->iRecvSize;
+										if (ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize ) == ERROR_SUCCESS) {
+											if (pItem->bRangeSent) {
+												/// If the Range header was used, the remote content length represents the amount not yet downloaded,
+												/// rather the full file size
+												pItem->iFileSize += pItem->iRecvSize;
+											}
 										}
 
 										/// Success. Break the loop
@@ -965,7 +966,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 										_T( "  Th:%s Id:%u ThreadTransfer(Recv:%d%% %I64u/%I64u @ %s, %s %s -> File)\n" ),
 										pItem->pThread->szName, pItem->iId,
 										ItemGetRecvPercent( pItem ),
-										pItem->iRecvSize, pItem->iFileSize,
+										pItem->iRecvSize, pItem->iFileSize == INVALID_FILE_SIZE64 ? 0 : pItem->iFileSize,
 										pItem->Speed.szSpeed,
 										pItem->szMethod, pItem->pszURL
 										);
@@ -1026,7 +1027,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 								_T( "  Th:%s Id:%u ThreadTransfer(Recv:%d%% %I64u/%I64u @ %s, %s %s -> Memory)\n" ),
 								pItem->pThread->szName, pItem->iId,
 								ItemGetRecvPercent( pItem ),
-								pItem->iRecvSize, pItem->iFileSize,
+								pItem->iRecvSize, pItem->iFileSize == INVALID_FILE_SIZE64 ? 0 : pItem->iFileSize,
 								pItem->Speed.szSpeed,
 								pItem->szMethod, pItem->pszURL
 								);
@@ -1049,6 +1050,8 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 	}
 
 	/// Finalize
+	if (pItem->iFileSize == INVALID_FILE_SIZE64)
+		pItem->iFileSize = pItem->iRecvSize;		/// Set the (previously unknown) file size
 	GetLocalFileTime( &pItem->Xfer.tmEnd );
 	ThreadDownload_RefreshSpeed( pItem, TRUE );
 
