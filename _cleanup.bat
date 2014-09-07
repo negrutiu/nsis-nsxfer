@@ -12,6 +12,7 @@ rd /S /Q DebugA
 rd /S /Q ReleaseA
 rd /S /Q DebugW
 rd /S /Q ReleaseW
+rd /S /Q ReleaseNoCrtW
 rd /S /Q ipch
 
 attrib -H *.suo /S /D

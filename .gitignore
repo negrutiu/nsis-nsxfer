@@ -2,6 +2,7 @@
 /DebugW
 /ReleaseA
 /ReleaseW
+/ReleaseNoCrtW
 
 /*.sdf
 /*.opensdf
