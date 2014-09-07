@@ -46,7 +46,7 @@ VOID QueueInitialize(
 		}
 	}
 
-	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, iThreadCount );
+	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, pQueue->iThreadCount );
 }
 
 VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )

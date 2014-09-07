@@ -6,7 +6,6 @@
 HINSTANCE g_hInst = NULL;
 BOOL g_bInitialized = FALSE;
 QUEUE g_Queue = { 0 };
-HMODULE g_hInstLocked = NULL;
 
 
 /// Forward declarations
@@ -17,14 +16,9 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage );
 BOOL PluginInit()
 {
 	BOOL bRet = TRUE;
-	TCHAR szModule[MAX_PATH];
 	if ( !g_bInitialized ) {
 
 		TRACE( _T( "PluginInit\n" ) );
-
-		/// Lock the module in memory. Don't allow NSIS to unload us
-		if (GetModuleFileName( g_hInst, szModule, ARRAYSIZE( szModule ) ) > 0)
-			g_hInstLocked = LoadLibrary( szModule );	/// Increment the reference count
 
 		UtilsInitialize();
 		QueueInitialize( &g_Queue, _T("MAIN"), 2 );
@@ -46,12 +40,6 @@ BOOL PluginUninit( _In_ BOOLEAN bForced )
 	if ( g_bInitialized ) {
 
 		TRACE( _T( "PluginUninit(Forced:%u)\n" ), (ULONG)bForced );
-
-		/// Unlock the module, allow it to be unloaded
-		if (g_hInstLocked) {
-			FreeLibrary( g_hInstLocked );				/// Decrement reference count
-			g_hInstLocked = NULL;
-		}
 
 		QueueDestroy( &g_Queue, bForced );
 		UtilsDestroy();
@@ -511,18 +499,15 @@ void __cdecl Query(
 				switch (pItem->iStatus) {
 				case ITEM_STATUS_WAITING:
 				{
-					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmEnqueue;
-					ULARGE_INTEGER ulNow;
-					GetLocalFileTime( (LPFILETIME)&ulNow );
-					pushint( (int)((ulNow.QuadPart - pulaStart->QuadPart) / 10000) );		/// Now - Enqueue
+					FILETIME tmNow;
+					GetLocalFileTime( &tmNow );
+					pushint( MyTimeDiff( &tmNow, &pItem->tmEnqueue ) );
 					break;
 				}
 				case ITEM_STATUS_DOWNLOADING:
 				case ITEM_STATUS_DONE:
 				{
-					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmEnqueue;
-					PULARGE_INTEGER pulaEnd = (PULARGE_INTEGER)&pItem->tmConnect;
-					pushint( (int)((pulaEnd->QuadPart - pulaStart->QuadPart) / 10000) );	/// Connect - Enqueue
+					pushint( MyTimeDiff( &pItem->tmConnect, &pItem->tmEnqueue ) );
 					break;
 				}
 				default:
@@ -535,17 +520,14 @@ void __cdecl Query(
 					break;
 				case ITEM_STATUS_DOWNLOADING:
 				{
-					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmConnect;
-					ULARGE_INTEGER ulNow;
-					GetLocalFileTime( (LPFILETIME)&ulNow );
-					pushint( (int)((ulNow.QuadPart - pulaStart->QuadPart) / 10000) );		/// Now - Connect
+					FILETIME tmNow;
+					GetLocalFileTime( &tmNow );
+					pushint( MyTimeDiff( &tmNow, &pItem->tmConnect ) );
 					break;
 				}
 				case ITEM_STATUS_DONE:
 				{
-					PULARGE_INTEGER pulaStart = (PULARGE_INTEGER)&pItem->tmConnect;
-					PULARGE_INTEGER pulaEnd = (PULARGE_INTEGER)&pItem->tmDisconnect;
-					pushint( (int)((pulaEnd->QuadPart - pulaStart->QuadPart) / 10000) );	/// Disconnect - Connect
+					pushint( MyTimeDiff( &pItem->tmDisconnect, &pItem->tmConnect ) );
 					break;
 				}
 				default:
@@ -628,6 +610,46 @@ void __cdecl Enumerate(
 		pushint( iCount );
 		QueueUnlock( &g_Queue );
 	}
+}
+
+
+//++ Test
+EXTERN_C __declspec(dllexport)
+void __cdecl Test(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	EXDLL_INIT();
+
+	// Validate NSIS version
+	if (!IsCompatibleApiVersion())
+		return;
+
+	TRACE( _T( "NSdown!Test\n" ) );
+
+	/*{
+		ULONGLONG ull, ull2;
+		double d;
+
+		ull = 1234567890;
+		d = MyUlonglongToDouble( ull );
+		ull2 = MyDoubleToUlonglong( d );
+		assert( ull == ull2 );
+	}*/
+
+	/*{
+		ULONG i;
+		FILETIME t1, t2;
+		GetSystemTimeAsFileTime( &t1 );
+		Sleep( 1234 );
+		GetSystemTimeAsFileTime( &t2 );
+		i = MyTimeDiff( &t2, &t1 );
+		assert( i == 1234 );
+	}*/
 }
 
 

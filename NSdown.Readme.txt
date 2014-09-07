@@ -1,4 +1,5 @@
-NSdown::Transfer	[/METHOD GET|POST]
+NSdown::Transfer	[/NOUNLOAD]
+					[/METHOD GET|POST]
 					/URL url
 					[/LOCAL file|MEMORY|NONE]
 					[/HEADERS hdr]
@@ -10,6 +11,7 @@ NSdown::Transfer	[/METHOD GET|POST]
 					/END
 
 Parameters:
+	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSdown at runtime
 	/METHOD GET|POST			| HTTP Method. Default is GET
 	/URL url					| HTTP or HTTPS
 	/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
@@ -35,23 +37,23 @@ Return:
 Examples:
 
 	; Download to local file
-	NSdown::Transfer /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
+	NSdown::Transfer /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
 	Pop $0	; Transfer ID
 
 	; Download to memory
-	NSdown::Transfer /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
+	NSdown::Transfer /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
 	Pop $0	; Transfer ID
 
 	; Send the HTTP request but don't download the content
-	NSdown::Transfer /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
+	NSdown::Transfer /NOUNLOAD /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
 	Pop $0	; Transfer ID
 
 	; POST a form
-	NSdown::Transfer /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
+	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
 	Pop R0	; Transfer ID
 _________________________________________________________________________________________________
 
-NSdown::Enumerate all|downloading|waiting|completed
+NSdown::Enumerate [/NOUNLOAD] all|downloading|waiting|completed
 
 Return:
 	[Stack] Item count (N)
@@ -61,7 +63,7 @@ Return:
 	[Stack] IDn
 
 Example:
-	NSdown::Enumerate all
+	NSdown::Enumerate /NOUNLOAD all
 	Pop $1 ; Count
 	${For} $0 1 $1
 		Pop $2
@@ -69,7 +71,8 @@ Example:
 	${Next}
 _________________________________________________________________________________________________
 
-NSdown::Query	TransferID
+NSdown::Query	[/NOUNLOAD]
+				TransferID
 				[/STATUS] [/WININETSTATUS]
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
 				[/SENTHEADERS] [/RECVHEADERS]
@@ -82,6 +85,7 @@ NSdown::Query	TransferID
 
 
 Parameters:
+	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSdown at runtime
 	TransferID				| The transfer ID returned by NSdown::Transfer
 	/STATUS					| Transfer status (downloading|waiting|completed)
 	/WININETSTATUS			| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
@@ -111,7 +115,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSdown::Query $ID /STATUS /URL /PERCENT /SPEED /END
+	NSdown::Query /NOUNLOAD $ID /STATUS /URL /PERCENT /SPEED /END
 	Pop $0	;Status
 	Pop $1	;URL
 	Pop $2	;Percent
@@ -119,12 +123,14 @@ Example:
 	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
 _________________________________________________________________________________________________
 
-NSdown::QueryGlobal [/COUNTTOTAL] [/COUNTWAITING] [/COUNTDOWNLOADING] [/COUNTCOMPLETED]
+NSdown::QueryGlobal [/NOUNLOAD]
+					[/COUNTTOTAL] [/COUNTWAITING] [/COUNTDOWNLOADING] [/COUNTCOMPLETED]
 					[/SPEEDBYTES] [/SPEED]
 					[/COUNTTHREADS]
 					/END
 
 Parameters:
+	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSdown at runtime
 	/COUNTTOTAL				| The overall number of transfers (waiting + downloading + completed)
 	/COUNTWAITING			| The number of waiting transfers
 	/COUNTDOWNLOADING		| The number of transfers in progress
@@ -142,7 +148,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSdown::QueryGlobal /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+	NSdown::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 	Pop $R2 ; Downloading
