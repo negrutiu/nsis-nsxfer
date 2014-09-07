@@ -9,31 +9,33 @@
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 
-
-; NSdown path
-!ifdef NSIS_UNICODE
-	!define NSDOWN "$EXEDIR\..\DebugW\NSdown.dll"
-!else
-	!define NSDOWN "$EXEDIR\..\DebugA\NSdown.dll"
-!endif
+; Enable debugging
+; Call NSdown functins with CallInstDLL
+!define ENABLE_DEBUGGING
 
 
 # The folder where NSdown.dll is
-!ifdef NSIS_UNICODE
-	!if /FileExists "..\ReleaseW\NSdown.dll"
-		!AddPluginDir "..\ReleaseW"
-	!else if /FileExists "..\DebugW\NSdown.dll"
-		!AddPluginDir "..\DebugW"
+!ifdef ENABLE_DEBUGGING
+	; Debug
+	!ifdef NSIS_UNICODE
+		!define NSDOWN "$EXEDIR\..\DebugW\NSdown.dll"
 	!else
-		!error "NSdown.dll (Unicode) not found. Have you built it?"
+		!define NSDOWN "$EXEDIR\..\DebugA\NSdown.dll"
 	!endif
 !else
-	!if /FileExists "..\Release\NSdown.dll"
-		!AddPluginDir "..\ReleaseA"
-	!else if /FileExists "..\DebugA\NSdown.dll"
-		!AddPluginDir "..\DebugA"
+	; Release
+	!ifdef NSIS_UNICODE
+		!if /FileExists "..\ReleaseW\NSdown.dll"
+			!AddPluginDir "..\ReleaseW"
+		!else
+			!error "NSdown.dll (Unicode) not found. Have you built it?"
+		!endif
 	!else
-		!error "NSdown.dll (ANSI) not found. Have you built it?"
+		!if /FileExists "..\ReleaseA\NSdown.dll"
+			!AddPluginDir "..\ReleaseA"
+		!else
+			!error "NSdown.dll (ANSI) not found. Have you built it?"
+		!endif
 	!endif
 !endif
 
@@ -110,15 +112,20 @@ Function PrintStatus
 	!define ENUM_STATUS "all"
 
 	DetailPrint "NSdown::Enumerate ${ENUM_STATUS}"
+!ifdef ENABLE_DEBUGGING
 	Push "${ENUM_STATUS}"
 	CallInstDLL "${NSDOWN}" "Enumerate"
-	;NSdown::Enumerate ${ENUM_STATUS}
+!else
+	NSdown::Enumerate /NOUNLOAD ${ENUM_STATUS}
+!endif
 
 	Pop $1	; Count
+	DetailPrint "  $1 transfers"
 	${For} $0 1 $1
 
 		Pop $2	; Transfer ID
 
+!ifdef ENABLE_DEBUGGING
 		Push "/END"
 		Push "/ERRORTEXT"
 		Push "/ERRORCODE"
@@ -140,7 +147,9 @@ Function PrintStatus
 		Push "/STATUS"
 		Push $2	; Transfer ID
 		CallInstDLL "${NSDOWN}" "Query"
-		;NSdown::Query $2 /STATUS ... /END
+!else
+		NSdown::Query /NOUNLOAD $2 /STATUS /WININETSTATUS /METHOD /URL /IP /PROXY /LOCAL /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /END
+!endif
 
 		StrCpy $R0 "    ID:$2"
 		Pop $3 ;STATUS
@@ -185,6 +194,7 @@ Function PrintStatus
 		DetailPrint $R0
 	${Next}
 
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "/COUNTTHREADS"
 	Push "/SPEED"
@@ -192,7 +202,9 @@ Function PrintStatus
 	Push "/COUNTCOMPLETED"
 	Push "/COUNTTOTAL"
 	CallInstDLL "${NSDOWN}" "QueryGlobal"
-	;NSdown::QueryGlobal /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+!else
+	NSdown::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+!endif
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 	Pop $R2 ; Downloading
@@ -239,10 +251,21 @@ FunctionEnd
 !define LINK6 `http://nefertiti.homenet.org:8008/Priest.mkv`
 !define FILE6 "$EXEDIR\_Priest.mkv"
 
-Section "-Test"
+Section Test
+!ifdef ENABLE_DEBUGGING
+	CallInstDLL "${NSDOWN}" "Test"
+!else
+	NSdown::Test /NOUNLOAD
+!endif
+SectionEnd
+
+
+Section Transfer
 	!insertmacro STACK_VERIFY_START
 
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK0}" "${FILE0}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "0x2080|0x100"
 	Push "/SECURITYFLAGS"
@@ -253,10 +276,14 @@ Section "-Test"
 	Push "${LINK0}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK0}" /LOCAL "${FILE0}" /RETRYCOUNT 3 /RETRYDELAY 5000 /END
+!else
+	NSdown::Transfer /NOUNLOAD /URL "${LINK0}" /LOCAL "${FILE0}" /TIMEOUTCONNECT 15000 /SECURITYFLAGS 0x2080|0x100 /END
+!endif
 	Pop $0	; ItemID
 
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK1}" "${FILE1}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "15000"
 	Push "/TIMEOUTCONNECT"
@@ -265,21 +292,29 @@ Section "-Test"
 	Push "${LINK1}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK1}" /LOCAL "${FILE1}" /RETRYCOUNT 3 /RETRYDELAY 5000 /END
+!else
+	NSdown::Transfer /NOUNLOAD /URL "${LINK1}" /LOCAL "${FILE1}" /TIMEOUTCONNECT 15000 /END
+!endif
 	Pop $0	; ItemID
 
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK2}" "${FILE2}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "${FILE2}"
 	Push "/LOCAL"
 	Push "${LINK2}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK2}" /LOCAL "${FILE2}" /END
+!else
+	NSdown::Transfer /NOUNLOAD /URL "${LINK2}" /LOCAL "${FILE2}" /END
+!endif
 	Pop $0	; ItemID
 
+	;---------------------------------------------------------------------
 	!define PROXY3 "http=http://176.9.52.230:3128"
 	DetailPrint 'NSdown::Transfer /proxy ${PROXY3} "${LINK3}" "${FILE3_PROXY}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
@@ -292,10 +327,14 @@ Section "-Test"
 	Push "${LINK3}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3} /PROXY "${PROXY3}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!else
+	NSdown::Transfer /NOUNLOAD /URL "${LINK3}" /LOCAL "${FILE3_PROXY}" /PROXY "${PROXY3}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!endif
 	Pop $0	; ItemID
 
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK3}" "${FILE3}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
@@ -306,10 +345,14 @@ Section "-Test"
 	Push "${LINK3}"
 	Push "/URL"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK3}" /LOCAL "${FILE3}" /END
+!else
+	NSdown::Transfer /NOUNLOAD /URL "${LINK3}" /LOCAL "${FILE3}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!endif
 	Pop $0	; ItemID
 
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK4}" "${FILE4}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
 	Push "/TIMEOUTRECONNECT"
@@ -322,10 +365,14 @@ Section "-Test"
 	Push "POST"
 	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!else
+	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK4}" /LOCAL "${FILE4}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!endif
 	Pop $0	; ItemID
 
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK5}" "${FILE5}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "${LINK5}"
 	Push "/REFERER"
@@ -346,11 +393,15 @@ Section "-Test"
 	Push "POST"
 	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}" /END
+!else
+	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK5}" /LOCAL "${FILE5}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK5}" /END
+!endif
 	Pop $0	; ItemID
 
 /*
+	;---------------------------------------------------------------------
 	DetailPrint 'NSdown::Transfer "${LINK6}" "${FILE6}"'
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "10000"
 	Push "/TIMEOUTRECONNECT"
@@ -361,12 +412,13 @@ Section "-Test"
 	Push "POST"
 	Push "/METHOD"
 	CallInstDLL "${NSDOWN}" "Transfer"
-	;NSdown::Transfer /METHOD POST /URL "${LINK6}" /LOCAL "${FILE6}" /TIMEOUTRECONNECT 60000 /END
+!else
+	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK6}" /LOCAL "${FILE6}" /TIMEOUTRECONNECT 10000 /END
+!endif
 	Pop $0	; ItemID
 */
 
 	Call PrintStatus
-
 	!insertmacro STACK_VERIFY_END
 SectionEnd
 
@@ -374,18 +426,20 @@ SectionEnd
 Section Wait
 	!insertmacro STACK_VERIFY_START
 _loop:
-	Call PrintStatus
-
+!ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "/COUNTCOMPLETED"
 	Push "/COUNTTOTAL"
 	CallInstDLL "${NSDOWN}" "QueryGlobal"
-	;NSdown::QueryGlobal /COUNTTOTAL /COUNTCOMPLETED /END
+!else
+	NSdown::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /END
+!endif
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 
 	; Loop until ItemsTotal == ItemsDone
 	IntCmp $R0 $R1 _done +1 +1
+		Call PrintStatus
 		Sleep 5000
 		Goto _loop
 _done:
