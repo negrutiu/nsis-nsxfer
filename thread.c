@@ -169,6 +169,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 #ifdef _UNICODE
 			TCHAR szAddr[50];
 			if (MultiByteToWideChar( CP_ACP, 0, pszAddrA, -1, szAddr, ARRAYSIZE( szAddr ) ) > 0) {
+				MyFree( pItem->pszSrvIP );
 				MyStrDup( pItem->pszSrvIP, szAddr );
 			}
 #else
@@ -287,6 +288,19 @@ void CALLBACK ThreadDownload_StatusCallback(
 		break;
 	}
 #endif ///DBG || _DEBUG
+}
+
+
+//++ ThreadDownload_CloseSession
+VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_ITEM pItem )
+{
+	assert( pItem );
+	assert( pItem->hSession );
+
+	if (pItem->hSession) {
+		InternetCloseHandle( pItem->hSession );
+		pItem->hSession = NULL;
+	}
 }
 
 
@@ -1097,6 +1111,7 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 						}
 					}
 				}
+				ThreadDownload_CloseSession( pItem );
 			}
 			ThreadDownload_LocalClose( pItem );
 		}
