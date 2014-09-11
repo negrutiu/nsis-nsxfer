@@ -9,6 +9,9 @@
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 
+!include "StrFunc.nsh"
+${StrRep}			; Declare function in advance
+
 ; Enable debugging
 ; Call NSdown functins with CallInstDLL
 !define ENABLE_DEBUGGING
@@ -127,6 +130,7 @@ Function PrintStatus
 
 !ifdef ENABLE_DEBUGGING
 		Push "/END"
+		Push "/CONTENT"
 		Push "/ERRORTEXT"
 		Push "/ERRORCODE"
 		Push "/TIMEDOWNLOADING"
@@ -148,7 +152,7 @@ Function PrintStatus
 		Push $2	; Transfer ID
 		CallInstDLL "${NSDOWN}" "Query"
 !else
-		NSdown::Query /NOUNLOAD $2 /STATUS /WININETSTATUS /METHOD /URL /IP /PROXY /LOCAL /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /END
+		NSdown::Query /NOUNLOAD $2 /STATUS /WININETSTATUS /METHOD /URL /IP /PROXY /LOCAL /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
 !endif
 
 		StrCpy $R0 "    ID:$2"
@@ -190,6 +194,12 @@ Function PrintStatus
 		StrCpy $R0 "$R0 = $3"
 		Pop $3 ;ERRORTEXT
 		StrCpy $R0 '$R0 "$3"'
+		Pop $3 ;CONTENT
+		${If} $3 != ""
+			${StrRep} $3 "$3" "$\r" "\r"
+			${StrRep} $3 "$3" "$\n" "\n"
+			StrCpy $R0 '$R0 Content:$3'
+		${EndIf}
 
 		DetailPrint $R0
 	${Next}
@@ -410,6 +420,31 @@ Section "Transfer: httpbin.org/post"
 	CallInstDLL "${NSDOWN}" "Transfer"
 !else
 	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
+!endif
+	Pop $0	; ItemID
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
+Section "Transfer: httpbin.org/post -> Memory"
+	!insertmacro STACK_VERIFY_START
+	!define /redef LINK `http://httpbin.org/get?param1=value1&param2=value2`
+	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "MEMORY"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	Push "GET"
+	Push "/METHOD"
+	CallInstDLL "${NSDOWN}" "Transfer"
+!else
+	NSdown::Transfer /NOUNLOAD /METHOD GET /URL "${LINK}" /LOCAL MEMORY /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END

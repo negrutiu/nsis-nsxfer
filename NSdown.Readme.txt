@@ -15,7 +15,7 @@ Parameters:
 	/METHOD GET|POST			| HTTP Method. Default is GET
 	/URL url					| HTTP or HTTPS
 	/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
-	/HEADERS hdr				| Additional HTTP headers, separated by CRLF (\r\n)
+	/HEADERS hdr				| Additional HTTP headers, delimited by CRLF (\r\n)
 	/DATA data					| Additional data to be sent as part of the HTTP request
 	/DATAFILE file				| Additional data to be sent as part of the HTTP request (read from the specified file)
 	/TIMEOUTCONNECT msec		| Keep trying to connect for "msec" milliseconds. Default is 0 (only one attempt to connect is made)
@@ -77,6 +77,7 @@ NSdown::Query	[/NOUNLOAD]
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
 				[/SENTHEADERS] [/RECVHEADERS]
 				[/FILESIZE] [/RECVSIZE] [/PERCENT] [/SPEEDBYTES] [/SPEED]
+				[/CONTENT]
 				[/TIMEWAITING] [/TIMEDOWNLOADING]
 				[/ERRORCODE] [/ERRORTEXT]
 				/END
@@ -99,8 +100,9 @@ Parameters:
 	/FILESIZE				| The remote content length (can exceed 4GB (32-bit boundary))
 	/RECVSIZE				| The amount of bytes received so far
 	/PERCENT				| Percent (0-100)
-	/SPEEDBYTES				| Transfer speed (bytes/second)
 	/SPEED					| Transfer speed (nicely formatted, ex: "1,4 MB/s")
+	/SPEEDBYTES				| Transfer speed (bytes/second)
+	/CONTENT				| Retrieves the remote content (max NSIS_MAX_STRLEN) downloaded to memory. Non-printable characters will be replaced with '.'
 	/TIMEWAITING			| Amount of time (milliseconds) spent waiting in queue
 	/TIMEDOWNLOADING		| Amount of time (milliseconds) spent transferring
 	/ERRORCODE				| Win32 error code, or HTTP status code

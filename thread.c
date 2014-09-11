@@ -851,9 +851,7 @@ BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_MEMORY:
 		{
-			if ( pItem->Local.pMemory != NULL ) {
-				MyFree( pItem->Local.pMemory );
-			}
+			///MyFree( pItem->Local.pMemory );	// Memory content must remain available after the transfer has completed
 			break;
 		}
 	}

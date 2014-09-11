@@ -461,3 +461,33 @@ BOOL QueueStatistics(
 	}
 	return bRet;
 }
+
+
+BOOL ItemMemoryContentToString( _In_ PQUEUE_ITEM pItem, _Out_ LPTSTR pszString, _In_ ULONG iStringLen )
+{
+	BOOL bRet = FALSE;
+	if (pItem && pszString && iStringLen) {
+		pszString[0] = 0;
+		if (pItem->iLocalType == ITEM_LOCAL_MEMORY) {
+			if (pItem->iStatus == ITEM_STATUS_DONE) {
+				if (pItem->iWin32Error == ERROR_SUCCESS && (pItem->iHttpStatus >= 200 && pItem->iHttpStatus < 300)) {
+					if (pItem->iFileSize > 0 && pItem->iFileSize != INVALID_FILE_SIZE64) {
+						ULONG i, n;
+						CHAR ch;
+						for (i = 0, n = (ULONG)__min( iStringLen - 1, pItem->iFileSize ); i < n; i++) {
+							ch = pItem->Local.pMemory[i];
+							if ((ch >= 32 /*&& ch < 127*/) || ch == '\r' || ch == '\n') {
+								pszString[i] = pItem->Local.pMemory[i];
+							} else {
+								pszString[i] = _T( '.' );
+							}
+						}
+						pszString[i] = 0;	/// NULL terminator
+						bRet = TRUE;
+					}
+				}
+			}
+		}
+	}
+	return bRet;
+}

@@ -495,6 +495,9 @@ void __cdecl Query(
 				pushint( pItem->Speed.iSpeed );
 			} else if (lstrcmpi( pParam[i], _T( "/SPEED" ) ) == 0) {
 				pushstring( pItem->Speed.szSpeed );
+			} else if (lstrcmpi( pParam[i], _T( "/CONTENT" ) ) == 0) {
+				ItemMemoryContentToString( pItem, psz, string_size );
+				pushstring( psz );
 			} else if (lstrcmpi( pParam[i], _T( "/TIMEWAITING" ) ) == 0) {
 				switch (pItem->iStatus) {
 				case ITEM_STATUS_WAITING:

@@ -30,7 +30,7 @@ ________________________________________________________________________________
 - Pause/Resume transfer. Create paused
 - Abort transfer
 - Attach the "Zone.Identifier" stream (optional)
-- Support for NSIS script to retrieve the content of MEMORY files
+* Support for the NSIS script to retrieve memory content
 * All functions with variable number of arguments must receive /END
 * NSdown::Query return time information (elapsed waiting, elapsed transferring, etc)
 * NSdown::QueryGlobal converted to receive variable number of arguments + /END
