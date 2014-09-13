@@ -377,8 +377,8 @@ SectionEnd
 Section "Transfer: SysinternalsSuite (nefertiti)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (August 18, 2014).zip`
-	!define /redef FILE "$EXEDIR\_SysinternalsSuite (August 18, 2014).zip"
+	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
+	!define /redef FILE "$EXEDIR\_SysinternalsSuite (September 11, 2014).zip"
 	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
