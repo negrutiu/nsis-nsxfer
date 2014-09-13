@@ -21,7 +21,7 @@ ________________________________________________________________________________
 * Support files > 4GB
 - Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads)
 * Use InternetSetStatusCallback (remember last status, remember server IP)
-- Retry opening local file if ERROR_LOCK_VIOLATION
+* Retry opening local file if ERROR_LOCK_VIOLATION
 - Download to temporary file
 * Measure transfer speed
 * Save the raw headers and make them available for querying

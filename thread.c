@@ -9,6 +9,8 @@
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
 #define SPEED_MEASURE_INTERVAL		1000		/// milliseconds
+#define TIME_LOCKVIOLATION_WAIT 	15000
+#define TIME_LOCKVIOLATION_DELAY 	500
 
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
@@ -685,15 +687,18 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_FILE:
 		{
-			assert( !VALID_FILE_HANDLE( pItem->Local.hFile ));			/// File must not be opened
+			DWORD dwTime;
+			assert( !VALID_FILE_HANDLE( pItem->Local.hFile ) );			/// File must not be opened
 			assert( pItem->Local.pszFile && *pItem->Local.pszFile );	/// File name must not be empty
 
 			// Try and open already existing file (resume)
+			dwTime = GetTickCount();
+		_create_file:
 			pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-			if ( pItem->Local.hFile != INVALID_HANDLE_VALUE ) {
+			if (pItem->Local.hFile != INVALID_HANDLE_VALUE) {
 				/// TODO: Retry if ERROR_LOCK_VIOLATION
 				LARGE_INTEGER iExistingSize;
-				if ( GetFileSizeEx( pItem->Local.hFile, &iExistingSize ) ) {
+				if (GetFileSizeEx( pItem->Local.hFile, &iExistingSize )) {
 					/// SUCCESS
 					pItem->iRecvSize = iExistingSize.QuadPart;
 				} else {
@@ -701,10 +706,15 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pItem )
 				}
 			} else {
 				err = GetLastError();	/// CreateFile
+				if (err == ERROR_LOCK_VIOLATION && (GetTickCount() - dwTime < TIME_LOCKVIOLATION_WAIT)) {
+					/// The file is locked by some other process. Retry...
+					Sleep( TIME_LOCKVIOLATION_DELAY );
+					goto _create_file;
+				}
 			}
 
 			/// Handle errors
-			if ( (err != ERROR_SUCCESS) && VALID_FILE_HANDLE(pItem->Local.hFile) ) {
+			if ((err != ERROR_SUCCESS) && VALID_FILE_HANDLE( pItem->Local.hFile )) {
 				CloseHandle( pItem->Local.hFile );
 				pItem->Local.hFile = NULL;
 			}
@@ -933,7 +943,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 		return TRUE;
 
 	// Debugging definitions
-#define DEBUG_XFER_MAX_BYTES		1024*1024
+///#define DEBUG_XFER_MAX_BYTES		1024*1024
 ///#define DEBUG_XFER_SLOWDOWN		1000
 ///#define DEBUG_XFER_PROGRESS
 
