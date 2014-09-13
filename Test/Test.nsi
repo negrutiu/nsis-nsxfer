@@ -51,6 +51,8 @@ ${StrRep}			; Declare function in advance
 ;!insertmacro MUI_PAGE_WELCOME
 
 # Components page
+InstType "All"
+InstType "None"
 !define MUI_COMPONENTSPAGE_NODESC
 !insertmacro MUI_PAGE_COMPONENTS
 
@@ -238,6 +240,7 @@ FunctionEnd
 
 
 Section Test
+	SectionIn 1	; All
 !ifdef ENABLE_DEBUGGING
 	CallInstDLL "${NSDOWN}" "Test"
 !else
@@ -247,6 +250,7 @@ SectionEnd
 
 
 Section "Transfer: Nefertiti.html"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://nefertiti`
 	!define /redef FILE "$EXEDIR\_Nefertiti.html"
@@ -272,6 +276,7 @@ SectionEnd
 
 
 Section "Transfer: Notepad++"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://download.tuxfamily.org/notepadplus/6.6.7/npp.6.6.7.Installer.exe`
 	!define /redef FILE "$EXEDIR\_npp.6.6.7.Installer.exe"
@@ -295,6 +300,7 @@ SectionEnd
 
 
 Section "Transfer: CCleaner"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://www.piriform.com/ccleaner/download/slim/downloadfile`
 	;!define /redef FILE "$EXEDIR\CCleanerSetup.exe"
@@ -316,6 +322,7 @@ SectionEnd
 
 
 Section "Transfer: SysinternalsSuite (proxy)"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK  "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
@@ -343,6 +350,7 @@ SectionEnd
 
 
 Section "Transfer: SysinternalsSuite (direct)"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE "$EXEDIR\_SysinternalsSuiteLive.zip"
@@ -367,6 +375,7 @@ SectionEnd
 
 
 Section "Transfer: SysinternalsSuite (nefertiti)"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (August 18, 2014).zip`
 	!define /redef FILE "$EXEDIR\_SysinternalsSuite (August 18, 2014).zip"
@@ -393,6 +402,7 @@ SectionEnd
 
 
 Section "Transfer: httpbin.org/post"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/post`
 	!define /redef FILE "$EXEDIR\_Post1.txt"
@@ -427,6 +437,7 @@ SectionEnd
 
 
 Section "Transfer: httpbin.org/post -> Memory"
+	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/get?param1=value1&param2=value2`
 	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
@@ -476,6 +487,7 @@ SectionEnd
 
 
 Section Wait
+	SectionIn 1	2 ; All & None
 	!insertmacro STACK_VERIFY_START
 _loop:
 !ifdef ENABLE_DEBUGGING

@@ -5,4 +5,4 @@ if %ERRORLEVEL% neq 0 pause && goto :EOF
 
 echo ----------------------------------------------------------
 set /P answer=Execute NSdownW.exe (y/N)? 
-if /I "%answer%" equ "y" start "NSdown" "%~dp0\NSdownW.exe"
+if /I "%answer%" equ "y" "%~dp0\NSdownW.exe"
