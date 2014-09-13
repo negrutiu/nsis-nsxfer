@@ -10,7 +10,7 @@ ________________________________________________________________________________
 * Connect timeout parameter
 * Reconnect timeout parameter
 * Resume
-- Resume memory downloads as well
+* Resume memory downloads as well
 * query file size
 * download file with unknown size
 - HTTP/HTTPS authentication?

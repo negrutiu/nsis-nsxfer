@@ -799,15 +799,19 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
 
 		case ITEM_LOCAL_MEMORY:
 		{
-			assert( pItem->Local.pMemory == NULL );
-
+			/// NOTE: If we're reconnecting, the memory buffer is already be allocated. We'll resume the transfer...
 			if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
 				if ( pItem->iFileSize <= MAX_MEMORY_CONTENT_LENGTH ) {		// Size limit
-					pItem->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
-					if ( pItem->Local.pMemory ) {
-						/// SUCCESS (full download)
+					if (!pItem->Local.pMemory) {
+						pItem->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
+						if (pItem->Local.pMemory) {
+							/// SUCCESS (full download)
+						} else {
+							err = ERROR_OUTOFMEMORY;	/// MyAlloc
+						}
 					} else {
-						err = ERROR_OUTOFMEMORY;	/// MyAlloc
+						/// SUCCESS (resume)
+						/// iRecvSize already set
 					}
 				} else {
 					err = ERROR_FILE_TOO_LARGE;	/// The remote content length exceeds the limit
@@ -929,7 +933,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 		return TRUE;
 
 	// Debugging definitions
-///#define DEBUG_XFER_MAX_BYTES		1024*1024
+#define DEBUG_XFER_MAX_BYTES		1024*1024
 ///#define DEBUG_XFER_SLOWDOWN		1000
 ///#define DEBUG_XFER_PROGRESS
 
