@@ -10,7 +10,7 @@ ________________________________________________________________________________
 * Connect timeout parameter
 * Reconnect timeout parameter
 * Resume
-- Resume the downloads to memory, as well
+- Resume memory downloads as well
 * query file size
 * download file with unknown size
 - HTTP/HTTPS authentication?
@@ -34,3 +34,5 @@ ________________________________________________________________________________
 * All functions with variable number of arguments must receive /END
 * NSdown::Query return time information (elapsed waiting, elapsed transferring, etc)
 * NSdown::QueryGlobal converted to receive variable number of arguments + /END
+- Configurable: worker threads, NSDOWN_USERAGENT, TRANSFER_CHUNK_SIZE, MAX_MEMORY_CONTENT_LENGTH, CONNECT_RETRY_DELAY, SPEED_MEASURE_INTERVAL
+- Transfer GUI
