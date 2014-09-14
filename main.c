@@ -80,6 +80,7 @@ void __cdecl Transfer(
 	)
 {
 	LPTSTR psz = NULL;
+	ULONG iPriority = DEFAULT_VALUE;
 	LPTSTR pszMethod = NULL;
 	LPTSTR pszUrl = NULL, pszFile = NULL;
 	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
@@ -105,15 +106,17 @@ void __cdecl Transfer(
 	TRACE( _T("NSdown!Transfer\n"));
 
 	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
-	for ( ;; )
+	for (;;)
 	{
-		if ( popstring( psz ) != 0 )
+		if (popstring( psz ) != 0)
 			break;
 		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
 			break;
 
-		if ( lstrcmpi( psz, _T( "/METHOD" ) ) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
+			iPriority = popint();
+		} else if (lstrcmpi( psz, _T( "/METHOD" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				assert(
 					lstrcmpi( psz, _T( "GET" ) ) == 0 ||
 					lstrcmpi( psz, _T( "POST" ) ) == 0 ||
@@ -126,35 +129,29 @@ void __cdecl Transfer(
 					/// TODO:
 				}
 			}
-		}
-		else if ( lstrcmpi( psz, _T( "/URL" )) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/URL" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				MyFree( pszUrl );
 				MyStrDup( pszUrl, psz );
 			}
-		}
-		else if ( lstrcmpi( psz, _T( "/LOCAL" ) ) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/LOCAL" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				MyFree( pszFile );
-				if ( lstrcmpi( psz, _T( "NONE" ) ) == 0 ) {
+				if (lstrcmpi( psz, _T( "NONE" ) ) == 0) {
 					iLocalType = ITEM_LOCAL_NONE;
-				}
-				else if ( lstrcmpi( psz, _T( "MEMORY" ) ) == 0 ) {
+				} else if (lstrcmpi( psz, _T( "MEMORY" ) ) == 0) {
 					iLocalType = ITEM_LOCAL_MEMORY;
-				}
-				else {
+				} else {
 					iLocalType = ITEM_LOCAL_FILE;
 					MyStrDup( pszFile, psz );
 				}
 			}
-		}
-		else if (lstrcmpi( psz, _T( "/HEADERS" ) ) == 0) {
+		} else if (lstrcmpi( psz, _T( "/HEADERS" ) ) == 0) {
 			if (popstring( psz ) == 0) {
 				MyFree( pszHeaders );
 				MyStrDup( pszHeaders, psz );
 			}
-		}
-		else if (lstrcmpi( psz, _T( "/DATA" ) ) == 0) {
+		} else if (lstrcmpi( psz, _T( "/DATA" ) ) == 0) {
 			if (popstring( psz ) == 0) {
 				MyFree( pData );
 				iDataSize = 0;
@@ -169,8 +166,7 @@ void __cdecl Transfer(
 				iDataSize = lstrlen( psz );
 #endif
 			}
-		}
-		else if (lstrcmpi( psz, _T( "/DATAFILE" ) ) == 0) {
+		} else if (lstrcmpi( psz, _T( "/DATAFILE" ) ) == 0) {
 			if (popstring( psz ) == 0) {
 				HANDLE hFile = CreateFile( psz, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL );
 				if (hFile != INVALID_HANDLE_VALUE) {
@@ -198,54 +194,43 @@ void __cdecl Transfer(
 			}
 		} else if (lstrcmpi( psz, _T( "/TIMEOUTCONNECT" ) ) == 0) {
 			iTimeoutConnect = popint();
-		}
-		else if ( lstrcmpi( psz, _T( "/TIMEOUTRECONNECT" ) ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/TIMEOUTRECONNECT" ) ) == 0) {
 			iTimeoutReconnect = popint();
-		}
-		else if ( lstrcmpi( psz, _T( "/OPTCONNECTRETRIES" ) ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/OPTCONNECTRETRIES" ) ) == 0) {
 			iOptConnectRetries = popint();
-		}
-		else if ( lstrcmpi( psz, _T( "/OPTCONNECTTIMEOUT" ) ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/OPTCONNECTTIMEOUT" ) ) == 0) {
 			iOptConnectTimeout = popint();
-		}
-		else if ( lstrcmpi( psz, _T( "/OPTRECEIVETIMEOUT" ) ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/OPTRECEIVETIMEOUT" ) ) == 0) {
 			iOptRecvTimeout = popint();
-		}
-		else if ( lstrcmpi( psz, _T( "/PROXY" ) ) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/PROXY" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				MyFree( pszProxyHost );
 				MyStrDup( pszProxyHost, psz );
 			}
-		}
-		else if ( lstrcmpi( psz, _T( "/PROXYUSER" ) ) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/PROXYUSER" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				MyFree( pszProxyUser );
 				MyStrDup( pszProxyUser, psz );
 			}
-		}
-		else if ( lstrcmpi( psz, _T( "/PROXYPASS" ) ) == 0 ) {
-			if ( popstring( psz ) == 0 ) {
+		} else if (lstrcmpi( psz, _T( "/PROXYPASS" ) ) == 0) {
+			if (popstring( psz ) == 0) {
 				MyFree( pszProxyPass );
 				MyStrDup( pszProxyPass, psz );
 			}
-		}
-		else if (lstrcmpi( psz, _T( "/REFERER" ) ) == 0) {
+		} else if (lstrcmpi( psz, _T( "/REFERER" ) ) == 0) {
 			if (popstring( psz ) == 0) {
 				MyFree( pszReferer );
 				MyStrDup( pszReferer, psz );
 			}
-		}
-		else if (lstrcmpi( psz, _T( "/INTERNETFLAGS" ) ) == 0) {
+		} else if (lstrcmpi( psz, _T( "/INTERNETFLAGS" ) ) == 0) {
 			ULONG iFlags = (ULONG)popint_or();
 			if (iFlags != 0)
 				iHttpInternetFlags = iFlags;
-		}
-		else if (lstrcmpi( psz, _T( "/SECURITYFLAGS" ) ) == 0) {
+		} else if (lstrcmpi( psz, _T( "/SECURITYFLAGS" ) ) == 0) {
 			ULONG iFlags = (ULONG)popint_or();
 			if (iFlags != 0)
 				iHttpSecurityFlags = iFlags;
-		}
-		else {
+		} else {
 			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 		}
 	}
@@ -254,6 +239,7 @@ void __cdecl Transfer(
 	QueueLock( &g_Queue );
 	QueueAdd(
 		&g_Queue,
+		iPriority,
 		pszUrl, iLocalType, pszFile,
 		pszProxyHost, pszProxyUser, pszProxyPass,
 		pszMethod, pszHeaders, pData, iDataSize,
@@ -435,7 +421,9 @@ void __cdecl Query(
 	/// Iterate all parameters (in reverse order) and return their values
 	for (i = iParamCount - 1; i >= 0; i--) {
 		if (pItem) {
-			if (lstrcmpi( pParam[i], _T( "/STATUS" ) ) == 0) {
+			if (lstrcmpi( pParam[i], _T( "/PRIORITY" ) ) == 0) {
+				pushint( pItem->iPriority );
+			} else if (lstrcmpi( pParam[i], _T( "/STATUS" ) ) == 0) {
 				switch (pItem->iStatus) {
 				case ITEM_STATUS_WAITING:
 					pushstring( _T( "waiting" ) );

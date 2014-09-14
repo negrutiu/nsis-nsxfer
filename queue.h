@@ -3,6 +3,7 @@
 
 #define QUEUE_MAX_THREADS			20
 #define INVALID_FILE_SIZE64			(ULONG64)-1
+#define ITEM_DEFAULT_PRIORITY		1000
 
 /*
 	Queue facts:
@@ -33,6 +34,7 @@ typedef struct _QUEUE_ITEM {
 
 	ULONG iId;						/// Unique download ID
 	ITEM_STATUS iStatus;
+	ULONG iPriority;				/// 0 (high prio) -> ULONG_MAX-1 (low prio)
 
 	// Objects this item belongs to
 	struct _QUEUE *pQueue;
@@ -161,6 +163,7 @@ PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
 // The queue must be locked
 BOOL QueueAdd(
 	_Inout_ PQUEUE pQueue,
+	_In_opt_ ULONG iPriority,					/// can be DEFAULT_VALUE
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,

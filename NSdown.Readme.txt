@@ -1,4 +1,5 @@
 NSdown::Transfer	[/NOUNLOAD]
+					[/PRIORITY]
 					[/METHOD GET|POST]
 					/URL url
 					[/LOCAL file|MEMORY|NONE]
@@ -12,6 +13,7 @@ NSdown::Transfer	[/NOUNLOAD]
 
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSdown at runtime
+	/PRIORITY					| Lower value means higher priority. Default is 1000
 	/METHOD GET|POST			| HTTP Method. Default is GET
 	/URL url					| HTTP or HTTPS
 	/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
@@ -40,8 +42,8 @@ Examples:
 	NSdown::Transfer /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
 	Pop $0	; Transfer ID
 
-	; Download to memory
-	NSdown::Transfer /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
+	; Download to memory, highest priority
+	NSdown::Transfer /NOUNLOAD /PRIORITY 1 /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
 	Pop $0	; Transfer ID
 
 	; Send the HTTP request but don't download the content
@@ -73,6 +75,7 @@ ________________________________________________________________________________
 
 NSdown::Query	[/NOUNLOAD]
 				TransferID
+				[/PRIORITY]
 				[/STATUS] [/WININETSTATUS]
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
 				[/SENTHEADERS] [/RECVHEADERS]
@@ -88,6 +91,7 @@ NSdown::Query	[/NOUNLOAD]
 Parameters:
 	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSdown at runtime
 	TransferID				| The transfer ID returned by NSdown::Transfer
+	/PRIORITY				| Transfer priority
 	/STATUS					| Transfer status (downloading|waiting|completed)
 	/WININETSTATUS			| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
 	/METHOD					| The HTTP method in use (GET, POST, HEAD, etc.)

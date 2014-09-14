@@ -19,13 +19,13 @@ ________________________________________________________________________________
 * POST headers
 - Multiple download sources
 * Support files > 4GB
-- Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads)
+x Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads) => Easily done by the caller *after* transfer completes
 * Use InternetSetStatusCallback (remember last status, remember server IP)
 * Retry opening local file if ERROR_LOCK_VIOLATION
-- Download to temporary file
+x Download to temporary file => Easily done by the caller
 * Measure transfer speed
 * Save the raw headers and make them available for querying
-- Queue priorities
+* Queue priorities
 * Enumerate transfers in queue
 - Pause/Resume transfer. Create paused
 - Abort transfer

@@ -340,9 +340,11 @@ Section "Transfer: SysinternalsSuite (proxy)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
+	Push 10
+	Push "/PRIORITY"
 	CallInstDLL "${NSDOWN}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSdown::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -365,9 +367,11 @@ Section "Transfer: SysinternalsSuite (direct)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
+	Push 10
+	Push "/PRIORITY"
 	CallInstDLL "${NSDOWN}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSdown::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -392,9 +396,11 @@ Section "Transfer: SysinternalsSuite (nefertiti)"
 	Push "/URL"
 	Push "POST"
 	Push "/METHOD"
+	Push 10
+	Push "/PRIORITY"
 	CallInstDLL "${NSDOWN}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSdown::Transfer /NOUNLOAD /PRIORITY 10 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -427,9 +433,11 @@ Section "Transfer: httpbin.org/post"
 	Push "/URL"
 	Push "POST"
 	Push "/METHOD"
+	Push 2000
+	Push "/PRIORITY"
 	CallInstDLL "${NSDOWN}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
+	NSdown::Transfer /NOUNLOAD /PRIORITY 2000 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -453,9 +461,11 @@ Section "Transfer: httpbin.org/post -> Memory"
 	Push "/URL"
 	Push "GET"
 	Push "/METHOD"
+	Push 2000
+	Push "/PRIORITY"
 	CallInstDLL "${NSDOWN}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /METHOD GET /URL "${LINK}" /LOCAL MEMORY /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSdown::Transfer /NOUNLOAD /PRIORITY 2000 /METHOD GET /URL "${LINK}" /LOCAL MEMORY /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END

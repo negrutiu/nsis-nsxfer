@@ -157,20 +157,23 @@ PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID )
 
 PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 {
-	// New items are always added to the front of our queue
-	// Therefore, the first (chronologically) waiting item is the last in the queue
+	// NOTES:
+	// New items are always added to the front of the queue. The first (chronologically) waiting item is the last one
+	// We'll select the item with the highest priority (Note: lower value means higher priority)
 
-	PQUEUE_ITEM pItem, pLastWaitingItem;
+	PQUEUE_ITEM pItem, pSelectedItem = NULL;
+	ULONG iSelectedPrio = ULONG_MAX - 1;
 	assert( pQueue );
-	for ( pItem = pQueue->pHead, pLastWaitingItem = NULL; pItem; pItem = pItem->pNext )
-		if ( pItem->iStatus == ITEM_STATUS_WAITING )
-			pLastWaitingItem = pItem;
-	TRACE2( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Ptr:0x%p\n" ), pQueue->szName, pLastWaitingItem ? pLastWaitingItem->iId : 0, pLastWaitingItem );
-	return pLastWaitingItem;
+	for (pItem = pQueue->pHead; pItem; pItem = pItem->pNext)
+		if (pItem->iStatus == ITEM_STATUS_WAITING && pItem->iPriority <= iSelectedPrio)
+			pSelectedItem = pItem, iSelectedPrio = pItem->iPriority;
+	TRACE2( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Prio:%u, Ptr:0x%p\n" ), pQueue->szName, pSelectedItem ? pSelectedItem->iId : 0, pSelectedItem ? pSelectedItem->iPriority : 0, pSelectedItem );
+	return pSelectedItem;
 }
 
 BOOL QueueAdd(
 	_Inout_ PQUEUE pQueue,
+	_In_opt_ ULONG iPriority,
 	_In_ LPCTSTR pszURL,
 	_In_ ITEM_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
@@ -200,6 +203,7 @@ BOOL QueueAdd(
 		if ( pItem ) {
 
 			pItem->iId = ++pQueue->iLastId;
+			pItem->iPriority = (iPriority == DEFAULT_VALUE) ? ITEM_DEFAULT_PRIORITY : iPriority;
 			pItem->iStatus = ITEM_STATUS_WAITING;
 			pItem->pQueue = pQueue;
 			pItem->pThread = NULL;
@@ -306,7 +310,7 @@ BOOL QueueAdd(
 			pItem->pszHttpStatus = NULL;
 			MyStrDup( pItem->pszHttpStatus, _T( "N/A" ) );
 
-			// Add in front
+			// Add to the front
 			pItem->pNext = pQueue->pHead;
 			pQueue->pHead = pItem;
 
@@ -318,12 +322,13 @@ BOOL QueueAdd(
 			SetEvent( pQueue->hThreadWakeEvent );
 
 			TRACE(
-				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s)\n" ),
+				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s, Prio:%u)\n" ),
 				pQueue->szName,
 				pItem->iId,
 				pItem->szMethod,
 				pItem->pszURL,
-				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T("Memory"))
+				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T("Memory")),
+				pItem->iPriority
 				);
 		}
 		else {
