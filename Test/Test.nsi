@@ -13,31 +13,31 @@
 ${StrRep}			; Declare function in advance
 
 ; Enable debugging
-; Call NSdown functins with CallInstDLL
+; Call NSxfer functins with CallInstDLL
 !define ENABLE_DEBUGGING
 
 
-# The folder where NSdown.dll is
+# The folder where NSxfer.dll is
 !ifdef ENABLE_DEBUGGING
 	; Debug
 	!ifdef NSIS_UNICODE
-		!define NSDOWN "$EXEDIR\..\DebugW\NSdown.dll"
+		!define NSXFER "$EXEDIR\..\DebugW\NSxfer.dll"
 	!else
-		!define NSDOWN "$EXEDIR\..\DebugA\NSdown.dll"
+		!define NSXFER "$EXEDIR\..\DebugA\NSxfer.dll"
 	!endif
 !else
 	; Release
 	!ifdef NSIS_UNICODE
-		!if /FileExists "..\ReleaseW\NSdown.dll"
+		!if /FileExists "..\ReleaseW\NSxfer.dll"
 			!AddPluginDir "..\ReleaseW"
 		!else
-			!error "NSdown.dll (Unicode) not found. Have you built it?"
+			!error "NSxfer.dll (Unicode) not found. Have you built it?"
 		!endif
 	!else
-		!if /FileExists "..\ReleaseA\NSdown.dll"
+		!if /FileExists "..\ReleaseA\NSxfer.dll"
 			!AddPluginDir "..\ReleaseA"
 		!else
-			!error "NSdown.dll (ANSI) not found. Have you built it?"
+			!error "NSxfer.dll (ANSI) not found. Have you built it?"
 		!endif
 	!endif
 !endif
@@ -65,11 +65,11 @@ InstType "None"
 
 # Installer details
 !ifdef NSIS_UNICODE
-	Name "NSdownW"
-	OutFile "NSdownW.exe"
+	Name "NSxferW"
+	OutFile "NSxferW.exe"
 !else
-	Name "NSdownA"
-	OutFile "NSdownA.exe"
+	Name "NSxferA"
+	OutFile "NSxferA.exe"
 !endif
 
 XPStyle on
@@ -116,12 +116,12 @@ Function PrintStatus
 
 	!define ENUM_STATUS "all"
 
-	DetailPrint "NSdown::Enumerate ${ENUM_STATUS}"
+	DetailPrint "NSxfer::Enumerate ${ENUM_STATUS}"
 !ifdef ENABLE_DEBUGGING
 	Push "${ENUM_STATUS}"
-	CallInstDLL "${NSDOWN}" "Enumerate"
+	CallInstDLL "${NSXFER}" "Enumerate"
 !else
-	NSdown::Enumerate /NOUNLOAD ${ENUM_STATUS}
+	NSxfer::Enumerate /NOUNLOAD ${ENUM_STATUS}
 !endif
 
 	Pop $1	; Count
@@ -152,9 +152,9 @@ Function PrintStatus
 		Push "/WININETSTATUS"
 		Push "/STATUS"
 		Push $2	; Transfer ID
-		CallInstDLL "${NSDOWN}" "Query"
+		CallInstDLL "${NSXFER}" "Query"
 !else
-		NSdown::Query /NOUNLOAD $2 /STATUS /WININETSTATUS /METHOD /URL /IP /PROXY /LOCAL /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
+		NSxfer::Query /NOUNLOAD $2 /STATUS /WININETSTATUS /METHOD /URL /IP /PROXY /LOCAL /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
 !endif
 
 		StrCpy $R0 "    ID:$2"
@@ -213,9 +213,9 @@ Function PrintStatus
 	Push "/COUNTDOWNLOADING"
 	Push "/COUNTCOMPLETED"
 	Push "/COUNTTOTAL"
-	CallInstDLL "${NSDOWN}" "QueryGlobal"
+	CallInstDLL "${NSXFER}" "QueryGlobal"
 !else
-	NSdown::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+	NSxfer::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
 !endif
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
@@ -242,9 +242,9 @@ FunctionEnd
 Section Test
 	SectionIn 1	; All
 !ifdef ENABLE_DEBUGGING
-	CallInstDLL "${NSDOWN}" "Test"
+	CallInstDLL "${NSXFER}" "Test"
 !else
-	NSdown::Test /NOUNLOAD
+	NSxfer::Test /NOUNLOAD
 !endif
 SectionEnd
 
@@ -254,7 +254,7 @@ Section "Transfer: Nefertiti.html"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://nefertiti`
 	!define /redef FILE "$EXEDIR\_Nefertiti.html"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "0x2080|0x100"
@@ -265,9 +265,9 @@ Section "Transfer: Nefertiti.html"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /SECURITYFLAGS 0x2080|0x100 /END
+	NSxfer::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /SECURITYFLAGS 0x2080|0x100 /END
 !endif
 	Pop $0	; ItemID
 
@@ -281,7 +281,7 @@ Section "Transfer: Notepad++"
 	!define /redef LINK `http://download.tuxfamily.org/notepadplus/6.6.7/npp.6.6.7.Installer.exe`
 	!define /redef FILE "$EXEDIR\_npp.6.6.7.Installer.exe"
 	;!define /redef FILE "NONE"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "15000"
@@ -290,9 +290,9 @@ Section "Transfer: Notepad++"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
+	NSxfer::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -305,16 +305,16 @@ Section "Transfer: CCleaner"
 	!define /redef LINK `http://www.piriform.com/ccleaner/download/slim/downloadfile`
 	;!define /redef FILE "$EXEDIR\CCleanerSetup.exe"
 	!define /redef FILE "MEMORY"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "${FILE}"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /END
+	NSxfer::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -326,8 +326,8 @@ Section "Transfer: SysinternalsSuite (proxy)"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK  "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
-	!define /redef PROXY "http=http://86.125.59.121:3128"
-	DetailPrint 'NSdown::Transfer /proxy ${PROXY} "${LINK}" "${FILE}"'
+	!define /redef PROXY "http=http://148.251.90.165:3128"
+	DetailPrint 'NSxfer::Transfer /proxy ${PROXY} "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
@@ -342,9 +342,9 @@ Section "Transfer: SysinternalsSuite (proxy)"
 	Push "/URL"
 	Push 10
 	Push "/PRIORITY"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -356,7 +356,7 @@ Section "Transfer: SysinternalsSuite (direct)"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE "$EXEDIR\_SysinternalsSuiteLive.zip"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
@@ -369,9 +369,9 @@ Section "Transfer: SysinternalsSuite (direct)"
 	Push "/URL"
 	Push 10
 	Push "/PRIORITY"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -383,7 +383,7 @@ Section "Transfer: SysinternalsSuite (nefertiti)"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
 	!define /redef FILE "$EXEDIR\_SysinternalsSuite (September 11, 2014).zip"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
@@ -394,13 +394,13 @@ Section "Transfer: SysinternalsSuite (nefertiti)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	Push "POST"
+	Push "GET"
 	Push "/METHOD"
 	Push 10
 	Push "/PRIORITY"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /PRIORITY 10 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -412,7 +412,7 @@ Section "Transfer: httpbin.org/post"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/post`
 	!define /redef FILE "$EXEDIR\_Post1.txt"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "${LINK}"
@@ -435,9 +435,9 @@ Section "Transfer: httpbin.org/post"
 	Push "/METHOD"
 	Push 2000
 	Push "/PRIORITY"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /PRIORITY 2000 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 2000 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -448,7 +448,7 @@ Section "Transfer: httpbin.org/post -> Memory"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/get?param1=value1&param2=value2`
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "60000"
@@ -463,9 +463,9 @@ Section "Transfer: httpbin.org/post -> Memory"
 	Push "/METHOD"
 	Push 2000
 	Push "/PRIORITY"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /PRIORITY 2000 /METHOD GET /URL "${LINK}" /LOCAL MEMORY /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 2000 /METHOD GET /URL "${LINK}" /LOCAL MEMORY /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -476,7 +476,7 @@ Section /o "Transfer: Priest.mkv"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://nefertiti.homenet.org:8008/Priest.mkv`
 	!define /redef FILE "$EXEDIR\_Priest.mkv"
-	DetailPrint 'NSdown::Transfer "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
 	Push "10000"
@@ -485,11 +485,11 @@ Section /o "Transfer: Priest.mkv"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	Push "POST"
+	Push "GET"
 	Push "/METHOD"
-	CallInstDLL "${NSDOWN}" "Transfer"
+	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTRECONNECT 10000 /END
+	NSxfer::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTRECONNECT 10000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -504,9 +504,9 @@ _loop:
 	Push "/END"
 	Push "/COUNTCOMPLETED"
 	Push "/COUNTTOTAL"
-	CallInstDLL "${NSDOWN}" "QueryGlobal"
+	CallInstDLL "${NSXFER}" "QueryGlobal"
 !else
-	NSdown::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /END
+	NSxfer::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /END
 !endif
 	Pop $R0 ; Total
 	Pop $R1 ; Completed

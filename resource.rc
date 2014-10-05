@@ -21,9 +21,9 @@ BEGIN
             VALUE "CompanyName", "Marius Negrutiu (marius.negrutiu@gmail.com)"
             VALUE "FileDescription", "NSIS Background Download"
             VALUE "FileVersion", "1.2014.9.11"
-            VALUE "InternalName", "NSdown.dll"
+            VALUE "InternalName", "NSxfer.dll"
             VALUE "LegalCopyright", "(C)2014, by Marius Negrutiu. All rights reserved."
-            VALUE "OriginalFilename", "NSdown.dll"
+            VALUE "OriginalFilename", "NSxfer.dll"
             VALUE "ProductName", "NSIS Background Download"
             VALUE "ProductVersion", "1.2014.9.11"
         END

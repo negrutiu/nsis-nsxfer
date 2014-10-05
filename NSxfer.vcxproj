@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FE51110F-82BE-423E-800C-F5951C998D22}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>NSdown</RootNamespace>
+    <RootNamespace>NSxfer</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugW|Win32'" Label="Configuration">
@@ -165,7 +165,7 @@
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="NSdown.Readme.txt" />
+    <Text Include="NSxfer.Readme.txt" />
     <Text Include="todo.txt" />
   </ItemGroup>
   <ItemGroup>

@@ -4,7 +4,7 @@
 #include "utils.h"
 
 
-#define NSDOWN_USERAGENT			_T("NSdown (WinInet)")
+#define USERAGENT					_T("Mozilla/5.0 (Windows; WOW64) xfer/1.0")
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
@@ -313,7 +313,7 @@ BOOL ThreadDownload_OpenSession(_Inout_ PQUEUE_ITEM pItem)
 	assert( pItem );
 	assert( pItem->hSession == NULL );
 
-	pItem->hSession = InternetOpen( NSDOWN_USERAGENT, pItem->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pItem->pszProxy, NULL, 0 );
+	pItem->hSession = InternetOpen( USERAGENT, pItem->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pItem->pszProxy, NULL, 0 );
 	if ( pItem->hSession ) {
 
 		// Set callback function

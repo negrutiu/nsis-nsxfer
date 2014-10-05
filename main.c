@@ -103,7 +103,7 @@ void __cdecl Transfer(
 	// Request unload notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
-	TRACE( _T("NSdown!Transfer\n"));
+	TRACE( _T("NSxfer!Transfer\n"));
 
 	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
 	for (;;)
@@ -289,7 +289,7 @@ void __cdecl QueryGlobal(
 	if (!IsCompatibleApiVersion())
 		return;
 
-	TRACE( _T( "NSdown!QueryGlobal\n" ) );
+	TRACE( _T( "NSxfer!QueryGlobal\n" ) );
 
 	/// Allocate the working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -384,7 +384,7 @@ void __cdecl Query(
 	if (!IsCompatibleApiVersion())
 		return;
 
-	TRACE( _T( "NSdown!Query\n" ) );
+	TRACE( _T( "NSxfer!Query\n" ) );
 
 	/// Allocate the working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -568,7 +568,7 @@ void __cdecl Enumerate(
 	if (!IsCompatibleApiVersion())
 		return;
 
-	TRACE( _T( "NSdown!Enumerate\n" ) );
+	TRACE( _T( "NSxfer!Enumerate\n" ) );
 
 	// Decide what items to enumerate
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -620,7 +620,7 @@ void __cdecl Test(
 	if (!IsCompatibleApiVersion())
 		return;
 
-	TRACE( _T( "NSdown!Test\n" ) );
+	TRACE( _T( "NSxfer!Test\n" ) );
 
 	/*{
 		ULONGLONG ull, ull2;

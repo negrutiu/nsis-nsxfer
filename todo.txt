@@ -32,7 +32,7 @@ x Download to temporary file => Easily done by the caller
 - Attach the "Zone.Identifier" stream (optional)
 * Support for the NSIS script to retrieve memory content
 * All functions with variable number of arguments must receive /END
-* NSdown::Query return time information (elapsed waiting, elapsed transferring, etc)
-* NSdown::QueryGlobal converted to receive variable number of arguments + /END
-- Configurable: worker threads, NSDOWN_USERAGENT, TRANSFER_CHUNK_SIZE, MAX_MEMORY_CONTENT_LENGTH, CONNECT_RETRY_DELAY, SPEED_MEASURE_INTERVAL
+* NSxfer::Query return time information (elapsed waiting, elapsed transferring, etc)
+* NSxfer::QueryGlobal converted to receive variable number of arguments + /END
+- Configurable: worker threads, NSXFER_USERAGENT, TRANSFER_CHUNK_SIZE, MAX_MEMORY_CONTENT_LENGTH, CONNECT_RETRY_DELAY, SPEED_MEASURE_INTERVAL
 - Transfer GUI

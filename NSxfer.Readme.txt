@@ -1,4 +1,9 @@
-NSdown::Transfer	[/NOUNLOAD]
+
+NSxfer - NSIS WinInet transfer plugin
+Marius Negruțiu (marius.negrutiu@gmail.com)
+_________________________________________________________________________________________________
+
+NSxfer::Transfer	[/NOUNLOAD]
 					[/PRIORITY]
 					[/METHOD GET|POST]
 					/URL url
@@ -11,51 +16,75 @@ NSdown::Transfer	[/NOUNLOAD]
 					[/REFERER url]
 					/END
 
+Remarks:
+	The "Transfer" command will add a download request to the queue.
+	The transfer will start as soon as a worker thread becomes available.
+	This command will not display any GUI.
+	For GUI, check out the "Wait" command.
+	
 Parameters:
-	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSdown at runtime
-	/PRIORITY					| Lower value means higher priority. Default is 1000
-	/METHOD GET|POST			| HTTP Method. Default is GET
+	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
+	/PRIORITY					| Priority in queue. Lower value means higher priority. Default is 1000
+	/METHOD GET|POST|HEAD|...	| HTTP Method. Default is GET
 	/URL url					| HTTP or HTTPS
 	/LOCAL file|MEMORY|NONE		| The remote content can be downloaded to either a local file, to memory, or not downloaded at all. Default is NONE
 	/HEADERS hdr				| Additional HTTP headers, delimited by CRLF (\r\n)
 	/DATA data					| Additional data to be sent as part of the HTTP request
 	/DATAFILE file				| Additional data to be sent as part of the HTTP request (read from the specified file)
 	/TIMEOUTCONNECT msec		| Keep trying to connect for "msec" milliseconds. Default is 0 (only one attempt to connect is made)
-	/TIMEOUTRECONNECT msec		| Keep trying to reconnect for "msec" milliseconds, if the connection drops while downloading. Default is 0 (no attempts to reconnect are made)
+	/TIMEOUTRECONNECT msec		| Keep trying to reconnect for "msec" milliseconds, if the connection drops while downloading. Default is 0 (no attempt to reconnect)
 	/OPTCONNECTRETRIES count	| InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for remote hosts with multiple IPs!
 	/OPTCONNECTTIMEOUT msec		| InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	/OPTRECEIVETIMEOUT msec		| InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
 	/PROXY server				| CERN type proxies (ex: "http=http://my_proxy:my_port"). If Internet Explorer is installed, SOCKS proxies are supported too
-	/PROXYUSER user				| Optional username for authenticated proxy servers
-	/PROXYPASS pass				| Optional password for authenticated proxy servers
+	/PROXYUSER user				| Optional username for authenticated proxies
+	/PROXYPASS pass				| Optional password for authenticated proxies
 	/REFERER url				| Optional referer URL, passed to InternetOpenRequest
 	/INTERNETFLAGS flags		| Combination of INTERNET_FLAG_XXX passed to InternetOpenRequest. Default is 0x84082200 (INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD)
 	/SECURITYFLAGS flags		| Combination of SECURITY_FLAG_XXX passed to InternetSetOption(INTERNET_OPTION_SECURITY_FLAGS). Default is 0x2080 (SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID)
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
-	[Stack] An unique transfer ID. Useful to query the transfer status later
+	[Stack] An unique transfer ID. Useful for querying the status later
 
 Examples:
 
 	; Download to local file
-	NSdown::Transfer /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
+	NSxfer::Transfer /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
 	Pop $0	; Transfer ID
 
 	; Download to memory, highest priority
-	NSdown::Transfer /NOUNLOAD /PRIORITY 1 /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 1 /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
 	Pop $0	; Transfer ID
 
 	; Send the HTTP request but don't download the content
-	NSdown::Transfer /NOUNLOAD /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
+	NSxfer::Transfer /NOUNLOAD /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
 	Pop $0	; Transfer ID
 
 	; POST a form
-	NSdown::Transfer /NOUNLOAD /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
+	NSxfer::Transfer /NOUNLOAD /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
 	Pop R0	; Transfer ID
 _________________________________________________________________________________________________
 
-NSdown::Enumerate [/NOUNLOAD] all|downloading|waiting|completed
+NSxfer::Wait [/NOUNLOAD] TODO
+
+Remarks:
+	TODO
+
+Parameters:
+	TODO
+
+Return:
+	TODO
+
+Examples:
+	TODO
+_________________________________________________________________________________________________
+
+NSxfer::Enumerate [/NOUNLOAD] all|downloading|waiting|completed
+
+Remarks:
+	Enumerate the transfers in queue.
 
 Return:
 	[Stack] Item count (N)
@@ -65,7 +94,7 @@ Return:
 	[Stack] IDn
 
 Example:
-	NSdown::Enumerate /NOUNLOAD all
+	NSxfer::Enumerate /NOUNLOAD all
 	Pop $1 ; Count
 	${For} $0 1 $1
 		Pop $2
@@ -73,7 +102,7 @@ Example:
 	${Next}
 _________________________________________________________________________________________________
 
-NSdown::Query	[/NOUNLOAD]
+NSxfer::Query	[/NOUNLOAD]
 				TransferID
 				[/PRIORITY]
 				[/STATUS] [/WININETSTATUS]
@@ -85,12 +114,12 @@ NSdown::Query	[/NOUNLOAD]
 				[/ERRORCODE] [/ERRORTEXT]
 				/END
 
-				The TransferID is mandatory. The list must be ended with /END
-
+Remarks:
+	Query information about a specific transfer ID.
 
 Parameters:
-	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSdown at runtime
-	TransferID				| The transfer ID returned by NSdown::Transfer
+	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
+	TransferID				| The transfer ID returned by NSxfer::Transfer
 	/PRIORITY				| Transfer priority
 	/STATUS					| Transfer status (downloading|waiting|completed)
 	/WININETSTATUS			| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
@@ -121,7 +150,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSdown::Query /NOUNLOAD $ID /STATUS /URL /PERCENT /SPEED /END
+	NSxfer::Query /NOUNLOAD $ID /STATUS /URL /PERCENT /SPEED /END
 	Pop $0	;Status
 	Pop $1	;URL
 	Pop $2	;Percent
@@ -129,14 +158,17 @@ Example:
 	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
 _________________________________________________________________________________________________
 
-NSdown::QueryGlobal [/NOUNLOAD]
+NSxfer::QueryGlobal [/NOUNLOAD]
 					[/COUNTTOTAL] [/COUNTWAITING] [/COUNTDOWNLOADING] [/COUNTCOMPLETED]
 					[/SPEEDBYTES] [/SPEED]
 					[/COUNTTHREADS]
 					/END
 
+Remarks:
+	Query aggregated information about all transfer requests.
+
 Parameters:
-	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSdown at runtime
+	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/COUNTTOTAL				| The overall number of transfers (waiting + downloading + completed)
 	/COUNTWAITING			| The number of waiting transfers
 	/COUNTDOWNLOADING		| The number of transfers in progress
@@ -154,7 +186,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSdown::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+	NSxfer::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 	Pop $R2 ; Downloading

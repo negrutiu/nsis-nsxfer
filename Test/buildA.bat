@@ -4,5 +4,5 @@ set NSIS_PATH=%~dp0\..\..\NSISbin
 if %ERRORLEVEL% neq 0 pause
 
 echo ----------------------------------------------------------
-set /P answer=Execute NSdownA.exe (y/N)? 
-if /I "%answer%" equ "y" "%~dp0\NSdownA.exe"
+set /P answer=Execute NSxferA.exe (y/N)? 
+if /I "%answer%" equ "y" "%~dp0\NSxferA.exe"

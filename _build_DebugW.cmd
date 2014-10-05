@@ -2,7 +2,7 @@
 SetLocal
 
 set OUTDIR=DebugW
-set OUTNAME=NSdown
+set OUTNAME=NSxfer
 
 set BUILD_SUCCESSFUL=0
 
