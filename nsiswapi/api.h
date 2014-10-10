@@ -3,7 +3,7 @@
  * 
  * This file is a part of NSIS.
  * 
- * Copyright (C) 1999-2013 Nullsoft and Contributors
+ * Copyright (C) 1999-2014 Nullsoft and Contributors
  * 
  * Licensed under the zlib/libpng license (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@
 // NSIS Plug-In Callback Messages
 enum NSPIM 
 {
-	NSPIM_UNLOAD,    // This is the last message a plugin gets, do final cleanup
-	NSPIM_GUIUNLOAD, // Called after .onGUIEnd
+  NSPIM_UNLOAD,    // This is the last message a plugin gets, do final cleanup
+  NSPIM_GUIUNLOAD, // Called after .onGUIEnd
 };
 
 // Prototype for callbacks registered with extra_parameters->RegisterPluginCallback()

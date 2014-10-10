@@ -3,7 +3,7 @@
  * 
  * This file is a part of NSIS.
  * 
- * Copyright (C) 1999-2013 Nullsoft and Contributors
+ * Copyright (C) 1999-2014 Nullsoft and Contributors
  * 
  * This software is provided 'as-is', without any express or implied
  * warranty.
@@ -40,7 +40,7 @@ typedef wchar_t TCHAR;
 // printfs
 #define _ftprintf   fwprintf
 #define _sntprintf  _snwprintf
-#if (defined(_MSC_VER) && (_MSC_VER<=1310)) || defined(__MINGW32__)
+#if (defined(_MSC_VER) && (_MSC_VER<=1310||_MSC_FULL_VER<=140040310)) || defined(__MINGW32__)
 #	define _stprintf   swprintf
 #else
 #	define _stprintf   _swprintf
