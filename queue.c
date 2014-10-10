@@ -9,6 +9,8 @@ VOID QueueInitialize(
 	_In_ int iThreadCount
 	)
 {
+	int i;
+
 	assert( pQueue );
 	assert( szName && *szName );
 	assert( iThreadCount < QUEUE_MAX_THREADS );
@@ -31,7 +33,7 @@ VOID QueueInitialize(
 	pQueue->hThreadWakeEvent = CreateEvent( NULL, FALSE, FALSE, NULL );	/// Automatic
 	assert( pQueue->hThreadTermEvent );
 	assert( pQueue->hThreadWakeEvent );
-	for ( int i = 0; i < pQueue->iThreadCount; i++ ) {
+	for ( i = 0; i < pQueue->iThreadCount; i++ ) {
 		PTHREAD pThread = pQueue->pThreads + i;
 		pThread->pQueue = pQueue;
 		pThread->hTermEvent = pQueue->hThreadTermEvent;
@@ -63,7 +65,8 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
 
 			/// During DLL_PROCESS_DETACH only one thread is running, the others are suspended or something (check out CreateThread on MSDN)
 			/// Waiting for them to close gracefully would be pointless
-			for (int i = 0; i < pQueue->iThreadCount; i++) {
+			int i;
+			for (i = 0; i < pQueue->iThreadCount; i++) {
 				if (pQueue->pThreads[i].hThread) {
 					DWORD err = TerminateThread( pQueue->pThreads[i].hThread, 666 ) ? ERROR_SUCCESS : GetLastError();
 					TRACE( _T( "  TerminateThread(%s) == 0x%x\n" ), pQueue->pThreads[i].szName, err );
@@ -73,11 +76,11 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
 		} else {
 
 			HANDLE pObj[QUEUE_MAX_THREADS];
-			int iObjCnt = 0;
+			int i, iObjCnt = 0;
 			const ULONG QUEUE_WAIT_FOR_THREADS = 12000;
 
 			/// Make a list of thread handles
-			for (int i = 0; i < pQueue->iThreadCount; i++)
+			for (i = 0; i < pQueue->iThreadCount; i++)
 				if (pQueue->pThreads[i].hThread)
 					pObj[iObjCnt++] = pQueue->pThreads[i].hThread;
 
@@ -93,12 +96,12 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
 					MyZeroMemory( pQueue->pThreads, ARRAYSIZE( pQueue->pThreads ) * sizeof( THREAD ) );
 				} else if (iWait == WAIT_TIMEOUT) {
 					TRACE( _T( "  Threads failed to stop after %ums. Will terminate them forcedly\n" ), dwTime );
-					for (int i = 0; i < iObjCnt; i++)
+					for (i = 0; i < iObjCnt; i++)
 						TerminateThread( pObj[i], 666 );
 				} else {
 					DWORD err = GetLastError();
 					TRACE( _T( "  [!] WaitForMultipleObjects( ObjCnt:%d ) == 0x%x, GLE == 0x%x\n" ), iObjCnt, iWait, err );
-					for (int i = 0; i < iObjCnt; i++)
+					for (i = 0; i < iObjCnt; i++)
 						TerminateThread( pObj[i], 666 );
 				}
 			}

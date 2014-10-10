@@ -411,7 +411,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 		if ( InternetCrackUrl( pItem->pszURL, 0, 0, &uc ) ) {
 
 			/// Multiple attempts to connect
-			for ( dwStartTime = GetTickCount(), i = 0; TRUE; i++ ) {
+			for (dwStartTime = GetTickCount(), i = 0; TRUE; i++) {
 
 				/// Check TERM event
 				if ( ThreadIsTerminating( pItem->pThread ) ) {
@@ -548,7 +548,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 										/// Debugging
 										if (!bReconnecting) {
-											for (LPTSTR psz = szHeaders; *psz; psz++) {
+											LPTSTR psz;
+											for (psz = szHeaders; *psz; psz++) {
 												if (*psz == _T( '\r' ))
 													*psz = _T( '\\' );
 												if (*psz == _T( '\n' ))
@@ -1102,7 +1103,8 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 			if ( ThreadDownload_OpenSession( pItem ) ) {
 
 				BOOL bReconnectAllowed = TRUE;
-				for (int i = 0; (i < 1000) && bReconnectAllowed; i++) {
+				int i;
+				for (i = 0; (i < 1000) && bReconnectAllowed; i++) {
 
 					bReconnectAllowed = FALSE;
 					if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
@@ -1155,8 +1157,8 @@ ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pItem, _In_ ULONG iError )
 	if ( pItem->iWin32Error == ERROR_INTERNET_EXTENDED_ERROR ) {
 		DWORD dwWebError;
 		TCHAR szWebError[512];
-		szWebError[0] = 0;
 		DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
+		szWebError[0] = 0;
 		if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
 			MyFree( pItem->pszWin32Error );
 			MyStrDup( pItem->pszWin32Error, szWebError );
