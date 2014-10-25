@@ -23,6 +23,7 @@ unsigned int g_stringsize = 0;
 stack_t **g_stacktop = NULL;
 LPTSTR g_variables = NULL;
 extra_parameters *g_ep = NULL;
+HWND g_hwndparent = NULL;
 
 // IsCompatibleApiVersion
 BOOL NSISCALL IsCompatibleApiVersion()

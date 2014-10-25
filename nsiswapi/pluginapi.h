@@ -16,7 +16,8 @@ extern "C" {
         g_stringsize=string_size; \
         g_stacktop=stacktop;      \
         g_variables=variables;    \
-        g_ep=extra; }
+        g_ep=extra;               \
+        g_hwndparent=parent; }
 
 typedef struct _stack_t {
   struct _stack_t *next;
@@ -61,6 +62,7 @@ extern unsigned int g_stringsize;
 extern stack_t **g_stacktop;
 extern LPTSTR g_variables;
 extern extra_parameters *g_ep;
+extern HWND g_hwndparent;
 
 BOOL NSISCALL IsCompatibleApiVersion();	// Test if (g_ep->exec_flags->plugin_api_version == NSISPIAPIVER_CURR)
 
