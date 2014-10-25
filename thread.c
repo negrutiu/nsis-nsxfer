@@ -191,6 +191,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 	{
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTED_TO_SERVER \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		pItem->bConnected = TRUE;
 		break;
 	}
 	case INTERNET_STATUS_SENDING_REQUEST:
@@ -945,7 +946,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 
 	// Debugging definitions
 ///#define DEBUG_XFER_MAX_BYTES		1024*1024
-///#define DEBUG_XFER_SLOWDOWN		1000
+#define DEBUG_XFER_SLOWDOWN		500
 ///#define DEBUG_XFER_PROGRESS
 
 	switch ( pItem->iLocalType ) {

@@ -4,6 +4,7 @@
 #define QUEUE_MAX_THREADS			20
 #define INVALID_FILE_SIZE64			(ULONG64)-1
 #define ITEM_DEFAULT_PRIORITY		1000
+#define ANY_TRANSFER_ID				0
 
 /*
 	Queue facts:
@@ -32,7 +33,7 @@ typedef enum {
 
 typedef struct _QUEUE_ITEM {
 
-	ULONG iId;						/// Unique download ID
+	ULONG iId;						/// Unique transfer ID
 	ITEM_STATUS iStatus;
 	ULONG iPriority;				/// 0 (high prio) -> ULONG_MAX-1 (low prio)
 
@@ -72,9 +73,9 @@ typedef struct _QUEUE_ITEM {
 	ULONG iHttpSecurityFlags;		/// SECURITY_FLAG_XXX. Default is SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID
 
 	// Runtime statistics
-	FILETIME tmEnqueue;				/// Enqueuing timestamp
-	FILETIME tmConnect;				/// Connecting timestamp
-	FILETIME tmDisconnect;			/// Disconnecting timestamp
+	FILETIME tmEnqueue;				/// Enque timestamp
+	FILETIME tmConnect;				/// Connect timestamp
+	FILETIME tmDisconnect;			/// Disconnect timestamp
 
 	ULONG64 iFileSize;				/// File size or -1 if not available
 	ULONG64 iRecvSize;				/// Received bytes
@@ -100,6 +101,7 @@ typedef struct _QUEUE_ITEM {
 	ULONG iLastCallbackStatus;		/// Last status received in InternetStatusCallback
 	LPCTSTR pszSrvIP;				/// Servers resolved IP address (as string)
 	LPCTSTR pszSrvHeaders;			/// HTTP headers received from server
+	BOOLEAN bConnected;				/// Received INTERNET_STATUS_CONNECTED_TO_SERVER
 
 	// Error code (Win32 and HTTP)
 	ULONG iWin32Error;				/// Last Win32 error code

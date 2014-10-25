@@ -31,7 +31,7 @@ if not exist "%~dp0\%OUTDIR%\temp" mkdir "%~dp0\%OUTDIR%\temp"
 set CL=/nologo /O1 /Ob2 /Os /Zi /arch:SSE /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_USRDLL" /D "_WINDLL" /D "_UNICODE" /D "UNICODE" /GF /FD /MT /LD /GS- /Fo".\%OUTDIR%\temp\\" /Fd".\%OUTDIR%\temp\\" /Fe".\%OUTDIR%\%OUTNAME%" /W3
 rc.exe /Fo ".\%OUTDIR%\temp\resource.res" "resource.rc"
 set LINK=/OPT:REF /OPT:ICF /INCREMENTAL:NO /MANIFEST:NO /MACHINE:X86 /NODEFAULTLIB kernel32.lib user32.lib wininet.lib shlwapi.lib ".\%OUTDIR%\temp\resource.res"
-cl.exe "main.c" "utils.c" "queue.c" "thread.c" "nsiswapi\pluginapi.c" && set BUILD_SUCCESSFUL=1
+cl.exe "main.c" "utils.c" "queue.c" "thread.c" "gui.c" "nsiswapi\pluginapi.c" && set BUILD_SUCCESSFUL=1
 
 if %BUILD_SUCCESSFUL%==1 (
 	echo Success!

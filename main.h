@@ -12,5 +12,6 @@
 #include <wininet.h>
 #include <Shlwapi.h>				/// for wvnsprintf
 #include "nsiswapi/pluginapi.h"
+#include <commctrl.h>
 
 extern HINSTANCE g_hInst;			/// Defined in main.c

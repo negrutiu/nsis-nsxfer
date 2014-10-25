@@ -2,6 +2,7 @@
 #include "main.h"
 #include "utils.h"
 #include "queue.h"
+#include "gui.h"
 
 HINSTANCE g_hInst = NULL;
 BOOL g_bInitialized = FALSE;
@@ -601,6 +602,110 @@ void __cdecl Enumerate(
 		pushint( iCount );
 		QueueUnlock( &g_Queue );
 	}
+}
+
+
+//++ Wait
+EXTERN_C __declspec(dllexport)
+void __cdecl Wait(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	INT_PTR iRet = 0;
+	LPTSTR psz;
+	UINT iId = ANY_TRANSFER_ID;
+	GUI_MODE iMode = GUI_MODE_POPUP;
+	HWND hTitle = NULL, hStatus = NULL, hProgress = NULL;
+	LPTSTR pszTitleText = NULL, pszTitleMultiText = NULL;
+	LPTSTR pszStatusText = NULL, pszStatusMultiText = NULL;
+
+	EXDLL_INIT();
+
+	/// Validate NSIS version
+	if (!IsCompatibleApiVersion())
+		return;
+
+	TRACE( _T( "NSxfer!Wait\n" ) );
+
+	/// Working buffer
+	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
+	assert( psz );
+
+	/// First parameter (transfer ID)
+	if (popstring( psz ) == 0) {
+
+		/// TransferID
+		if (lstrcmpi( psz, _T( "all" ) ) == 0) {
+			iId = ANY_TRANSFER_ID;
+		} else {
+			iId = (ULONG)myatoi_or( psz );
+		}
+
+		/// Other parameters
+		for (;;)
+		{
+			if (popstring( psz ) != 0)
+				break;
+			if (lstrcmpi( psz, _T( "/END" ) ) == 0)
+				break;
+
+			if (lstrcmpi( psz, _T( "/MODE" ) ) == 0) {
+				if (popstring( psz ) == 0) {
+					if (lstrcmpi( psz, _T( "SILENT" ) ) == 0)
+						iMode = GUI_MODE_SILENT;
+					else if (lstrcmpi( psz, _T( "POPUP" ) ) == 0)
+						iMode = GUI_MODE_POPUP;
+					else if (lstrcmpi( psz, _T( "PAGE" ) ) == 0)
+						iMode = GUI_MODE_PAGE;
+					else {
+						iMode = GUI_MODE_POPUP;		/// Default
+						TRACE( _T( "  [!] Unknown GUI mode \"%s\"\n" ), psz );
+					}
+				}
+			} else if (lstrcmpi( psz, _T( "/TITLEHWND" ) ) == 0) {
+				hTitle = (HWND)popintptr();
+			} else if (lstrcmpi( psz, _T( "/STATUSHWND" ) ) == 0) {
+				hStatus = (HWND)popintptr();
+			} else if (lstrcmpi( psz, _T( "/PROGRESSHWND" ) ) == 0) {
+				hProgress = (HWND)popintptr();
+			} else if (lstrcmpi( psz, _T( "/TITLETEXT" ) ) == 0) {
+				if (popstring( psz ) == 0) {
+					MyFree( pszTitleText );
+					MyStrDup( pszTitleText, psz );
+				}
+				if (popstring( psz ) == 0) {
+					MyFree( pszTitleMultiText );
+					MyStrDup( pszTitleMultiText, psz );
+				}
+			} else if (lstrcmpi( psz, _T( "/STATUSTEXT" ) ) == 0) {
+				if (popstring( psz ) == 0) {
+					MyFree( pszStatusText );
+					MyStrDup( pszStatusText, psz );
+				}
+				if (popstring( psz ) == 0) {
+					MyFree( pszStatusMultiText );
+					MyStrDup( pszStatusMultiText, psz );
+				}
+			} else {
+				TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
+			}
+		}
+
+		// Wait
+		iRet = GuiWait(
+			iId, iMode,
+			hTitle, hStatus, hProgress,
+			pszTitleText, pszTitleMultiText,
+			pszStatusText, pszStatusMultiText
+			);
+	}
+
+	MyFree( psz );
+	pushintptr( iRet );
 }
 
 

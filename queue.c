@@ -304,6 +304,7 @@ BOOL QueueAdd(
 			pItem->iLastCallbackStatus = 0;
 			pItem->pszSrvIP = NULL;
 			pItem->pszSrvHeaders = NULL;
+			pItem->bConnected = FALSE;
 
 			pItem->iWin32Error = ERROR_SUCCESS;
 			pItem->pszWin32Error = NULL;

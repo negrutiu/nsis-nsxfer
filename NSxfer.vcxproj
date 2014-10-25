@@ -159,6 +159,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="gui.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="nsiswapi\pluginapi.c" />
     <ClCompile Include="queue.c" />
@@ -173,6 +174,7 @@
     <Text Include="todo.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="gui.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="nsiswapi\api.h" />
     <ClInclude Include="nsiswapi\nsis_tchar.h" />
