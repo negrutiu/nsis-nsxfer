@@ -8,7 +8,11 @@
 #define GUI_TIMER_REFRESH_TIME	500
 #define GUI_OUTPUT_STRING_LEN	1024
 #define TEXT_NA					_T("n/a")
-#define TEXT_COMPUTING			_T("...")
+
+#define DEFAULT_TITLE_SINGLE	_T("[{PERCENT}%] Downloading...")
+#define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
+#define DEFAULT_STATUS_SINGLE	_T("[{PERCENT}%] Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}\n{URL}")
+#define DEFAULT_STATUS_MULTI	_T("Downloading {TOTALNOTWAITING}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}")
 
 extern QUEUE g_Queue;		/// main.c
 
@@ -57,13 +61,13 @@ void GuiExpandKeywords(
 	)
 {
 #define FIND_KEYWORD_START(pszStart) \
-	for ( ; *(pszStart) != _T( '\0' ) && (*(pszStart) != _T( '$' ) || *((pszStart)+1) != _T( '(' )); (pszStart)++ );
+	for ( ; *(pszStart) != _T( '\0' ) && *(pszStart) != _T( '{' ); (pszStart)++ );
 
 #define FIND_KEYWORD_END(pszStart, pszEnd) \
-	for ( (pszEnd) = (pszStart); *(pszEnd) != _T( '\0' ) && *(pszEnd) != _T( ')' ); (pszEnd)++ );
+	for ( (pszEnd) = (pszStart); *((pszEnd) + 1) != _T( '\0' ) && *(pszEnd) != _T( '}' ) && *((pszEnd) + 1) != _T( '{' ); (pszEnd)++ );
 
-#define IS_KEYWORD(pszStart, pszKeyword, iKeywordLen)\
-	CompareString( 0, NORM_IGNORECASE, pszStart, iKeywordLen, pszKeyword, iKeywordLen ) == CSTR_EQUAL
+#define IS_KEYWORD(pszStart, pszKeyword)\
+	CompareString( 0, NORM_IGNORECASE, pszStart, (sizeof(pszKeyword) - 1) / sizeof(TCHAR) + 2, _T( "{" ) pszKeyword _T( "}" ), (sizeof(pszKeyword) - 1) / sizeof(TCHAR) + 2 ) == CSTR_EQUAL
 
 
 	if (pszTextOut && iTextOutLen)
@@ -82,49 +86,50 @@ void GuiExpandKeywords(
 			FIND_KEYWORD_START( pszKeywordStart );
 			FIND_KEYWORD_END( pszKeywordStart, pszKeywordEnd );
 
+			///StringCchCopyNEx( pszTextOut, iTextOutLen, pszPreviousKeywordEnd + 1, (pszKeywordStart - pszPreviousKeywordEnd - 1), &pszTextOut, &iTextOutLen, 0 );
 			len = pszKeywordStart - pszPreviousKeywordEnd - 1;
 			len = __min( len, iTextOutLen );
 			if (lstrcpyn( pszTextOut, pszPreviousKeywordEnd + 1, len + 1 ))
 				pszTextOut += len, iTextOutLen -= len;
-			///StringCchCopyNEx( pszTextOut, iTextOutLen, pszPreviousKeywordEnd + 1, (pszKeywordStart - pszPreviousKeywordEnd - 1), &pszTextOut, &iTextOutLen, 0 );
 
-			if (*pszKeywordEnd) {
+			if (*pszKeywordStart) {
 
-				szNewValue[0] = _T( '\0' );
+				szNewValue[0] = 255;	/// Special character
+				szNewValue[0] = 0;
 
 				// Item-specific keywords
 				if (g_Gui.pItem) {
-					if (IS_KEYWORD( pszKeywordStart, _T( "$(ID)" ), 5 )) {
+					if (IS_KEYWORD( pszKeywordStart, _T( "ID" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->iId );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(Status)" ), 9 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "Status" ))) {
 						switch (g_Gui.pItem->iStatus) {
 						case ITEM_STATUS_WAITING: lstrcpyn( szNewValue, _T( "Waiting" ), ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_STATUS_DOWNLOADING: lstrcpyn( szNewValue, _T( "Downloading" ), ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_STATUS_DONE: lstrcpyn( szNewValue, _T( "Completed" ), ARRAYSIZE( szNewValue ) ); break;
 						default: assert( !"Unknown item status" );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(WininetStatus)" ), 15 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "WininetStatus" ))) {
 						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
 							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->iLastCallbackStatus );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(Method)" ), 9 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "Method" ))) {
 						lstrcpyn( szNewValue, g_Gui.pItem->szMethod, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(URL)" ), 6 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "URL" ))) {
 						lstrcpyn( szNewValue, g_Gui.pItem->pszURL, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(IP)" ), 5 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "IP" ))) {
 						lstrcpyn( szNewValue, g_Gui.pItem->pszSrvIP ? g_Gui.pItem->pszSrvIP : TEXT_NA, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(Proxy)" ), 8 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "Proxy" ))) {
 						lstrcpyn( szNewValue, g_Gui.pItem->pszProxy ? g_Gui.pItem->pszProxy : TEXT_NA, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(Local)" ), 8 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "Local" ))) {
 						switch (g_Gui.pItem->iLocalType) {
 						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_FILE: lstrcpyn( szNewValue, g_Gui.pItem->Local.pszFile, ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
 						default: assert( !"Unknown local type" );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(LocalFileName)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileName" ))) {
 						switch (g_Gui.pItem->iLocalType) {
 						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_FILE: {
@@ -137,7 +142,7 @@ void GuiExpandKeywords(
 						}
 						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(LocalFileDir)" ), 15 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileDir" ))) {
 						switch (g_Gui.pItem->iLocalType) {
 						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_FILE: {
@@ -150,29 +155,29 @@ void GuiExpandKeywords(
 						}
 						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(FileSize)" ), 11 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "FileSize" ))) {
 						if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
 							StrFormatByteSize( g_Gui.pItem->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(FileSizeBytes)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "FileSizeBytes" ))) {
 						if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
 							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pItem->iFileSize );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(RecvSize)" ), 11 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "RecvSize" ))) {
 						StrFormatByteSize( g_Gui.pItem->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(RecvSizeBytes)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "RecvSizeBytes" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pItem->iRecvSize );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(Percent)" ), 10 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "Percent" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%hu" ), (USHORT)ItemGetRecvPercent( g_Gui.pItem ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(Speed)" ), 8 )) {
-						lstrcpyn( szNewValue, g_Gui.pItem->Speed.szSpeed, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(SpeedBytes)" ), 13 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "Speed" ))) {
+						lstrcpyn( szNewValue, *g_Gui.pItem->Speed.szSpeed ? g_Gui.pItem->Speed.szSpeed : TEXT_NA, ARRAYSIZE( szNewValue ) );
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "SpeedBytes" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->Speed.iSpeed );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TimeStart)" ), 12 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TimeStart" ))) {
 						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
 							SYSTEMTIME st;
 							FileTimeToSystemTime( &g_Gui.pItem->tmConnect, &st );
@@ -185,7 +190,7 @@ void GuiExpandKeywords(
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TimeElapsed)" ), 14 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TimeElapsed" ))) {
 						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
 							FILETIME tmNow;
 							GetLocalFileTime( &tmNow );
@@ -194,20 +199,20 @@ void GuiExpandKeywords(
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TimeRemaining)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TimeRemaining" ))) {
 						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
 							if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
 								ULONG iElapsedMs;
 								FILETIME tmNow;
 								GetLocalFileTime( &tmNow );
 								iElapsedMs = MyTimeDiff( &tmNow, &g_Gui.pItem->tmConnect );
-								iElapsedMs = __max( iElapsedMs, 1000 );
+								iElapsedMs = __max( iElapsedMs, GUI_TIMER_REFRESH_TIME );
 								if ((g_Gui.pItem->iRecvSize > 0) && (iElapsedMs >= 3000)) {
 									ULONG iRemainingMs = (ULONG)MyMulDiv64( iElapsedMs, g_Gui.pItem->iFileSize, g_Gui.pItem->iRecvSize ) - iElapsedMs;
 									StrFromTimeInterval( szNewValue, ARRAYSIZE( szNewValue ), iRemainingMs, 3 );
 									StrTrim( szNewValue, _T( " " ) );
 								} else {
-									lstrcpyn( szNewValue, TEXT_COMPUTING, ARRAYSIZE( szNewValue ) );
+									lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 								}
 							} else {
 								lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
@@ -219,68 +224,73 @@ void GuiExpandKeywords(
 				}
 
 				// General keywords
-				if (szNewValue[0] == _T( '\0' )) {
-					if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalCount)" ), 13 )) {
+				if (szNewValue[0] == 255) {
+					if (IS_KEYWORD( pszKeywordStart, _T( "TotalCount" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsTotal );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalWaiting)" ), 15 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalWaiting" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsWaiting );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalDownloading)" ), 19 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalNotWaiting" ))) {
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDownloading + g_Gui.iItemsDone );
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalDownloading" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDownloading );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalCompleted)" ), 17 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalCompleted" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDone );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalRecvSize)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalRecvSize" ))) {
 						StrFormatByteSize( g_Gui.iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalRecvSizeBytes)" ), 21 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalRecvSizeBytes" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.iRecvSize );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalSpeed)" ), 13 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalSpeed" ))) {
 						if (g_Gui.iItemsDownloading > 0) {
 							StrFormatByteSize( g_Gui.iItemsSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
 							lstrcat( szNewValue, _T( "/s" ) );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalSpeedBytes)" ), 18 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalSpeedBytes" ))) {
 						if (g_Gui.iItemsDownloading > 0) {
 							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsSpeed );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(TotalThreads)" ), 15 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalThreads" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iThreadCount );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(OriginalTitle)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "OriginalTitle" ))) {
 						lstrcpyn( szNewValue, g_Gui.pszOriginalTitleText ? g_Gui.pszOriginalTitleText : TEXT_NA, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(OriginalStatus)" ), 17 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "OriginalStatus" ))) {
 						lstrcpyn( szNewValue, g_Gui.pszOriginalStatusText ? g_Gui.pszOriginalStatusText : TEXT_NA, ARRAYSIZE( szNewValue ) );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(PluginName)" ), 13 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "PluginName" ))) {
 						lstrcpyn( szNewValue, _T( "NSxfer" ), ARRAYSIZE( szNewValue ) );	/// TODO
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(PluginVersion)" ), 16 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "PluginVersion" ))) {
 						lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );		/// TODO
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(AnimLine)" ), 11 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "AnimLine" ))) {
 						int i = iAnimationStep % 4;
 						TCHAR szFrames[] = _T( "-\\|/" );
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%c" ), szFrames[i] );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "$(AnimDots)" ), 11 )) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "AnimDots" ))) {
 						int i, n;
 						for (i = 0, n = iAnimationStep % 4; i < n; i++)
 							szNewValue[i] = _T( '.' );
 						szNewValue[i] = _T( '\0' );
 					} else {
 						/// Unrecognized keyword
+						///StringCchCopyN( szNewValue, ARRAYSIZE( szNewValue ), pszKeywordStart, pszKeywordEnd - pszKeywordStart + 1 );
 						len = __min( ARRAYSIZE( szNewValue ), pszKeywordEnd - pszKeywordStart + 1 );
 						lstrcpyn( szNewValue, pszKeywordStart, len + 1 );
-						///StringCchCopyN( szNewValue, ARRAYSIZE( szNewValue ), pszKeywordStart, pszKeywordEnd - pszKeywordStart + 1 );
 					}
 				}
-					
+				
+				if (szNewValue[0] == 255)
+					szNewValue[0] = 0;
+
+				///StringCchCopyEx( pszTextOut, iTextOutLen, szNewValue, &pszTextOut, &iTextOutLen, 0 );
 				len = lstrlen( szNewValue );
 				len = __min( len, iTextOutLen );
 				if (lstrcpyn( pszTextOut, szNewValue, len + 1 ))
 					pszTextOut += len, iTextOutLen -= len;
-				///StringCchCopyEx( pszTextOut, iTextOutLen, szNewValue, &pszTextOut, &iTextOutLen, 0 );
 
 				pszPreviousKeywordEnd = pszKeywordEnd;
+				pszKeywordStart = pszKeywordEnd + 1;
 			}
-			pszKeywordStart = pszKeywordEnd;
 		}
 	}
 }
@@ -483,10 +493,10 @@ ULONG GuiWait(
 	g_Gui.hTitleWnd = hTitleWnd;
 	g_Gui.hStatusWnd = hStatusWnd;
 	g_Gui.hProgressWnd = hProgressWnd;
-	g_Gui.pszTitleText = pszTitleText;
-	g_Gui.pszTitleMultiText = pszTitleMultiText;
-	g_Gui.pszStatusText = pszStatusText;
-	g_Gui.pszStatusMultiText = pszStatusMultiText;
+	g_Gui.pszTitleText = pszTitleText ? pszTitleText : DEFAULT_TITLE_SINGLE;
+	g_Gui.pszTitleMultiText = pszTitleMultiText ? pszTitleMultiText : DEFAULT_TITLE_MULTI;
+	g_Gui.pszStatusText = pszStatusText ? pszStatusText : DEFAULT_STATUS_SINGLE;
+	g_Gui.pszStatusMultiText = pszStatusMultiText ? pszStatusMultiText : DEFAULT_STATUS_MULTI;
 
 	if (g_Gui.hTitleWnd) {
 		TCHAR sz[256];
