@@ -95,7 +95,7 @@ void GuiExpandKeywords(
 			if (*pszKeywordStart) {
 
 				szNewValue[0] = 255;	/// Special character
-				szNewValue[0] = 0;
+				szNewValue[1] = 0;
 
 				// Item-specific keywords
 				if (g_Gui.pItem) {
