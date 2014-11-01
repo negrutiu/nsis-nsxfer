@@ -499,24 +499,18 @@ SectionEnd
 Section Wait
 	SectionIn 1	2 ; All & None
 	!insertmacro STACK_VERIFY_START
-_loop:
+
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
-	Push "/COUNTCOMPLETED"
-	Push "/COUNTTOTAL"
-	CallInstDLL "${NSXFER}" "QueryGlobal"
+	Push "Popup"
+	Push "/MODE"
+	Push "all"
+	CallInstDLL "${NSXFER}" "Wait"
 !else
-	NSxfer::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /END
+	NSxfer::Wait /NOUNLOAD all /MODE Popup /END
 !endif
-	Pop $R0 ; Total
-	Pop $R1 ; Completed
+	Pop $0
 
-	; Loop until ItemsTotal == ItemsDone
-	IntCmp $R0 $R1 _done +1 +1
-		Call PrintStatus
-		Sleep 5000
-		Goto _loop
-_done:
 	!insertmacro STACK_VERIFY_END
 SectionEnd
 
