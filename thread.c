@@ -946,7 +946,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 
 	// Debugging definitions
 ///#define DEBUG_XFER_MAX_BYTES		1024*1024
-#define DEBUG_XFER_SLOWDOWN		500
+///#define DEBUG_XFER_SLOWDOWN		500
 ///#define DEBUG_XFER_PROGRESS
 
 	switch ( pItem->iLocalType ) {
