@@ -9,16 +9,17 @@
 #define GUI_OUTPUT_STRING_LEN	1024
 #define TEXT_NA					_T("n/a")
 
-#define DEFAULT_TITLE_SINGLE	_T("[{PERCENT}%] Downloading...")
+#define DEFAULT_TITLE_SINGLE	_T("{PERCENT}% - Downloading...")
 #define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
-#define DEFAULT_STATUS_SINGLE	_T("[{PERCENT}%] Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}\n{URL}")
-#define DEFAULT_STATUS_MULTI	_T("Downloading {TOTALNOTWAITING}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}")
+#define DEFAULT_STATUS_SINGLE	_T("Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}\n{URL}")
+#define DEFAULT_STATUS_MULTI	_T("Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}")
 
 extern QUEUE g_Queue;		/// main.c
 
 struct {
 	UINT iTransferID;
 	GUI_MODE iMode;
+	HWND hTaskbarWnd;
 	HWND hTitleWnd;
 	HWND hStatusWnd;
 	HWND hProgressWnd;
@@ -49,6 +50,8 @@ struct {
 	TCHAR szTitle[GUI_OUTPUT_STRING_LEN];
 	TCHAR szStatus[GUI_OUTPUT_STRING_LEN];
 
+	/// Taskbar
+	ITaskbarList3* pTaskbarList3;
 } g_Gui;
 
 
@@ -129,19 +132,6 @@ void GuiExpandKeywords(
 						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
 						default: assert( !"Unknown local type" );
 						}
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileName" ))) {
-						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_LOCAL_FILE: {
-							LPTSTR psz, pszFname;
-							for (psz = pszFname = g_Gui.pItem->Local.pszFile; *psz; psz++)
-								if (*psz == _T( '\\' ))
-									pszFname = psz + 1;
-							lstrcpyn( szNewValue, pszFname, ARRAYSIZE( szNewValue ) );
-							break;
-						}
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
-						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileDir" ))) {
 						switch (g_Gui.pItem->iLocalType) {
 						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
@@ -151,6 +141,19 @@ void GuiExpandKeywords(
 								if (*psz == _T( '\\' ))
 									pszBkSlash = psz + 1;
 							lstrcpyn( szNewValue, g_Gui.pItem->Local.pszFile, __min( ARRAYSIZE( szNewValue ), (ULONG)(pszBkSlash - g_Gui.pItem->Local.pszFile) ) );
+							break;
+						}
+						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
+						}
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileName" ))) {
+						switch (g_Gui.pItem->iLocalType) {
+						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_FILE: {
+							LPTSTR psz, pszFname;
+							for (psz = pszFname = g_Gui.pItem->Local.pszFile; *psz; psz++)
+								if (*psz == _T( '\\' ))
+									pszFname = psz + 1;
+							lstrcpyn( szNewValue, pszFname, ARRAYSIZE( szNewValue ) );
 							break;
 						}
 						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
@@ -229,7 +232,7 @@ void GuiExpandKeywords(
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsTotal );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalWaiting" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsWaiting );
-					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalNotWaiting" ))) {
+					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalActive" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDownloading + g_Gui.iItemsDone );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalDownloading" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDownloading );
@@ -374,16 +377,29 @@ ULONG GuiRefreshData()
 
 		LONG_PTR iStyle = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE );
 		if (!g_Gui.pItem || !g_Gui.pItem->bConnected) {
+
+			// Indeterminate progress
 			if (!(iStyle & MY_PBS_MARQUEE)) {
 				SetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE, iStyle | MY_PBS_MARQUEE );
 				SendMessage( g_Gui.hProgressWnd, MY_PBM_SETMARQUEE, TRUE, 0 );
+
+				if (g_Gui.hTaskbarWnd && g_Gui.pTaskbarList3)
+					ITaskbarList3_SetProgressState( g_Gui.pTaskbarList3, g_Gui.hTaskbarWnd, TBPF_INDETERMINATE );
 			}
+
 		} else {
+
+			int iProgress = ItemGetRecvPercent( g_Gui.pItem );
 			if (iStyle & MY_PBS_MARQUEE) {
 				SetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE, iStyle & ~MY_PBS_MARQUEE );
 				SendMessage( g_Gui.hProgressWnd, MY_PBM_SETMARQUEE, FALSE, 0 );
+				///if (g_Gui.hTaskbarWnd && g_Gui.pTaskbarList3)
+				///	ITaskbarList3_SetProgressState( g_Gui.pTaskbarList3, g_Gui.hTaskbarWnd, TBPF_NORMAL );
 			}
-			SendMessage( g_Gui.hProgressWnd, PBM_SETPOS, ItemGetRecvPercent( g_Gui.pItem ), 0 );
+			SendMessage( g_Gui.hProgressWnd, PBM_SETPOS, iProgress, 0 );
+
+			if (g_Gui.hTaskbarWnd && g_Gui.pTaskbarList3)
+				ITaskbarList3_SetProgressValue( g_Gui.pTaskbarList3, g_Gui.hTaskbarWnd, iProgress, 100 );
 		}
 	}
 
@@ -412,8 +428,14 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
+	{
+		HRESULT hr;
+
+		// Add WS_EX_APPWINDOW. We want our popup window to appear on the taskbar...
+		SetWindowLongPtr( hDlg, GWL_EXSTYLE, GetWindowLongPtr( hDlg, GWL_EXSTYLE ) | WS_EX_APPWINDOW );
 
 		// Window handles
+		g_Gui.hTaskbarWnd = hDlg;
 		g_Gui.hTitleWnd = hDlg;
 		g_Gui.hStatusWnd = GetDlgItem( hDlg, IDC_POPUP_STATUS );
 		g_Gui.hProgressWnd = GetDlgItem( hDlg, IDC_POPUP_PROGRESS );
@@ -423,22 +445,36 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 		if (g_Gui.hPopupIco)
 			SendDlgItemMessage( hDlg, IDC_POPUP_ICON, STM_SETICON, (WPARAM)g_Gui.hPopupIco, 0 );
 
+		// Taskbar button
+		hr = CoCreateInstance( &CLSID_TaskbarList, NULL, CLSCTX_ALL, &IID_ITaskbarList3, (void**)&g_Gui.pTaskbarList3 );
+		if (SUCCEEDED( hr )) {
+			ITaskbarList3_HrInit( g_Gui.pTaskbarList3 );
+		}
+
 		// Timer
 		SetTimer( hDlg, GUI_TIMER_REFRESH_ID, GUI_TIMER_REFRESH_TIME, NULL );
 		SendMessage( hDlg, WM_TIMER, GUI_TIMER_REFRESH_ID, 0 );		/// First shot
 
 		return TRUE;	/// Focus (HWND)wParam
+	}
 
 	case WM_DESTROY:
 
 		// Timer
 		KillTimer( hDlg, GUI_TIMER_REFRESH_ID );
 
+		// Taskbar button
+		if (g_Gui.pTaskbarList3) {
+			ITaskbarList3_Release( g_Gui.pTaskbarList3 );
+			g_Gui.pTaskbarList3 = NULL;
+		}
+
 		// Cleanup
 		if (g_Gui.hPopupIco) {
 			DestroyIcon( g_Gui.hPopupIco );
 			g_Gui.hPopupIco = NULL;
 		}
+		g_Gui.hTaskbarWnd = NULL;
 		g_Gui.hTitleWnd = NULL;
 		g_Gui.hStatusWnd = NULL;
 		g_Gui.hProgressWnd = NULL;
