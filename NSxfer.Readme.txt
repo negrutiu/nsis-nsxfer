@@ -87,45 +87,45 @@ Remarks:
 	The plugin automatically chooses between "Text" and "MultiText" based on whether waiting for one/many transfers
 	All texts may contain keywords that are automatically replaced at runtime.
 
-	Text Keywords (single transfer):
-	[ID]						| The transfer ID returned by NSxfer::Transfer
-	[STATUS]					| "Waiting", "Downloading" or "Completed" (English only)
-	[WININETSTATUS]				| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
-	[METHOD]					| The HTTP method in use (GET, POST, HEAD, etc.)
-	[URL]						| Full URL
-	[IP]						| Server's IP address, or an empty string
-	[PROXY]						| The proxy server, or an empty string
-	[LOCAL]						| The local destination (file path|Memory|None)
-	[LOCALFILENAME]				| The file name (no path), extracted from the local path
-//	[SENTHEADERS]				| The raw HTTP headers sent to the server
-//	[RECVHEADERS]				| The raw HTTP headers received from the server
-	[FILESIZE]					| The remote content length, nicely formatted (ex: "1,3 GB")
-	[FILESIZEBYTES]				| The remote content length (can exceed 4GB (32-bit boundary))
-	[RECVSIZE]					| The amount of bytes received, nicely formatted (ex: "1,3 GB")
-	[RECVSIZEBYTES]				| The amount of bytes received
-	[PERCENT]					| Percent (0-100)
-	[SPEED]						| Transfer speed (nicely formatted, ex: "1,4 MB/s")
-	[SPEEDBYTES]				| Transfer speed (bytes/second)
-	[TIMESTART]					| The timestamp when the transfer has started (ex: 2014/10/18 08:24)
-	[TIMEELAPSED]				| Amount of time since the transfer has started (ex: 3 min, 2 sec)
-	[TIMEREMAINING]				| Estimated amount of time until the transfer will complete (ex: 10 min, 35 sec)
-	[PLUGINNAME]				| "NSxfer"
-	[ANIMLINE]					| The classic \|/- animation
-	[ANIMDOTS]					| The classic ./../... animation
+	Transfer-specific keywords (must be used in single-transfer texts)
+	{ID}						| The transfer ID returned by NSxfer::Transfer
+	{STATUS}					| "Waiting", "Downloading" or "Completed" (English only)
+	{WININETSTATUS}				| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
+	{METHOD}					| The HTTP method in use (GET, POST, HEAD, etc.)
+	{URL}						| Full URL
+	{IP}						| Server's IP address, or an empty string
+	{PROXY}						| The proxy server, or an empty string
+	{LOCAL}						| The local destination (file path|Memory|None)
+	{LOCALFILEDIR}				| The file directory (no name), extracted from the local path
+	{LOCALFILENAME}				| The file name (no path), extracted from the local path
+	{FILESIZE}					| The remote content length, nicely formatted (ex: "1,3 GB")
+	{FILESIZEBYTES}				| The remote content length (can exceed 4GB (32-bit boundary))
+	{RECVSIZE}					| The amount of bytes received, nicely formatted (ex: "1,3 GB")
+	{RECVSIZEBYTES}				| The amount of bytes received
+	{PERCENT}					| Percent (0-100)
+	{SPEED}						| Transfer speed (nicely formatted, ex: "1,4 MB/s")
+	{SPEEDBYTES}				| Transfer speed (bytes/second)
+	{TIMESTART}					| The timestamp when the transfer has started (ex: 2014/10/18 08:24)
+	{TIMEELAPSED}				| Amount of time since the transfer has started (ex: 3 min, 2 sec)
+	{TIMEREMAINING}				| Estimated amount of time until the transfer will complete (ex: 10 min, 35 sec)
 
-	MultiText Keywords (multiple transfers):
-	[COUNTTOTAL]				| The overall number of transfers (waiting + downloading + completed)
-	[COUNTWAITING]				| The number of waiting transfers
-	[COUNTDOWNLOADING]			| The number of transfers in progress
-	[COUNTCOMPLETED]			| The number of completed transfers
-	[RECVSIZE]					| The amount of bytes received, nicely formatted (ex: "1,3 GB")
-	[RECVSIZEBYTES]				| The amount of bytes received
-	[SPEEDBYTES]				| The combined speed of transfers in progress (bytes/second)
-	[SPEED]						| The combined speed of transfers in progress (nicely formatted, ex: "1,4 MB/s")
-	[COUNTTHREADS]				| Worker thread count
-	[PLUGINNAME]				| "NSxfer"
-	[ANIMLINE]					| The classic \|/- animation
-	[ANIMDOTS]					| The classic ./../... animation
+	General keywords:
+	{TOTALCOUNT}				| The overall number of transfers (waiting + downloading + completed)
+	{TOTALWAITING}				| The number of waiting transfers
+	{TOTALACTIVE}				| The number of downloading + completed transfers
+	{TOTALDOWNLOADING}			| The number of transfers in progress
+	{TOTALCOMPLETED}			| The number of completed transfers
+	{TOTALRECVSIZE}				| The amount of bytes received, nicely formatted (ex: "1,3 GB")
+	{TOTALRECVSIZEBYTES}		| The amount of bytes received
+	{TOTALSPEED}				| The combined speed of transfers in progress (nicely formatted, ex: "1,4 MB/s")
+	{TOTALSPEEDBYTES}			| The combined speed of transfers in progress (bytes/second)
+	{TOTALTHREADS}				| Worker thread count
+	{ORIGINALTITLE}				| The original title text 
+	{ORIGINALSTATUS}			| The original status text
+	{PLUGINNAME}				| Plugin name ("NSxfer")
+	{PLUGINVERSION}				| Plugin version
+	{ANIMLINE}					| The classic \|/- animation
+	{ANIMDOTS}					| The classic ./../... animation
 
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
@@ -139,12 +139,16 @@ Parameters:
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
-	TODO
+	[Stack] Result code. Ignore it!
 
 Examples:
-	NSxfer::Wait /NOUNLOAD all /MODE POPUP /STATUSTEXT \
-		"[PERCENT] ([RECVSIZE] / [FILESIZE]), [SPEED], ETA: [TIMEREMAINING] [ANIMDOTS]" \
-		"Downloading [COUNTCOMPLETED] / [COUNTTOTAL], [SPEED], [ANIMDOTS]"
+	NSxfer::Wait /NOUNLOAD all /MODE POPUP \
+		/STATUSTEXT \
+			"Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}$\n{URL}" \
+			"Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}" \
+		/TITLETEXT \
+			"{PERCENT}% - Downloading..." \
+			"Downloading {TOTALCOUNT} files..."
 _________________________________________________________________________________________________
 
 NSxfer::Enumerate [/NOUNLOAD] all|downloading|waiting|completed
