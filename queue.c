@@ -168,7 +168,7 @@ PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 	ULONG iSelectedPrio = ULONG_MAX - 1;
 	assert( pQueue );
 	for (pItem = pQueue->pHead; pItem; pItem = pItem->pNext)
-		if (pItem->iStatus == ITEM_STATUS_WAITING && pItem->iPriority <= iSelectedPrio)
+		if (pItem->iStatus == ITEM_STATUS_WAITING && !pItem->bAbort && pItem->iPriority <= iSelectedPrio)
 			pSelectedItem = pItem, iSelectedPrio = pItem->iPriority;
 	TRACE2( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Prio:%u, Ptr:0x%p\n" ), pQueue->szName, pSelectedItem ? pSelectedItem->iId : 0, pSelectedItem ? pSelectedItem->iPriority : 0, pSelectedItem );
 	return pSelectedItem;
@@ -377,10 +377,14 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 		case ITEM_STATUS_WAITING:
 			pItem->bAbort = TRUE;
 			pItem->iStatus = ITEM_STATUS_DONE;
+			/// Error code
+			pItem->iWin32Error = ERROR_INTERNET_OPERATION_CANCELLED;
+			MyFree( pItem->pszWin32Error );
+			AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
 			break;
 		case ITEM_STATUS_DOWNLOADING:
 			pItem->bAbort = TRUE;
-			/// The worker thread will abort soon...
+			/// The worker thread will do the rest...
 			break;
 		case ITEM_STATUS_DONE:
 			/// Nothing to do

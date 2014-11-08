@@ -155,7 +155,34 @@ Examples:
 			"{PERCENT}% - Downloading..." \
 			"Downloading {TOTALCOUNT} files..." \
 		/ABORT "Abort" "Are your sure?"
+_________________________________________________________________________________________________
 
+NSxfer::Abort		/NOUNLOAD
+					[/ID id]
+					[/PRIORITY prio]
+					/END
+Remarks:
+	Abort one or multiple transfers.
+	When aborting a file transfer the received content is not removed. It can be resumed later...
+	The caller is responsible for cleaning up unfinished downloads.
+
+Parameters:
+	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
+	/ID id						| Abort a specific transfer. If not specified, all transfers will be aborted
+	/PRIORITY prio				| Abort transfers with specific priority. If not specified, all transfers will be aborted
+
+Return value:
+	[Stack] Result code. Ignore it!
+
+Examples:
+	; Abort all transfers
+	NSxfer::Abort /NOUNLOAD /END
+
+	; Abort all transfers with priority 2000
+	NSxfer::Abort /NOUNLOAD /PRIORITY 2000 /END
+
+	; Abort specific transfer
+	NSxfer::Abort /NOUNLOAD /ID 5 /END
 _________________________________________________________________________________________________
 
 NSxfer::Enumerate [/NOUNLOAD] all|downloading|waiting|completed

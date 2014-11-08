@@ -707,6 +707,65 @@ void __cdecl Wait(
 }
 
 
+//++ Abort
+EXTERN_C __declspec(dllexport)
+void __cdecl Abort(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	INT_PTR iRet = 0;
+	LPTSTR psz;
+	UINT iId = ANY_TRANSFER_ID;
+	ULONG iPrio = ANY_PRIORITY;
+
+	EXDLL_INIT();
+	EXDLL_VALIDATE();
+
+	TRACE( _T( "NSxfer!Abort\n" ) );
+
+	/// Working buffer
+	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
+	assert( psz );
+
+	/// Parameters
+	for (;;) {
+		if (popstring( psz ) != 0)
+			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
+			break;
+
+		if (lstrcmpi( psz, _T( "/ID" ) ) == 0) {
+			iId = popint();
+		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
+			iPrio = popint();
+		} else {
+			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
+		}
+	}
+
+	// Abort
+	if (TRUE) {
+		PQUEUE_ITEM pItem;
+		QueueLock( &g_Queue );
+		for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext) {
+			if (ItemMatched( pItem, iId, iPrio )) {
+				if (QueueAbort( &g_Queue, pItem )) {
+					iRet++;
+				}
+			}
+		}
+		QueueUnlock( &g_Queue );
+	}
+
+	MyFree( psz );
+	pushintptr( iRet );
+}
+
+
 //++ Test
 EXTERN_C __declspec(dllexport)
 void __cdecl Test(
