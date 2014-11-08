@@ -19,6 +19,7 @@ extern QUEUE g_Queue;		/// main.c
 
 struct {
 	UINT iTransferID;
+	ULONG iPriority;
 	GUI_MODE iMode;
 	HWND hTaskbarWnd;
 	HWND hTitleWnd;
@@ -321,24 +322,26 @@ ULONG GuiRefreshData()
 	g_Gui.iItemsSpeed = 0;
 
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if (g_Gui.iTransferID == ANY_TRANSFER_ID || p->iId == g_Gui.iTransferID) {
-			/// This is a transfer we're waiting for
+		if ((g_Gui.iTransferID == ANY_TRANSFER_ID && (g_Gui.iPriority == ANY_PRIORITY || p->iPriority == g_Gui.iPriority)) ||
+			(g_Gui.iTransferID != ANY_TRANSFER_ID && p->iId == g_Gui.iTransferID))
+		{
 			if (p->iStatus == ITEM_STATUS_DOWNLOADING) {
-				g_Gui.pItem = p;
+				g_Gui.pItem = p;	/// Remember the last in-progress transfer
 			}
 			g_Gui.iRecvSize += p->iRecvSize;
 			g_Gui.iItemsSpeed += p->Speed.iSpeed;
+
+			g_Gui.iItemsTotal++;
+			if (p->iStatus == ITEM_STATUS_DONE)
+				g_Gui.iItemsDone++;
+			if (p->iStatus == ITEM_STATUS_DOWNLOADING)
+				g_Gui.iItemsDownloading++;
+			if (p->iStatus == ITEM_STATUS_WAITING)
+				g_Gui.iItemsWaiting++;
 		}
-		g_Gui.iItemsTotal++;
-		if (p->iStatus == ITEM_STATUS_DONE)
-			g_Gui.iItemsDone++;
-		if (p->iStatus == ITEM_STATUS_DOWNLOADING)
-			g_Gui.iItemsDownloading++;
-		if (p->iStatus == ITEM_STATUS_WAITING)
-			g_Gui.iItemsWaiting++;
 	}
 	if (g_Gui.iTransferID == ANY_TRANSFER_ID && g_Gui.iItemsDownloading > 1) {
-		g_Gui.pItem = NULL;
+		g_Gui.pItem = NULL;			/// Wait for multiple transfers
 	}
 
 	QueueUnlock( &g_Queue );
@@ -557,6 +560,7 @@ ULONG GuiWaitPage()
 
 ULONG GuiWait(
 	__in UINT iTransferID,
+	__in ULONG iPriority,
 	__in GUI_MODE iMode,
 	__in_opt HWND hTitleWnd,
 	__in_opt HWND hStatusWnd,
@@ -574,6 +578,7 @@ ULONG GuiWait(
 
 	MyZeroMemory( &g_Gui, sizeof( g_Gui ) );
 	g_Gui.iTransferID = iTransferID;
+	g_Gui.iPriority = iPriority;
 	g_Gui.iMode = iMode;
 	g_Gui.hTitleWnd = hTitleWnd;
 	g_Gui.hStatusWnd = hStatusWnd;

@@ -67,7 +67,7 @@ Examples:
 _________________________________________________________________________________________________
 
 NSxfer::Wait		[/NOUNLOAD]
-					TransferID|all
+					[/ID id] [/PRIORITY prio]
 					[/MODE SILENT|POPUP|PAGE]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
@@ -75,9 +75,9 @@ NSxfer::Wait		[/NOUNLOAD]
 					[/END]
 
 Remarks:
-	Wait for one or more transfers to complete.
+	Wait for one or multiple transfers to complete.
 
-	There are multiple modes of waiting:
+	Waiting modes:
 	- SILENT					| No GUI is displayed, the call returns when transfer(s) complete(s)
 	- POPUP						| Progress is displayed on a popup window
 	- PAGE						| Progress is displayed on an installer page (InstFiles or custom). This mode is available only when the installer is visible.
@@ -130,7 +130,8 @@ Remarks:
 
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	TransferID|all				| Wait for a specific transfer ID, or wait for all
+	/ID id						| Wait for a specific transfer. If not specified, we're waiting for all transfers
+	/PRIORITY prio				| Wait for transfers with specific priority. If not specified we're waiting for all transfers
 	/MODE						| Wait mode
 	/TITLEHWND					| Custom window that displays the Title text
 	/STATUSHWND					| Custom window that displays the Status text
@@ -144,7 +145,7 @@ Return:
 	[Stack] Result code. Ignore it!
 
 Examples:
-	NSxfer::Wait /NOUNLOAD all /MODE POPUP \
+	NSxfer::Wait /NOUNLOAD /ID all /PRIORITY 1000 /MODE POPUP \
 		/STATUSTEXT \
 			"Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}$\n{URL}" \
 			"Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}" \

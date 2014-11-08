@@ -5,6 +5,7 @@
 #define INVALID_FILE_SIZE64			(ULONG64)-1
 #define ITEM_DEFAULT_PRIORITY		1000
 #define ANY_TRANSFER_ID				0
+#define ANY_PRIORITY				0
 
 /*
 	Queue facts:

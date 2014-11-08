@@ -618,6 +618,7 @@ void __cdecl Wait(
 	INT_PTR iRet = 0;
 	LPTSTR psz;
 	UINT iId = ANY_TRANSFER_ID;
+	ULONG iPrio = ANY_PRIORITY;
 	GUI_MODE iMode = GUI_MODE_POPUP;
 	HWND hTitle = NULL, hStatus = NULL, hProgress = NULL;
 	LPTSTR pszTitleText = NULL, pszTitleMultiText = NULL;
@@ -637,85 +638,78 @@ void __cdecl Wait(
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	assert( psz );
 
-	/// First parameter (transfer ID)
-	if (popstring( psz ) == 0) {
+	/// Parameters
+	for (;;)
+	{
+		if (popstring( psz ) != 0)
+			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
+			break;
 
-		/// TransferID
-		if (lstrcmpi( psz, _T( "all" ) ) == 0) {
-			iId = ANY_TRANSFER_ID;
-		} else {
-			iId = (ULONG)myatoi_or( psz );
-		}
-
-		/// Other parameters
-		for (;;)
-		{
-			if (popstring( psz ) != 0)
-				break;
-			if (lstrcmpi( psz, _T( "/END" ) ) == 0)
-				break;
-
-			if (lstrcmpi( psz, _T( "/MODE" ) ) == 0) {
-				if (popstring( psz ) == 0) {
-					if (lstrcmpi( psz, _T( "SILENT" ) ) == 0)
-						iMode = GUI_MODE_SILENT;
-					else if (lstrcmpi( psz, _T( "POPUP" ) ) == 0)
-						iMode = GUI_MODE_POPUP;
-					else if (lstrcmpi( psz, _T( "PAGE" ) ) == 0)
-						iMode = GUI_MODE_PAGE;
-					else {
-						iMode = GUI_MODE_POPUP;		/// Default
-						TRACE( _T( "  [!] Unknown GUI mode \"%s\"\n" ), psz );
-					}
+		if (lstrcmpi( psz, _T( "/ID" ) ) == 0) {
+			iId = popint();
+		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
+			iPrio = popint();
+		} else if (lstrcmpi( psz, _T( "/MODE" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				if (lstrcmpi( psz, _T( "SILENT" ) ) == 0)
+					iMode = GUI_MODE_SILENT;
+				else if (lstrcmpi( psz, _T( "POPUP" ) ) == 0)
+					iMode = GUI_MODE_POPUP;
+				else if (lstrcmpi( psz, _T( "PAGE" ) ) == 0)
+					iMode = GUI_MODE_PAGE;
+				else {
+					iMode = GUI_MODE_POPUP;		/// Default
+					TRACE( _T( "  [!] Unknown GUI mode \"%s\"\n" ), psz );
 				}
-			} else if (lstrcmpi( psz, _T( "/TITLEHWND" ) ) == 0) {
-				hTitle = (HWND)popintptr();
-			} else if (lstrcmpi( psz, _T( "/STATUSHWND" ) ) == 0) {
-				hStatus = (HWND)popintptr();
-			} else if (lstrcmpi( psz, _T( "/PROGRESSHWND" ) ) == 0) {
-				hProgress = (HWND)popintptr();
-			} else if (lstrcmpi( psz, _T( "/TITLETEXT" ) ) == 0) {
-				if (popstring( psz ) == 0) {
-					MyFree( pszTitleText );
-					MyStrDup( pszTitleText, psz );
-				}
-				if (popstring( psz ) == 0) {
-					MyFree( pszTitleMultiText );
-					MyStrDup( pszTitleMultiText, psz );
-				}
-			} else if (lstrcmpi( psz, _T( "/STATUSTEXT" ) ) == 0) {
-				if (popstring( psz ) == 0) {
-					MyFree( pszStatusText );
-					MyStrDup( pszStatusText, psz );
-				}
-				if (popstring( psz ) == 0) {
-					MyFree( pszStatusMultiText );
-					MyStrDup( pszStatusMultiText, psz );
-				}
-			} else if (lstrcmpi( psz, _T( "/CANCEL" ) ) == 0) {
-				bCancel = TRUE;
-				if (popstring( psz ) == 0) {
-					MyFree( pszCancelTitle );
-					MyStrDup( pszCancelTitle, psz );
-				}
-				if (popstring( psz ) == 0) {
-					MyFree( pszCancelMsg );
-					MyStrDup( pszCancelMsg, psz );
-				}
-			} else {
-				TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 			}
+		} else if (lstrcmpi( psz, _T( "/TITLEHWND" ) ) == 0) {
+			hTitle = (HWND)popintptr();
+		} else if (lstrcmpi( psz, _T( "/STATUSHWND" ) ) == 0) {
+			hStatus = (HWND)popintptr();
+		} else if (lstrcmpi( psz, _T( "/PROGRESSHWND" ) ) == 0) {
+			hProgress = (HWND)popintptr();
+		} else if (lstrcmpi( psz, _T( "/TITLETEXT" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				MyFree( pszTitleText );
+				MyStrDup( pszTitleText, psz );
+			}
+			if (popstring( psz ) == 0) {
+				MyFree( pszTitleMultiText );
+				MyStrDup( pszTitleMultiText, psz );
+			}
+		} else if (lstrcmpi( psz, _T( "/STATUSTEXT" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				MyFree( pszStatusText );
+				MyStrDup( pszStatusText, psz );
+			}
+			if (popstring( psz ) == 0) {
+				MyFree( pszStatusMultiText );
+				MyStrDup( pszStatusMultiText, psz );
+			}
+		} else if (lstrcmpi( psz, _T( "/CANCEL" ) ) == 0) {
+			bCancel = TRUE;
+			if (popstring( psz ) == 0) {
+				MyFree( pszCancelTitle );
+				MyStrDup( pszCancelTitle, psz );
+			}
+			if (popstring( psz ) == 0) {
+				MyFree( pszCancelMsg );
+				MyStrDup( pszCancelMsg, psz );
+			}
+		} else {
+			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 		}
-
-		// Wait
-		iRet = GuiWait(
-			iId, iMode,
-			hTitle, hStatus, hProgress,
-			pszTitleText, pszTitleMultiText,
-			pszStatusText, pszStatusMultiText,
-			bCancel, pszCancelTitle, pszCancelMsg
-			);
 	}
+
+	// Wait
+	iRet = GuiWait(
+		iId, iPrio, iMode,
+		hTitle, hStatus, hProgress,
+		pszTitleText, pszTitleMultiText,
+		pszStatusText, pszStatusMultiText,
+		bCancel, pszCancelTitle, pszCancelMsg
+		);
 
 	MyFree( psz );
 	pushintptr( iRet );

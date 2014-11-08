@@ -507,10 +507,9 @@ Section Wait
 	Push "/CANCEL"
 	Push "Popup"
 	Push "/MODE"
-	Push "all"
 	CallInstDLL "${NSXFER}" "Wait"
 !else
-	NSxfer::Wait /NOUNLOAD all /MODE Popup /CANCEL "Abort" "Are you sure?" /END
+	NSxfer::Wait /NOUNLOAD /MODE Popup /CANCEL "Abort" "Are you sure?" /END
 !endif
 	Pop $0
 
