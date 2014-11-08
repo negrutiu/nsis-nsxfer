@@ -123,6 +123,10 @@ typedef struct _QUEUE_ITEM {
 #define ItemGetRecvPercent(pItem) \
 	(int)(((pItem)->iFileSize == 0 || (pItem)->iFileSize == INVALID_FILE_SIZE64) ? 0 : MyMulDiv64((pItem)->iRecvSize, 100, (pItem)->iFileSize))
 
+#define ItemMatched(pItem, ID, Prio) \
+	(ID == ANY_TRANSFER_ID && (Prio == ANY_PRIORITY || Prio == pItem->iPriority)) || \
+	(ID != ANY_TRANSFER_ID && ID == pItem->iId)
+
 BOOL ItemMemoryContentToString( _In_ PQUEUE_ITEM pItem, _Out_ LPTSTR pszString, _In_ ULONG iStringLen );
 
 

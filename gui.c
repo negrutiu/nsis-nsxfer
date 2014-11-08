@@ -26,9 +26,9 @@ struct {
 	HWND hStatusWnd;
 	HWND hProgressWnd;
 
-	BOOLEAN bCancel;
-	LPCTSTR pszCancelTitle;
-	LPCTSTR pszCancelMsg;
+	BOOLEAN bAbort;
+	LPCTSTR pszAbortTitle;
+	LPCTSTR pszAbortMsg;
 
 	LPCTSTR pszTitleText;
 	LPCTSTR pszTitleMultiText;
@@ -322,9 +322,7 @@ ULONG GuiRefreshData()
 	g_Gui.iItemsSpeed = 0;
 
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if ((g_Gui.iTransferID == ANY_TRANSFER_ID && (g_Gui.iPriority == ANY_PRIORITY || p->iPriority == g_Gui.iPriority)) ||
-			(g_Gui.iTransferID != ANY_TRANSFER_ID && p->iId == g_Gui.iTransferID))
-		{
+		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority )) {
 			if (p->iStatus == ITEM_STATUS_DOWNLOADING) {
 				g_Gui.pItem = p;	/// Remember the last in-progress transfer
 			}
@@ -484,8 +482,8 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 		g_Gui.hStatusWnd = GetDlgItem( hDlg, IDC_POPUP_STATUS );
 		g_Gui.hProgressWnd = GetDlgItem( hDlg, IDC_POPUP_PROGRESS );
 
-		// Cancellable
-		if (g_Gui.bCancel) {
+		// Abortion
+		if (g_Gui.bAbort) {
 			EnableMenuItem( GetSystemMenu( hDlg, FALSE ), SC_CLOSE, MF_BYCOMMAND | MF_ENABLED );
 		} else {
 			EnableMenuItem( GetSystemMenu( hDlg, FALSE ), SC_CLOSE, MF_BYCOMMAND | MF_DISABLED );
@@ -544,7 +542,7 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 
 	case WM_SYSCOMMAND:
 		if (wParam == SC_CLOSE) {
-			if (g_Gui.bCancel && (!g_Gui.pszCancelMsg || !*g_Gui.pszCancelMsg || MessageBox( hDlg, g_Gui.pszCancelMsg, g_Gui.pszCancelTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES)) {
+			if (g_Gui.bAbort && (!g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( hDlg, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES)) {
 				GuiWaitAbort();
 				EndDialog( hDlg, IDCANCEL );
 			}
@@ -584,9 +582,9 @@ ULONG GuiWait(
 	__in_opt LPCTSTR pszTitleMultiText,
 	__in_opt LPCTSTR pszStatusText,
 	__in_opt LPCTSTR pszStatusMultiText,
-	__in_opt BOOLEAN bCancel,
-	__in_opt LPCTSTR pszCancelTitle,
-	__in_opt LPCTSTR pszCancelMsg
+	__in_opt BOOLEAN bAbort,
+	__in_opt LPCTSTR pszAbortTitle,
+	__in_opt LPCTSTR pszAbortMsg
 	)
 {
 	ULONG err = ERROR_SUCCESS;
@@ -602,9 +600,9 @@ ULONG GuiWait(
 	g_Gui.pszTitleMultiText = pszTitleMultiText ? pszTitleMultiText : DEFAULT_TITLE_MULTI;
 	g_Gui.pszStatusText = pszStatusText ? pszStatusText : DEFAULT_STATUS_SINGLE;
 	g_Gui.pszStatusMultiText = pszStatusMultiText ? pszStatusMultiText : DEFAULT_STATUS_MULTI;
-	g_Gui.bCancel = bCancel;
-	g_Gui.pszCancelTitle = pszCancelTitle && *pszCancelTitle ? pszCancelTitle : PLUGINNAME;
-	g_Gui.pszCancelMsg = pszCancelMsg;
+	g_Gui.bAbort = bAbort;
+	g_Gui.pszAbortTitle = pszAbortTitle && *pszAbortTitle ? pszAbortTitle : PLUGINNAME;
+	g_Gui.pszAbortMsg = pszAbortMsg;
 
 	if (g_Gui.hTitleWnd) {
 		TCHAR sz[256];

@@ -3,7 +3,7 @@ NSxfer - NSIS WinInet transfer plugin
 Marius Negruțiu (marius.negrutiu@gmail.com)
 _________________________________________________________________________________________________
 
-NSxfer::Transfer	[/NOUNLOAD]
+NSxfer::Transfer	/NOUNLOAD
 					[/PRIORITY prio]
 					[/METHOD GET|POST]
 					/URL url
@@ -66,13 +66,13 @@ Examples:
 	Pop R0	; Transfer ID
 _________________________________________________________________________________________________
 
-NSxfer::Wait		[/NOUNLOAD]
+NSxfer::Wait		/NOUNLOAD
 					[/ID id] [/PRIORITY prio]
 					[/MODE SILENT|POPUP|PAGE]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
-					[/CANCEL Title Message]
-					[/END]
+					[/ABORT Title Message]
+					/END
 
 Remarks:
 	Wait for one or multiple transfers to complete.
@@ -138,20 +138,24 @@ Parameters:
 	/PROGRESSHWND				| Custom progress bar
 	/TITLETEXT Text MultiText	| The Title text. "Text" is displayed when waiting for a single transfer, whereas "MultiText" is displayed when waiting for many transfers. Both texts may contain keywords
 	/STATUSTEXT Text MultiText	| The Status text. "Text" is displayed when waiting for a single transfer, whereas "MultiText" is displayed when waiting for many transfers. Both texts may contain keywords
-	/CANCEL	Title Message		| Make the transfer cancellable. Display Message (Yes/No) to confirm the cancellation. If Message is empty the transfer will be cancelled silently
+	/ABORT Title Message		| The transfer can be aborted. If Message is not empty, a confirmation box (Yes/No) will be diaplayed. If Message is empty, the transfer will be aborted silently. By default abortion is deactivated
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
 	[Stack] Result code. Ignore it!
 
 Examples:
-	NSxfer::Wait /NOUNLOAD /ID all /PRIORITY 1000 /MODE POPUP \
+	; Wait for all transfers with priority 2000 (Popup mode)
+	NSxfer::Wait \
+		/NOUNLOAD /PRIORITY 2000 /MODE POPUP \
 		/STATUSTEXT \
 			"Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}$\n{URL}" \
 			"Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}" \
 		/TITLETEXT \
 			"{PERCENT}% - Downloading..." \
-			"Downloading {TOTALCOUNT} files..."
+			"Downloading {TOTALCOUNT} files..." \
+		/ABORT "Abort" "Are your sure?"
+
 _________________________________________________________________________________________________
 
 NSxfer::Enumerate [/NOUNLOAD] all|downloading|waiting|completed
@@ -175,7 +179,7 @@ Example:
 	${Next}
 _________________________________________________________________________________________________
 
-NSxfer::Query	[/NOUNLOAD]
+NSxfer::Query	/NOUNLOAD
 				TransferID
 				[/PRIORITY]
 				[/STATUS] [/WININETSTATUS]
@@ -231,7 +235,7 @@ Example:
 	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
 _________________________________________________________________________________________________
 
-NSxfer::QueryGlobal [/NOUNLOAD]
+NSxfer::QueryGlobal /NOUNLOAD
 					[/COUNTTOTAL] [/COUNTWAITING] [/COUNTDOWNLOADING] [/COUNTCOMPLETED]
 					[/SPEEDBYTES] [/SPEED]
 					[/COUNTTHREADS]

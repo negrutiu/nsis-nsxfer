@@ -623,8 +623,8 @@ void __cdecl Wait(
 	HWND hTitle = NULL, hStatus = NULL, hProgress = NULL;
 	LPTSTR pszTitleText = NULL, pszTitleMultiText = NULL;
 	LPTSTR pszStatusText = NULL, pszStatusMultiText = NULL;
-	BOOLEAN bCancel = FALSE;
-	LPTSTR pszCancelTitle = NULL, pszCancelMsg = NULL;
+	BOOLEAN bAbort = FALSE;
+	LPTSTR pszAbortTitle = NULL, pszAbortMsg = NULL;
 
 	EXDLL_INIT();
 
@@ -687,15 +687,15 @@ void __cdecl Wait(
 				MyFree( pszStatusMultiText );
 				MyStrDup( pszStatusMultiText, psz );
 			}
-		} else if (lstrcmpi( psz, _T( "/CANCEL" ) ) == 0) {
-			bCancel = TRUE;
+		} else if (lstrcmpi( psz, _T( "/ABORT" ) ) == 0) {
+			bAbort = TRUE;
 			if (popstring( psz ) == 0) {
-				MyFree( pszCancelTitle );
-				MyStrDup( pszCancelTitle, psz );
+				MyFree( pszAbortTitle );
+				MyStrDup( pszAbortTitle, psz );
 			}
 			if (popstring( psz ) == 0) {
-				MyFree( pszCancelMsg );
-				MyStrDup( pszCancelMsg, psz );
+				MyFree( pszAbortMsg );
+				MyStrDup( pszAbortMsg, psz );
 			}
 		} else {
 			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
@@ -708,15 +708,15 @@ void __cdecl Wait(
 		hTitle, hStatus, hProgress,
 		pszTitleText, pszTitleMultiText,
 		pszStatusText, pszStatusMultiText,
-		bCancel, pszCancelTitle, pszCancelMsg
+		bAbort, pszAbortTitle, pszAbortMsg
 		);
 
 	MyFree( pszTitleText );
 	MyFree( pszTitleMultiText );
 	MyFree( pszStatusText );
 	MyFree( pszStatusMultiText );
-	MyFree( pszCancelTitle );
-	MyFree( pszCancelMsg );
+	MyFree( pszAbortTitle );
+	MyFree( pszAbortMsg );
 	MyFree( psz );
 	pushintptr( iRet );
 }

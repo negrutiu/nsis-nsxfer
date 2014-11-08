@@ -19,7 +19,7 @@ ULONG GuiWait(
 	__in_opt LPCTSTR pszTitleMultiText,
 	__in_opt LPCTSTR pszStatusText,
 	__in_opt LPCTSTR pszStatusMultiText,
-	__in_opt BOOLEAN bCancel,
-	__in_opt LPCTSTR pszCancelTitle,
-	__in_opt LPCTSTR pszCancelMsg
+	__in_opt BOOLEAN bAbort,
+	__in_opt LPCTSTR pszAbortTitle,
+	__in_opt LPCTSTR pszAbortMsg
 	);
