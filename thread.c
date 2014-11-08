@@ -414,8 +414,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 			/// Multiple attempts to connect
 			for (dwStartTime = GetTickCount(), i = 0; TRUE; i++) {
 
-				/// Check TERM event
-				if ( ThreadIsTerminating( pItem->pThread ) ) {
+				/// Check TERM event, Check ABORT flag
+				if ( ThreadIsTerminating( pItem->pThread ) || pItem->bAbort ) {
 					ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
 					break;
 				}
@@ -453,8 +453,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 				if ( pItem->hConnect ) {
 
-					// Check again the TERM event
-					if ( !ThreadIsTerminating( pItem->pThread ) ) {
+					// Check the TERM event, Check ABORT flag
+					if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
 
 						// Make an HTTP request
 						LPCTSTR szReqType[2] = { _T( "*/*" ), 0 };
@@ -514,8 +514,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 							// The stupid 'Work offline' setting from IE
 							InternetSetOption( pItem->hRequest, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
 
-							// Check TERM event
-							if ( !ThreadIsTerminating( pItem->pThread ) ) {
+							// Check TERM event, Check ABORT flag
+							if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
 
 								/// Add the Range header if local content is present (resume)
 								/// NOTE: If the file is already downloaded, the server will return HTTP status 416 (see below!)
@@ -617,14 +617,14 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 									ThreadSetWin32Error( pItem, GetLastError() );	/// HttpSendRequest error
 								}
 							} else {
-								ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating
+								ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 								break;
 							}
 						} else {
 							ThreadSetWin32Error( pItem, GetLastError() );	/// HttpOpenRequest error
 						}
 					} else {
-						ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating
+						ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 						break;
 					}
 				} else {
@@ -974,7 +974,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 						break;
 					}
 #endif ///DEBUG_XFER_MAX_BYTES
-					if ( !ThreadIsTerminating( pItem->pThread )) {
+					if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
 						if ( InternetReadFile( pItem->hRequest, pBuf, iBufSize, &iBytesRecv ) ) {
 							if ( iBytesRecv > 0 ) {
 								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
@@ -1036,7 +1036,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 					break;
 				}
 #endif ///DEBUG_XFER_MAX_BYTES
-				if ( !ThreadIsTerminating( pItem->pThread ) ) {
+				if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
 					if ( InternetReadFile( pItem->hRequest, pItem->Local.pMemory + pItem->iRecvSize, 1024 * TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
 						if ( iBytesRecv > 0 ) {
 							/// Update fields
