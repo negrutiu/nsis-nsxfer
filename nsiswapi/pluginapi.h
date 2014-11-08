@@ -19,6 +19,10 @@ extern "C" {
         g_ep=extra;               \
         g_hwndparent=parent; }
 
+#define EXDLL_VALIDATE()    \
+        if (g_ep && g_ep->exec_flags && (g_ep->exec_flags->plugin_api_version != NSISPIAPIVER_CURR))  \
+			return;
+
 typedef struct _stack_t {
   struct _stack_t *next;
 #ifdef UNICODE
@@ -63,8 +67,6 @@ extern stack_t **g_stacktop;
 extern LPTSTR g_variables;
 extern extra_parameters *g_ep;
 extern HWND g_hwndparent;
-
-BOOL NSISCALL IsCompatibleApiVersion();	// Test if (g_ep->exec_flags->plugin_api_version == NSISPIAPIVER_CURR)
 
 void NSISCALL pushstring(LPCTSTR str);
 void NSISCALL pushintptr(INT_PTR value);

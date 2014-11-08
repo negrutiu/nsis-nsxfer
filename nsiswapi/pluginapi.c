@@ -25,15 +25,6 @@ LPTSTR g_variables = NULL;
 extra_parameters *g_ep = NULL;
 HWND g_hwndparent = NULL;
 
-// IsCompatibleApiVersion
-BOOL NSISCALL IsCompatibleApiVersion()
-{
-	if ( g_ep && g_ep->exec_flags ) {
-		return ( g_ep->exec_flags->plugin_api_version == NSISPIAPIVER_CURR ) ? TRUE : FALSE;
-	}
-	return TRUE;
-}
-
 // utility functions (not required but often useful)
 
 int NSISCALL popstring(LPTSTR str)

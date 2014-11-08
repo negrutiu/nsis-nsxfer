@@ -96,10 +96,7 @@ void __cdecl Transfer(
 	PQUEUE_ITEM pItem = NULL;
 
 	EXDLL_INIT();
-
-	// Validate NSIS version
-	if ( !IsCompatibleApiVersion())
-		return;
+	EXDLL_VALIDATE();
 
 	// Request unload notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
@@ -285,10 +282,7 @@ void __cdecl QueryGlobal(
 	ULONG iSpeed;
 
 	EXDLL_INIT();
-
-	// Validate NSIS version
-	if (!IsCompatibleApiVersion())
-		return;
+	EXDLL_VALIDATE();
 
 	TRACE( _T( "NSxfer!QueryGlobal\n" ) );
 
@@ -380,10 +374,7 @@ void __cdecl Query(
 	int iParamCount = 0, iDropCount = 0, i;
 
 	EXDLL_INIT();
-
-	// Validate NSIS version
-	if (!IsCompatibleApiVersion())
-		return;
+	EXDLL_VALIDATE();
 
 	TRACE( _T( "NSxfer!Query\n" ) );
 
@@ -564,10 +555,7 @@ void __cdecl Enumerate(
 	ITEM_STATUS iStatus = ITEM_STATUS_UNKNOWN;
 
 	EXDLL_INIT();
-
-	// Validate NSIS version
-	if (!IsCompatibleApiVersion())
-		return;
+	EXDLL_VALIDATE();
 
 	TRACE( _T( "NSxfer!Enumerate\n" ) );
 
@@ -627,10 +615,7 @@ void __cdecl Wait(
 	LPTSTR pszAbortTitle = NULL, pszAbortMsg = NULL;
 
 	EXDLL_INIT();
-
-	/// Validate NSIS version
-	if (!IsCompatibleApiVersion())
-		return;
+	EXDLL_VALIDATE();
 
 	TRACE( _T( "NSxfer!Wait\n" ) );
 
@@ -733,10 +718,7 @@ void __cdecl Test(
 	)
 {
 	EXDLL_INIT();
-
-	// Validate NSIS version
-	if (!IsCompatibleApiVersion())
-		return;
+	EXDLL_VALIDATE();
 
 	TRACE( _T( "NSxfer!Test\n" ) );
 
