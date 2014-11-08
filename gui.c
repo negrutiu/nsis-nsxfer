@@ -342,8 +342,6 @@ ULONG GuiRefreshData()
 		g_Gui.pItem = NULL;			/// Wait for multiple transfers
 	}
 
-	QueueUnlock( &g_Queue );
-
 	// All done?
 	if (g_Gui.pItem) {
 		g_Gui.bFinished = (g_Gui.pItem->iStatus == ITEM_STATUS_DONE);
@@ -412,6 +410,7 @@ ULONG GuiRefreshData()
 	// Animation
 	g_Gui.iAnimationStep++;
 
+	QueueUnlock( &g_Queue );
 	return err;
 }
 
@@ -421,9 +420,7 @@ VOID GuiWaitAbort()
 	PQUEUE_ITEM p;
 	QueueLock( &g_Queue );
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if ((g_Gui.iTransferID == ANY_TRANSFER_ID && (g_Gui.iPriority == ANY_PRIORITY || p->iPriority == g_Gui.iPriority)) ||
-			(g_Gui.iTransferID != ANY_TRANSFER_ID && p->iId == g_Gui.iTransferID))
-		{
+		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority )) {
 			QueueAbort( &g_Queue, p );
 		}
 	}
@@ -457,7 +454,28 @@ BOOL CALLBACK GuiEndChildDialogCallback( __in HWND hwnd, __in LPARAM lParam )
 */
 ULONG GuiWaitSilent()
 {
-	// TODO
+	MSG msg;
+	DWORD dwTime;
+	while (TRUE) {
+
+		/// Finished?
+		GuiRefreshData();
+		if (g_Gui.bFinished)
+			break;
+
+		/// Wait
+		dwTime = GetTickCount();
+		while (GetTickCount() - dwTime < GUI_TIMER_REFRESH_TIME) {
+			while (PeekMessage( &msg, NULL, 0, 0, PM_REMOVE )) {
+				if (!IsDialogMessage( g_hwndparent, &msg )) {
+					TranslateMessage( &msg );
+					DispatchMessage( &msg );
+				}
+			}
+			Sleep( 50 );
+		}
+	}
+
 	return ERROR_SUCCESS;
 }
 
@@ -533,7 +551,7 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 		if (wParam == GUI_TIMER_REFRESH_ID) {
 			GuiRefreshData();
 			if (g_Gui.bFinished) {
-				/// Destroy child dialogs (such as the abort confirmation message box)
+				/// Destroy child dialogs (such as the aborting confirmation message box)
 				EnumThreadWindows( GetCurrentThreadId(), GuiEndChildDialogCallback, (LPARAM)hDlg );
 				EndDialog( hDlg, IDOK );
 			}
@@ -542,6 +560,7 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 
 	case WM_SYSCOMMAND:
 		if (wParam == SC_CLOSE) {
+			/// [X] button
 			if (g_Gui.bAbort && (!g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( hDlg, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES)) {
 				GuiWaitAbort();
 				EndDialog( hDlg, IDCANCEL );
