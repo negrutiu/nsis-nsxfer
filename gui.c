@@ -7,7 +7,8 @@
 #define GUI_TIMER_REFRESH_ID	1
 #define GUI_TIMER_REFRESH_TIME	500
 #define GUI_OUTPUT_STRING_LEN	1024
-#define TEXT_NA					_T("n/a")
+#define TEXT_NA					_T( "n/a" )
+#define PLUGINNAME				_T( "NSxfer" )
 
 #define DEFAULT_TITLE_SINGLE	_T("{PERCENT}% - Downloading...")
 #define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
@@ -23,6 +24,10 @@ struct {
 	HWND hTitleWnd;
 	HWND hStatusWnd;
 	HWND hProgressWnd;
+
+	BOOLEAN bCancel;
+	LPCTSTR pszCancelTitle;
+	LPCTSTR pszCancelMsg;
 
 	LPCTSTR pszTitleText;
 	LPCTSTR pszTitleMultiText;
@@ -262,7 +267,7 @@ void GuiExpandKeywords(
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "OriginalStatus" ))) {
 						lstrcpyn( szNewValue, g_Gui.pszOriginalStatusText ? g_Gui.pszOriginalStatusText : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "PluginName" ))) {
-						lstrcpyn( szNewValue, _T( "NSxfer" ), ARRAYSIZE( szNewValue ) );	/// TODO
+						lstrcpyn( szNewValue, PLUGINNAME, ARRAYSIZE( szNewValue ) );	/// TODO
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "PluginVersion" ))) {
 						lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );		/// TODO
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "AnimLine" ))) {
@@ -410,6 +415,27 @@ ULONG GuiRefreshData()
 }
 
 
+BOOL CALLBACK GuiEndChildDialogCallback( __in HWND hwnd, __in LPARAM lParam )
+{
+	HWND hRootOwner = (HWND)lParam;
+
+	if (!(GetWindowLongPtr( hwnd, GWL_STYLE ) & WS_CHILDWINDOW)) {
+		HWND hOwner = GetWindow( hwnd, GW_OWNER );
+		if (hOwner == hRootOwner) {
+			TCHAR szClass[50];
+			GetClassName( hwnd, szClass, ARRAYSIZE( szClass ) );
+			if (lstrcmpi( szClass, _T( "#32770" ) ) == 0) {
+				BOOL b = EndDialog( hwnd, IDCANCEL );
+				TRACE( _T( "  Th:GUI EndDialog( 0x%p \"%s\", IDCANCEL ) == %u\n" ), hwnd, szClass, b );
+			} else {
+				TRACE( _T( "  Th:GUI SkipChild( 0x%p \"%s\" )\n" ), hwnd, szClass );
+			}
+		}
+	}
+	return TRUE;
+}
+
+
 /*
 	SILENT mode
 */
@@ -439,6 +465,13 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 		g_Gui.hTitleWnd = hDlg;
 		g_Gui.hStatusWnd = GetDlgItem( hDlg, IDC_POPUP_STATUS );
 		g_Gui.hProgressWnd = GetDlgItem( hDlg, IDC_POPUP_PROGRESS );
+
+		// Cancellable
+		if (g_Gui.bCancel) {
+			EnableMenuItem( GetSystemMenu( hDlg, FALSE ), SC_CLOSE, MF_BYCOMMAND | MF_ENABLED );
+		} else {
+			EnableMenuItem( GetSystemMenu( hDlg, FALSE ), SC_CLOSE, MF_BYCOMMAND | MF_DISABLED );
+		}
 
 		// Icon
 		g_Gui.hPopupIco = LoadImage( GetModuleHandle( NULL ), MAKEINTRESOURCE( 103 ), IMAGE_ICON, 32, 32, 0 );
@@ -483,8 +516,21 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 	case WM_TIMER:
 		if (wParam == GUI_TIMER_REFRESH_ID) {
 			GuiRefreshData();
-			if (g_Gui.bFinished)
+			if (g_Gui.bFinished) {
+				/// Destroy child dialogs (such as the abort confirmation message box)
+				EnumThreadWindows( GetCurrentThreadId(), GuiEndChildDialogCallback, (LPARAM)hDlg );
 				EndDialog( hDlg, IDOK );
+			}
+		}
+		break;
+
+	case WM_SYSCOMMAND:
+		if (wParam == SC_CLOSE) {
+			if (g_Gui.bCancel && (!g_Gui.pszCancelMsg || !*g_Gui.pszCancelMsg || MessageBox( hDlg, g_Gui.pszCancelMsg, g_Gui.pszCancelTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES)) {
+				// TODO: Abort transfer(s)
+				EndDialog( hDlg, IDCANCEL );
+			}
+			return 0;
 		}
 		break;
 	}
@@ -518,7 +564,10 @@ ULONG GuiWait(
 	__in_opt LPCTSTR pszTitleText,
 	__in_opt LPCTSTR pszTitleMultiText,
 	__in_opt LPCTSTR pszStatusText,
-	__in_opt LPCTSTR pszStatusMultiText
+	__in_opt LPCTSTR pszStatusMultiText,
+	__in_opt BOOLEAN bCancel,
+	__in_opt LPCTSTR pszCancelTitle,
+	__in_opt LPCTSTR pszCancelMsg
 	)
 {
 	ULONG err = ERROR_SUCCESS;
@@ -533,6 +582,9 @@ ULONG GuiWait(
 	g_Gui.pszTitleMultiText = pszTitleMultiText ? pszTitleMultiText : DEFAULT_TITLE_MULTI;
 	g_Gui.pszStatusText = pszStatusText ? pszStatusText : DEFAULT_STATUS_SINGLE;
 	g_Gui.pszStatusMultiText = pszStatusMultiText ? pszStatusMultiText : DEFAULT_STATUS_MULTI;
+	g_Gui.bCancel = bCancel;
+	g_Gui.pszCancelTitle = pszCancelTitle && *pszCancelTitle ? pszCancelTitle : PLUGINNAME;
+	g_Gui.pszCancelMsg = pszCancelMsg;
 
 	if (g_Gui.hTitleWnd) {
 		TCHAR sz[256];

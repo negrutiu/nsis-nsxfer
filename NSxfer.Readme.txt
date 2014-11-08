@@ -71,6 +71,7 @@ NSxfer::Wait		[/NOUNLOAD]
 					[/MODE SILENT|POPUP|PAGE]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
+					[/CANCEL Title Message]
 					[/END]
 
 Remarks:
@@ -136,6 +137,7 @@ Parameters:
 	/PROGRESSHWND				| Custom progress bar
 	/TITLETEXT Text MultiText	| The Title text. "Text" is displayed when waiting for a single transfer, whereas "MultiText" is displayed when waiting for many transfers. Both texts may contain keywords
 	/STATUSTEXT Text MultiText	| The Status text. "Text" is displayed when waiting for a single transfer, whereas "MultiText" is displayed when waiting for many transfers. Both texts may contain keywords
+	/CANCEL	Title Message		| Make the transfer cancellable. Display Message (Yes/No) to confirm the cancellation. If Message is empty the transfer will be cancelled silently
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:

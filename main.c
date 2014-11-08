@@ -622,6 +622,8 @@ void __cdecl Wait(
 	HWND hTitle = NULL, hStatus = NULL, hProgress = NULL;
 	LPTSTR pszTitleText = NULL, pszTitleMultiText = NULL;
 	LPTSTR pszStatusText = NULL, pszStatusMultiText = NULL;
+	BOOLEAN bCancel = FALSE;
+	LPTSTR pszCancelTitle = NULL, pszCancelMsg = NULL;
 
 	EXDLL_INIT();
 
@@ -690,6 +692,16 @@ void __cdecl Wait(
 					MyFree( pszStatusMultiText );
 					MyStrDup( pszStatusMultiText, psz );
 				}
+			} else if (lstrcmpi( psz, _T( "/CANCEL" ) ) == 0) {
+				bCancel = TRUE;
+				if (popstring( psz ) == 0) {
+					MyFree( pszCancelTitle );
+					MyStrDup( pszCancelTitle, psz );
+				}
+				if (popstring( psz ) == 0) {
+					MyFree( pszCancelMsg );
+					MyStrDup( pszCancelMsg, psz );
+				}
 			} else {
 				TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 			}
@@ -700,7 +712,8 @@ void __cdecl Wait(
 			iId, iMode,
 			hTitle, hStatus, hProgress,
 			pszTitleText, pszTitleMultiText,
-			pszStatusText, pszStatusMultiText
+			pszStatusText, pszStatusMultiText,
+			bCancel, pszCancelTitle, pszCancelMsg
 			);
 	}
 

@@ -502,12 +502,15 @@ Section Wait
 
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
+	Push "Are you sure?"
+	Push "Abort"
+	Push "/CANCEL"
 	Push "Popup"
 	Push "/MODE"
 	Push "all"
 	CallInstDLL "${NSXFER}" "Wait"
 !else
-	NSxfer::Wait /NOUNLOAD all /MODE Popup /END
+	NSxfer::Wait /NOUNLOAD all /MODE Popup /CANCEL "Abort" "Are you sure?" /END
 !endif
 	Pop $0
 
