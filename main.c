@@ -711,6 +711,12 @@ void __cdecl Wait(
 		bCancel, pszCancelTitle, pszCancelMsg
 		);
 
+	MyFree( pszTitleText );
+	MyFree( pszTitleMultiText );
+	MyFree( pszStatusText );
+	MyFree( pszStatusMultiText );
+	MyFree( pszCancelTitle );
+	MyFree( pszCancelMsg );
 	MyFree( psz );
 	pushintptr( iRet );
 }

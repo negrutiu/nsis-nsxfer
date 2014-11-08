@@ -205,46 +205,26 @@ BOOL QueueAdd(
 		PQUEUE_ITEM pItem = (PQUEUE_ITEM)MyAlloc( sizeof(QUEUE_ITEM) );
 		if ( pItem ) {
 
+			MyZeroMemory( pItem, sizeof( *pItem ) );
 			pItem->iId = ++pQueue->iLastId;
 			pItem->iPriority = (iPriority == DEFAULT_VALUE) ? ITEM_DEFAULT_PRIORITY : iPriority;
 			pItem->iStatus = ITEM_STATUS_WAITING;
 			pItem->pQueue = pQueue;
-			pItem->pThread = NULL;
 
 			MyStrDup( pItem->pszURL, pszURL );
 
 			pItem->iLocalType = iLocalType;
-			switch ( iLocalType )
-			{
-			case ITEM_LOCAL_NONE:
-				pItem->Local.pszFile = NULL;
-				///pItem->Local.pMemory = NULL;
-				break;
-			case ITEM_LOCAL_FILE:
+			if (pItem->iLocalType == ITEM_LOCAL_FILE)
 				MyStrDup( pItem->Local.pszFile, pszLocalFile );
-				pItem->Local.hFile = NULL;
-				break;
-			case ITEM_LOCAL_MEMORY:
-				pItem->Local.pMemory = NULL;	/// The memory buffer will be allocated later, when we'll know the file size
-				break;
-			default:
-				TRACE( _T( "  [!] Unknown item type %d\n" ), (int)iLocalType );
-			}
 
 			if (pszProxy && *pszProxy) {
 				MyStrDup( pItem->pszProxy, pszProxy );
-			} else {
-				pItem->pszProxy = NULL;
 			}
 			if (pszProxyUser && *pszProxyUser) {
 				MyStrDup( pItem->pszProxyUser, pszProxyUser );
-			} else {
-				pItem->pszProxyUser = NULL;
 			}
 			if (pszProxyPass && *pszProxyPass) {
 				MyStrDup( pItem->pszProxyPass, pszProxyPass );
-			} else {
-				pItem->pszProxyPass = NULL;
 			}
 
 			if ( pszMethod && *pszMethod ) {
@@ -254,15 +234,10 @@ BOOL QueueAdd(
 			}
 			if (pszHeaders && *pszHeaders) {
 				MyStrDup( pItem->pszHeaders, pszHeaders );
-			} else {
-				pItem->pszHeaders = NULL;
 			}
 			if (pData && (iDataSize > 0)) {
 				MyDataDup( pItem->pData, pData, iDataSize );
 				pItem->iDataSize = iDataSize;
-			} else {
-				pItem->pData = NULL;
-				pItem->iDataSize = 0;
 			}
 			pItem->iTimeoutConnect = iTimeoutConnect;
 			pItem->iTimeoutReconnect = iTimeoutReconnect;
@@ -271,40 +246,11 @@ BOOL QueueAdd(
 			pItem->iOptReceiveTimeout = iOptReceiveTimeout;
 			if (pszReferrer && *pszReferrer) {
 				MyStrDup( pItem->pszReferer, pszReferrer );
-			} else {
-				pItem->pszReferer = NULL;
 			}
 			pItem->iHttpInternetFlags = iHttpInternetFlags;
 			pItem->iHttpSecurityFlags = iHttpSecurityFlags;
 
 			GetLocalFileTime( &pItem->tmEnqueue );
-			pItem->tmConnect.dwLowDateTime = 0;
-			pItem->tmConnect.dwHighDateTime = 0;
-			pItem->tmDisconnect.dwLowDateTime = 0;
-			pItem->tmDisconnect.dwHighDateTime = 0;
-
-			pItem->iFileSize = 0;
-			pItem->iRecvSize = 0;
-
-			pItem->Xfer.tmStart.dwLowDateTime = 0;
-			pItem->Xfer.tmStart.dwHighDateTime = 0;
-			pItem->Xfer.tmEnd.dwLowDateTime = 0;
-			pItem->Xfer.tmEnd.dwHighDateTime = 0;
-			pItem->Xfer.iXferSize = 0;
-
-			pItem->Speed.iSpeed = 0;
-			pItem->Speed.szSpeed[0] = 0;
-			pItem->Speed.iChunkTime = 0;
-			pItem->Speed.iChunkSize = 0;
-
-			pItem->hSession = NULL;
-			pItem->hConnect = NULL;
-			pItem->hRequest = NULL;
-			pItem->bRangeSent = FALSE;
-			pItem->iLastCallbackStatus = 0;
-			pItem->pszSrvIP = NULL;
-			pItem->pszSrvHeaders = NULL;
-			pItem->bConnected = FALSE;
 
 			pItem->iWin32Error = ERROR_SUCCESS;
 			pItem->pszWin32Error = NULL;
@@ -334,12 +280,11 @@ BOOL QueueAdd(
 				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T("Memory")),
 				pItem->iPriority
 				);
-		}
-		else {
+
+		} else {
 			bRet = FALSE;
 		}
-	}
-	else {
+	} else {
 		bRet = FALSE;
 	}
 	return bRet;
@@ -406,6 +351,44 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 		MyFree( pItem );
 	}
 	else {
+		bRet = FALSE;
+	}
+	return bRet;
+}
+
+
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
+{
+	BOOL bRet = TRUE;
+	assert( pQueue );
+	if (pItem) {
+
+		TRACE(
+			_T( "  QueueAbort(%s, ID:%u, Prio:%u, St:%s, %s %s -> %s)\n" ),
+			pQueue->szName,
+			pItem->iId, pItem->iPriority,
+			pItem->iStatus == ITEM_STATUS_WAITING ? _T( "Waiting" ) : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T( "Downloading" ) : _T( "Done" )),
+			pItem->szMethod,
+			pItem->pszURL,
+			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
+			);
+
+		switch (pItem->iStatus) {
+		case ITEM_STATUS_WAITING:
+			pItem->bAbort = TRUE;
+			pItem->iStatus = ITEM_STATUS_DONE;
+			break;
+		case ITEM_STATUS_DOWNLOADING:
+			pItem->bAbort = TRUE;
+			/// The worker thread will abort soon...
+			break;
+		case ITEM_STATUS_DONE:
+			/// Nothing to do
+			break;
+		default: assert( !"Unknown item status" );
+		}
+
+	} else {
 		bRet = FALSE;
 	}
 	return bRet;

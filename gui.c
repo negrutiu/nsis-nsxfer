@@ -418,6 +418,21 @@ ULONG GuiRefreshData()
 }
 
 
+VOID GuiWaitAbort()
+{
+	PQUEUE_ITEM p;
+	QueueLock( &g_Queue );
+	for (p = g_Queue.pHead; p; p = p->pNext) {
+		if ((g_Gui.iTransferID == ANY_TRANSFER_ID && (g_Gui.iPriority == ANY_PRIORITY || p->iPriority == g_Gui.iPriority)) ||
+			(g_Gui.iTransferID != ANY_TRANSFER_ID && p->iId == g_Gui.iTransferID))
+		{
+			QueueAbort( &g_Queue, p );
+		}
+	}
+	QueueUnlock( &g_Queue );
+}
+
+
 BOOL CALLBACK GuiEndChildDialogCallback( __in HWND hwnd, __in LPARAM lParam )
 {
 	HWND hRootOwner = (HWND)lParam;
@@ -530,7 +545,7 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 	case WM_SYSCOMMAND:
 		if (wParam == SC_CLOSE) {
 			if (g_Gui.bCancel && (!g_Gui.pszCancelMsg || !*g_Gui.pszCancelMsg || MessageBox( hDlg, g_Gui.pszCancelMsg, g_Gui.pszCancelTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES)) {
-				// TODO: Abort transfer(s)
+				GuiWaitAbort();
 				EndDialog( hDlg, IDCANCEL );
 			}
 			return 0;

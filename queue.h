@@ -95,6 +95,7 @@ typedef struct _QUEUE_ITEM {
 	} Speed;
 
 	// Runtime variables
+	BOOLEAN bAbort;					/// Aborted by user
 	HINTERNET hSession;				/// InternetOpen
 	HINTERNET hConnect;				/// InternetConnect
 	HINTERNET hRequest;				/// HttpOpenRequest
@@ -191,6 +192,10 @@ BOOL QueueAdd(
 // Remove an item from the queue and destroys the item
 // The queue must be locked
 BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
+
+// Abort a transfer
+// The queue must be locked
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
 
 // Retrieve the queue size
 // The queue must be locked

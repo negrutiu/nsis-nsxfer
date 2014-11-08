@@ -28,7 +28,7 @@ x Download to temporary file => Easily done by the caller
 * Queue priorities
 * Enumerate transfers in queue
 - Pause/Resume transfer. Create paused
-- Abort transfer
+* Abort transfer
 - Attach the "Zone.Identifier" stream (optional)
 * Support for the NSIS script to retrieve memory content
 * All functions with variable number of arguments must receive /END
