@@ -17,12 +17,17 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage );
 BOOL PluginInit()
 {
 	BOOL bRet = TRUE;
-	if ( !g_bInitialized ) {
+	if (!g_bInitialized) {
 
 		TRACE( _T( "PluginInit\n" ) );
 
 		UtilsInitialize();
-		QueueInitialize( &g_Queue, _T("MAIN"), 2 );
+
+		if (TRUE) {
+			SYSTEM_INFO si;
+			GetSystemInfo( &si );
+			QueueInitialize( &g_Queue, _T( "MAIN" ), __max( si.dwNumberOfProcessors, 2 ) );
+		}
 
 		if ( TRUE ) {
 			g_bInitialized = TRUE;
