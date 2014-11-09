@@ -35,5 +35,5 @@ x Download to temporary file => Easily done by the caller
 * NSxfer::Query return time information (elapsed waiting, elapsed transferring, etc)
 * NSxfer::QueryGlobal converted to receive variable number of arguments + /END
 - Configurable: worker threads, NSXFER_USERAGENT, TRANSFER_CHUNK_SIZE, MAX_MEMORY_CONTENT_LENGTH, CONNECT_RETRY_DELAY, SPEED_MEASURE_INTERVAL
-- Transfer GUI
+* Transfer GUI
 - Test with silent installers

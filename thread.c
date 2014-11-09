@@ -698,7 +698,6 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pItem )
 		_create_file:
 			pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
 			if (pItem->Local.hFile != INVALID_HANDLE_VALUE) {
-				/// TODO: Retry if ERROR_LOCK_VIOLATION
 				LARGE_INTEGER iExistingSize;
 				if (GetFileSizeEx( pItem->Local.hFile, &iExistingSize )) {
 					/// SUCCESS
