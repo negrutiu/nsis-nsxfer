@@ -548,11 +548,9 @@ void __cdecl Enumerate(
 	extra_parameters *extra
 	)
 {
-	#define ITEM_STATUS_UNKNOWN			((ITEM_STATUS)-1)
-	#define ITEM_STATUS_ALL				((ITEM_STATUS)-2)
-
 	LPTSTR psz;
-	ITEM_STATUS iStatus = ITEM_STATUS_UNKNOWN;
+	ITEM_STATUS iStatus = ANY_STATUS;
+	ULONG iPrio = ANY_PRIORITY;
 
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
@@ -561,17 +559,25 @@ void __cdecl Enumerate(
 
 	// Decide what items to enumerate
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
-	if (popstring( psz ) == 0) {
-		if (lstrcmpi( psz, _T( "all" ) ) == 0) {
-			iStatus = ITEM_STATUS_ALL;
-		} else if (lstrcmpi( psz, TEXT_STATUS_DOWNLOADING ) == 0) {
-			iStatus = ITEM_STATUS_DOWNLOADING;
-		} else if (lstrcmpi( psz, TEXT_STATUS_WAITING ) == 0) {
-			iStatus = ITEM_STATUS_WAITING;
-		} else if (lstrcmpi( psz, TEXT_STATUS_COMPLETED ) == 0) {
-			iStatus = ITEM_STATUS_DONE;
-		//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
-		//	iStatus = ITEM_STATUS_PAUSED;
+	while (TRUE) {
+		if (popstring( psz ) != 0)
+			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0) {
+			break;
+		} else if (lstrcmpi( psz, _T( "/STATUS" ) ) == 0) {
+			if (popstring( psz ) == 0) {
+				if (lstrcmpi( psz, TEXT_STATUS_DOWNLOADING ) == 0) {
+					iStatus = ITEM_STATUS_DOWNLOADING;
+				} else if (lstrcmpi( psz, TEXT_STATUS_WAITING ) == 0) {
+					iStatus = ITEM_STATUS_WAITING;
+				} else if (lstrcmpi( psz, TEXT_STATUS_COMPLETED ) == 0) {
+					iStatus = ITEM_STATUS_DONE;
+				//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
+				//	iStatus = ITEM_STATUS_PAUSED;
+				}
+			}
+		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
+			iPrio = popint();
 		}
 	}
 	MyFree( psz );
@@ -582,7 +588,7 @@ void __cdecl Enumerate(
 		int iCount = 0;
 		QueueLock( &g_Queue );
 		for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext) {
-			if (iStatus == ITEM_STATUS_ALL || iStatus == pItem->iStatus) {
+			if (ItemMatched( pItem, ANY_TRANSFER_ID, iPrio, iStatus )) {
 				pushint( pItem->iId );
 				iCount++;
 			}
@@ -752,7 +758,7 @@ void __cdecl Abort(
 		PQUEUE_ITEM pItem;
 		QueueLock( &g_Queue );
 		for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext) {
-			if (ItemMatched( pItem, iId, iPrio )) {
+			if (ItemMatched( pItem, iId, iPrio, ANY_STATUS )) {
 				if (QueueAbort( &g_Queue, pItem )) {
 					iRet++;
 				}

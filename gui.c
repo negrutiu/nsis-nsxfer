@@ -322,7 +322,7 @@ ULONG GuiRefreshData()
 	g_Gui.iItemsSpeed = 0;
 
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority )) {
+		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority, ANY_STATUS )) {
 			if (p->iStatus == ITEM_STATUS_DOWNLOADING) {
 				g_Gui.pItem = p;	/// Remember the last in-progress transfer
 			}
@@ -420,7 +420,7 @@ VOID GuiWaitAbort()
 	PQUEUE_ITEM p;
 	QueueLock( &g_Queue );
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority )) {
+		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority, ANY_STATUS )) {
 			QueueAbort( &g_Queue, p );
 		}
 	}

@@ -114,14 +114,12 @@ Function PrintStatus
 	Push $R3
 	Push $R4
 
-	!define ENUM_STATUS "all"
-
-	DetailPrint "NSxfer::Enumerate ${ENUM_STATUS}"
+	DetailPrint "NSxfer::Enumerate"
 !ifdef ENABLE_DEBUGGING
-	Push "${ENUM_STATUS}"
+	Push "/END"
 	CallInstDLL "${NSXFER}" "Enumerate"
 !else
-	NSxfer::Enumerate /NOUNLOAD ${ENUM_STATUS}
+	NSxfer::Enumerate /NOUNLOAD /END
 !endif
 
 	Pop $1	; Count

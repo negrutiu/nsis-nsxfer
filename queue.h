@@ -6,6 +6,7 @@
 #define ITEM_DEFAULT_PRIORITY		1000
 #define ANY_TRANSFER_ID				0
 #define ANY_PRIORITY				0
+#define ANY_STATUS					(ITEM_STATUS)-1
 
 #define TEXT_STATUS_WAITING			_T( "Waiting" )
 #define TEXT_STATUS_DOWNLOADING		_T( "Downloading" )
@@ -130,9 +131,10 @@ typedef struct _QUEUE_ITEM {
 #define ItemGetRecvPercent(pItem) \
 	(int)(((pItem)->iFileSize == 0 || (pItem)->iFileSize == INVALID_FILE_SIZE64) ? 0 : MyMulDiv64((pItem)->iRecvSize, 100, (pItem)->iFileSize))
 
-#define ItemMatched(pItem, ID, Prio) \
-	(ID == ANY_TRANSFER_ID && (Prio == ANY_PRIORITY || Prio == pItem->iPriority)) || \
-	(ID != ANY_TRANSFER_ID && ID == pItem->iId)
+#define ItemMatched(pItem, ID, Prio, Status) \
+	(ID == ANY_TRANSFER_ID || ID == pItem->iId) && \
+	(Prio == ANY_PRIORITY || Prio == pItem->iPriority) && \
+	(Status == ANY_STATUS || Status == pItem->iStatus)
 
 BOOL ItemMemoryContentToString( _In_ PQUEUE_ITEM pItem, _Out_ LPTSTR pszString, _In_ ULONG iStringLen );
 

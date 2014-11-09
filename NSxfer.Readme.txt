@@ -170,6 +170,7 @@ Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/ID id						| Abort a specific transfer. If not specified, all transfers will be aborted
 	/PRIORITY prio				| Abort transfers with specific priority. If not specified, all transfers will be aborted
+	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return value:
 	[Stack] Result code. Ignore it!
@@ -185,10 +186,19 @@ Examples:
 	NSxfer::Abort /NOUNLOAD /ID 5 /END
 _________________________________________________________________________________________________
 
-NSxfer::Enumerate [/NOUNLOAD] all|downloading|waiting|completed
+NSxfer::Enumerate	/NOUNLOAD
+					[/STATUS waiting|downloading|completed]
+					[/PRIORITY prio]
+					/END
 
 Remarks:
 	Enumerate the transfers in queue.
+
+Parameters:
+	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
+	/STATUS						| Enumerate transfers with specific status (Waiting, Downloading, Completed). If not specified, all transfers will be enumerated
+	/PRIORITY prio				| Enumerate transfers with specific priority. If not specified, all transfers will be enumerated
+	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
 	[Stack] Item count (N)
@@ -198,7 +208,8 @@ Return:
 	[Stack] IDn
 
 Example:
-	NSxfer::Enumerate /NOUNLOAD all
+	; Enumerate all completed transfers
+	NSxfer::Enumerate /NOUNLOAD /STATUS "Completed" /END
 	Pop $1 ; Count
 	${For} $0 1 $1
 		Pop $2
