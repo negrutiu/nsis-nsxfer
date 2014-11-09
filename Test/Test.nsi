@@ -98,6 +98,25 @@ Function .onInit
 	!define MUI_LANGDLL_ALLLANGUAGES
 	!insertmacro MUI_LANGDLL_DISPLAY
 
+	; .onInit download demo
+/*	!define /redef LINK `http://download.tuxfamily.org/notepadplus/6.6.7/npp.6.6.7.Installer.exe`
+	!define /redef FILE "$EXEDIR\_npp.6.6.7.Installer.exe"
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
+	Push "/END"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	CallInstDLL "${NSXFER}" "Transfer"
+
+	Push "/END"
+	Push "Are you sure?"
+	Push "Abort"
+	Push "/ABORT"
+	Push "PAGE"
+	Push "/MODE"
+	CallInstDLL "${NSXFER}" "Wait"*/
+
 FunctionEnd
 
 
@@ -503,7 +522,7 @@ Section Wait
 	Push "Are you sure?"
 	Push "Abort"
 	Push "/ABORT"
-	Push "Popup"
+	Push "PAGE"
 	Push "/MODE"
 	CallInstDLL "${NSXFER}" "Wait"
 !else

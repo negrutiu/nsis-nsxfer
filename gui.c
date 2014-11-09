@@ -12,8 +12,13 @@
 
 #define DEFAULT_TITLE_SINGLE	_T("{PERCENT}% - Downloading...")
 #define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
-#define DEFAULT_STATUS_SINGLE	_T("Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}\n{URL}")
+#define DEFAULT_STATUS_SINGLE	_T("Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}")
 #define DEFAULT_STATUS_MULTI	_T("Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}")
+
+#define MY_PBS_MARQUEE			0x08
+#define MY_PBM_SETMARQUEE		(WM_USER+10)
+
+#define LTWH(rc)				(rc).left, (rc).top, (rc).right - (rc).left, (rc).bottom - (rc).top
 
 extern QUEUE g_Queue;		/// main.c
 
@@ -32,11 +37,9 @@ struct {
 
 	LPCTSTR pszTitleText;
 	LPCTSTR pszTitleMultiText;
-	LPCTSTR pszOriginalTitleText;
 
 	LPCTSTR pszStatusText;
 	LPCTSTR pszStatusMultiText;
-	LPCTSTR pszOriginalStatusText;
 
 	HICON hPopupIco;
 
@@ -50,6 +53,20 @@ struct {
 	LONG iItemsWaiting;
 	ULONG64 iRecvSize;
 	LONG iItemsSpeed;
+
+	LPCTSTR pszOriginalTitleText;
+	LPCTSTR pszOriginalStatusText;
+
+	BOOL bRestoreProgressParams;
+	LONG_PTR iOriginalProgressStyle;
+	LONG_PTR iOriginalProgressStyleEx;
+	PBRANGE OriginalProgressRange;
+	int iOriginalProgressPos;
+
+	BOOL bOriginalCancelEnabled;
+
+	BOOLEAN bNsisAborted;
+	WNDPROC fnOriginalNsisWndProc;
 
 	/// Output strings
 	ULONG iAnimationStep;
@@ -376,9 +393,6 @@ ULONG GuiRefreshData()
 	// Progress bar
 	if (g_Gui.hProgressWnd) {
 
-#define MY_PBS_MARQUEE 0x08
-#define MY_PBM_SETMARQUEE (WM_USER+10)
-
 		LONG_PTR iStyle = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE );
 		if (!g_Gui.pItem || !g_Gui.pItem->bConnected) {
 
@@ -449,33 +463,33 @@ BOOL CALLBACK GuiEndChildDialogCallback( __in HWND hwnd, __in LPARAM lParam )
 }
 
 
+VOID GuiSleep( _In_ ULONG iMillisec )
+{
+	MSG msg;
+	DWORD dwTime = GetTickCount();
+	while (TRUE) {
+		while (PeekMessage( &msg, NULL, 0, 0, PM_REMOVE )) {
+			if (!IsDialogMessage( g_hwndparent, &msg )) {
+				TranslateMessage( &msg );
+				DispatchMessage( &msg );
+			}
+		}
+		if (GetTickCount() - dwTime < iMillisec) {
+			Sleep( 50 );
+		} else {
+			break;
+		}
+	}
+}
+
+
 /*
 	SILENT mode
 */
 ULONG GuiWaitSilent()
 {
-	MSG msg;
-	DWORD dwTime;
-	while (TRUE) {
-
-		/// Finished?
-		GuiRefreshData();
-		if (g_Gui.bFinished)
-			break;
-
-		/// Wait
-		dwTime = GetTickCount();
-		while (GetTickCount() - dwTime < GUI_TIMER_REFRESH_TIME) {
-			while (PeekMessage( &msg, NULL, 0, 0, PM_REMOVE )) {
-				if (!IsDialogMessage( g_hwndparent, &msg )) {
-					TranslateMessage( &msg );
-					DispatchMessage( &msg );
-				}
-			}
-			Sleep( 50 );
-		}
-	}
-
+	while ((GuiRefreshData() == ERROR_SUCCESS) && !g_Gui.bFinished)
+		GuiSleep( GUI_TIMER_REFRESH_TIME );
 	return ERROR_SUCCESS;
 }
 
@@ -552,7 +566,7 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 			GuiRefreshData();
 			if (g_Gui.bFinished) {
 				/// Destroy child dialogs (such as the aborting confirmation message box)
-				EnumThreadWindows( GetCurrentThreadId(), GuiEndChildDialogCallback, (LPARAM)hDlg );
+				EnumThreadWindows( GetWindowThreadProcessId( hDlg, NULL ), GuiEndChildDialogCallback, (LPARAM)hDlg );
 				EndDialog( hDlg, IDOK );
 			}
 		}
@@ -583,10 +597,171 @@ ULONG GuiWaitPopup()
 /*
 	PAGE mode
 */
+LRESULT CALLBACK GuiWaitPageWindowProc( _In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam )
+{
+	switch (uMsg) {
+	case WM_COMMAND:
+		if (LOWORD( wParam ) == IDCANCEL) {
+			/// Abort button
+			if (g_Gui.bAbort && (!g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( g_hwndparent, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES))
+				g_Gui.bNsisAborted = TRUE;
+			return 0;
+		}
+		break;
+	}
+	return CallWindowProc( g_Gui.fnOriginalNsisWndProc, hwnd, uMsg, wParam, lParam );
+}
+
+
 ULONG GuiWaitPage()
 {
-	// TODO
-	return ERROR_SUCCESS;
+	ULONG err = ERROR_SUCCESS;
+	BOOL bCustom = g_Gui.hTitleWnd || g_Gui.hStatusWnd || g_Gui.hProgressWnd;
+
+	/// Original InstFiles page controls
+	HWND hInstFilesPage = NULL, hStatus = NULL, hProgress = NULL, hDetailsBtn = NULL, hDetailsList = NULL;
+	RECT rcStatus, rcProgress, rcDetailsBtn, rcDetailsList;
+	LONG_PTR iStatusStyle, iStatusStyleEx;
+	LONG_PTR iProgressStyle, iProgressStyleEx;
+	HWND hCancelBtn = NULL;
+
+	/// New controls
+	HWND hNewStatus = NULL, hNewProgress = NULL;
+	RECT rcNewStatus, rcNewProgress;
+
+	int iDetailsOffsetY;
+
+	// Controls
+	if (!bCustom) {
+		hInstFilesPage = FindWindowEx( g_hwndparent, NULL, _T( "#32770" ), NULL );
+		if (hInstFilesPage) {
+
+			/// Status and Progress controls must exist
+			hStatus = GetDlgItem( hInstFilesPage, 1006 );
+			hProgress = GetDlgItem( hInstFilesPage, 1004 );
+			if (hStatus && hProgress) {
+
+				/// InstFiles page status control
+				GetWindowRect( hStatus, &rcStatus );
+				ScreenToClient( hInstFilesPage, (LPPOINT)&rcStatus.left );
+				ScreenToClient( hInstFilesPage, (LPPOINT)&rcStatus.right );
+				iStatusStyle = GetWindowLongPtr( hStatus, GWL_STYLE );
+				iStatusStyleEx = GetWindowLongPtr( hStatus, GWL_EXSTYLE );
+
+				/// InstFiles page progress bar
+				GetWindowRect( hProgress, &rcProgress );
+				ScreenToClient( hInstFilesPage, (LPPOINT)&rcProgress.left );
+				ScreenToClient( hInstFilesPage, (LPPOINT)&rcProgress.right );
+				iProgressStyle = GetWindowLongPtr( hProgress, GWL_STYLE );
+				iProgressStyleEx = GetWindowLongPtr( hProgress, GWL_EXSTYLE );
+
+				/// InstFiles page details button
+				hDetailsBtn = GetDlgItem( hInstFilesPage, 1027 );
+				if (hDetailsBtn) {
+					GetWindowRect( hDetailsBtn, &rcDetailsBtn );
+					ScreenToClient( hInstFilesPage, (LPPOINT)&rcDetailsBtn.left );
+					ScreenToClient( hInstFilesPage, (LPPOINT)&rcDetailsBtn.right );
+				}
+
+				/// InstFiles page details list
+				hDetailsList = GetDlgItem( hInstFilesPage, 1016 );
+				if (hDetailsList) {
+					GetWindowRect( hDetailsList, &rcDetailsList );
+					ScreenToClient( hInstFilesPage, (LPPOINT)&rcDetailsList.left );
+					ScreenToClient( hInstFilesPage, (LPPOINT)&rcDetailsList.right );
+				}
+
+				/// Cancel button
+				hCancelBtn = GetDlgItem( g_hwndparent, IDCANCEL );
+				if (hCancelBtn) {
+					g_Gui.bOriginalCancelEnabled = IsWindowEnabled( hCancelBtn );
+					if (g_Gui.bAbort) {
+						EnableWindow( hCancelBtn, TRUE );
+						/// Hook main NSIS window (Cancel's parent) to receive click notification
+						g_Gui.fnOriginalNsisWndProc = (WNDPROC)SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)GuiWaitPageWindowProc );
+					} else {
+						EnableWindow( hCancelBtn, FALSE );
+					}
+				}
+
+				/// New status control
+				CopyRect( &rcNewStatus, &rcStatus );
+				OffsetRect( &rcNewStatus, 0, rcProgress.bottom + rcProgress.top - rcNewStatus.top );
+				hNewStatus = CreateWindowEx( iStatusStyleEx, _T( "STATIC" ), _T( "" ), iStatusStyle, LTWH( rcNewStatus ), hInstFilesPage, NULL, NULL, NULL );
+				SendMessage( hNewStatus, WM_SETFONT, (WPARAM)SendMessage( hStatus, WM_GETFONT, 0, 0 ), MAKELPARAM( FALSE, 0 ) );
+
+				/// New progress bar
+				CopyRect( &rcNewProgress, &rcProgress );
+				OffsetRect( &rcNewProgress, 0, rcNewStatus.bottom + (rcStatus.bottom - rcProgress.top) - rcNewProgress.top );
+				hNewProgress = CreateWindowEx( iProgressStyleEx, PROGRESS_CLASS, _T( "" ), iProgressStyle, LTWH( rcNewProgress ), hInstFilesPage, NULL, NULL, NULL );
+
+				iDetailsOffsetY = rcNewProgress.bottom + (rcDetailsList.top - rcProgress.bottom) - rcDetailsBtn.top;
+
+				/// Move details button
+				if (hDetailsBtn) {
+					OffsetRect( &rcDetailsBtn, 0, iDetailsOffsetY );
+					SetWindowPos( hDetailsBtn, NULL, LTWH( rcDetailsBtn ), SWP_NOZORDER | SWP_NOACTIVATE | SWP_DRAWFRAME );
+				}
+
+				/// Move details list
+				if (hDetailsList) {
+					rcDetailsList.top += iDetailsOffsetY;
+					SetWindowPos( hDetailsList, NULL, LTWH( rcDetailsList ), SWP_NOZORDER | SWP_NOACTIVATE | SWP_DRAWFRAME );
+				}
+
+				/// Use the new controls
+				g_Gui.hTitleWnd = NULL;
+				g_Gui.hStatusWnd = hNewStatus;
+				g_Gui.hProgressWnd = hNewProgress;
+
+			} else {
+				/// Status and/or Progress controls not found
+				err = ERROR_NOT_SUPPORTED;
+			}
+		} else {
+			/// Page not found
+			err = ERROR_NOT_SUPPORTED;
+		}
+	}
+
+	// Wait
+	if (err == ERROR_SUCCESS) {
+		while (!g_Gui.bNsisAborted && (GuiRefreshData() == ERROR_SUCCESS) && !g_Gui.bFinished)
+			GuiSleep( GUI_TIMER_REFRESH_TIME );
+		if (g_Gui.bNsisAborted)
+			GuiWaitAbort();
+	}
+
+	// Cleanup
+	if (!bCustom) {
+		if (hInstFilesPage) {
+			if (hNewStatus)
+				DestroyWindow( hNewStatus );
+			if (hNewProgress)
+				DestroyWindow( hNewProgress );
+			if (hDetailsBtn) {
+				OffsetRect( &rcDetailsBtn, 0, -iDetailsOffsetY );
+				SetWindowPos( hDetailsBtn, NULL, LTWH( rcDetailsBtn ), SWP_NOZORDER | SWP_NOACTIVATE | SWP_DRAWFRAME );
+			}
+			if (hDetailsList) {
+				rcDetailsList.top -= iDetailsOffsetY;
+				SetWindowPos( hDetailsList, NULL, LTWH( rcDetailsList ), SWP_NOZORDER | SWP_NOACTIVATE | SWP_DRAWFRAME );
+			}
+		}
+		if (hCancelBtn) {
+			EnableWindow( hCancelBtn, g_Gui.bOriginalCancelEnabled );
+			if (g_Gui.fnOriginalNsisWndProc) {
+				/// Destroy child dialogs (such as the aborting confirmation message box)
+				EnumThreadWindows( GetWindowThreadProcessId( g_hwndparent, NULL ), GuiEndChildDialogCallback, (LPARAM)g_hwndparent );
+				/// Process pending messages
+				///GuiSleep( 0 );
+				/// Unhook NSIS main window
+				SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)g_Gui.fnOriginalNsisWndProc );
+			}
+		}
+	}
+
+	return err;
 }
 
 
@@ -623,6 +798,7 @@ ULONG GuiWait(
 	g_Gui.pszAbortTitle = pszAbortTitle && *pszAbortTitle ? pszAbortTitle : PLUGINNAME;
 	g_Gui.pszAbortMsg = pszAbortMsg;
 
+	/// Remember original values
 	if (g_Gui.hTitleWnd) {
 		TCHAR sz[256];
 		GetWindowText( g_Gui.hTitleWnd, sz, ARRAYSIZE( sz ) );
@@ -635,12 +811,41 @@ ULONG GuiWait(
 		MyStrDup( g_Gui.pszOriginalStatusText, sz );
 	}
 
+	if (g_Gui.hProgressWnd) {
+		g_Gui.iOriginalProgressStyle = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE );
+		g_Gui.iOriginalProgressStyleEx = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE );
+		SendMessage( g_Gui.hProgressWnd, PBM_GETRANGE, 0, (WPARAM)&g_Gui.OriginalProgressRange );
+		g_Gui.iOriginalProgressPos = SendMessage( g_Gui.hProgressWnd, PBM_GETPOS, 0, 0 );
+		g_Gui.bRestoreProgressParams = TRUE;
+	}
+
 	// Start
 	switch (iMode) {
-	case GUI_MODE_SILENT:	err = GuiWaitSilent(); break;
-	case GUI_MODE_POPUP:	err = GuiWaitPopup(); break;
-	case GUI_MODE_PAGE:		err = GuiWaitPage(); break;
-	default:				err = ERROR_INVALID_PARAMETER;
+	case GUI_MODE_SILENT:
+		err = GuiWaitSilent();
+		break;
+	case GUI_MODE_POPUP:
+		err = GuiWaitPopup();
+		break;
+	case GUI_MODE_PAGE:
+		err = GuiWaitPage();
+		if (err == ERROR_NOT_SUPPORTED)
+			err = GuiWaitPopup();
+		break;
+	default:
+		err = ERROR_INVALID_PARAMETER;
+	}
+
+	/// Restore original values
+	if (g_Gui.hTitleWnd && g_Gui.pszOriginalTitleText)
+		SetWindowText( g_Gui.hTitleWnd, g_Gui.pszOriginalTitleText );
+	if (g_Gui.hTitleWnd && g_Gui.pszOriginalStatusText)
+		SetWindowText( g_Gui.hStatusWnd, g_Gui.pszOriginalStatusText );
+	if (g_Gui.hProgressWnd && g_Gui.bRestoreProgressParams) {
+		SetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE, g_Gui.iOriginalProgressStyle );
+		SetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE, g_Gui.iOriginalProgressStyleEx );
+		SendMessage( g_Gui.hProgressWnd, PBM_SETRANGE32, g_Gui.OriginalProgressRange.iLow, g_Gui.OriginalProgressRange.iHigh );
+		SendMessage( g_Gui.hProgressWnd, PBM_SETPOS, g_Gui.iOriginalProgressPos, 0 );
 	}
 
 	MyFree( g_Gui.pszOriginalTitleText );
