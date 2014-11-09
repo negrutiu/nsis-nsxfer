@@ -112,9 +112,9 @@ void GuiExpandKeywords(
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->iId );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Status" ))) {
 						switch (g_Gui.pItem->iStatus) {
-						case ITEM_STATUS_WAITING: lstrcpyn( szNewValue, _T( "Waiting" ), ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_STATUS_DOWNLOADING: lstrcpyn( szNewValue, _T( "Downloading" ), ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_STATUS_DONE: lstrcpyn( szNewValue, _T( "Completed" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_STATUS_WAITING: lstrcpyn( szNewValue, TEXT_STATUS_WAITING, ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_STATUS_DOWNLOADING: lstrcpyn( szNewValue, TEXT_STATUS_DOWNLOADING, ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_STATUS_DONE: lstrcpyn( szNewValue, TEXT_STATUS_COMPLETED, ARRAYSIZE( szNewValue ) ); break;
 						default: assert( !"Unknown item status" );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "WininetStatus" ))) {
@@ -133,14 +133,14 @@ void GuiExpandKeywords(
 						lstrcpyn( szNewValue, g_Gui.pItem->pszProxy ? g_Gui.pItem->pszProxy : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Local" ))) {
 						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_FILE: lstrcpyn( szNewValue, g_Gui.pItem->Local.pszFile, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
 						default: assert( !"Unknown local type" );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileDir" ))) {
 						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_FILE: {
 							LPTSTR psz, pszBkSlash;
 							for (psz = pszBkSlash = g_Gui.pItem->Local.pszFile; *psz; psz++)
@@ -149,11 +149,11 @@ void GuiExpandKeywords(
 							lstrcpyn( szNewValue, g_Gui.pItem->Local.pszFile, __min( ARRAYSIZE( szNewValue ), (ULONG)(pszBkSlash - g_Gui.pItem->Local.pszFile) ) );
 							break;
 						}
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileName" ))) {
 						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, _T( "None" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
 						case ITEM_LOCAL_FILE: {
 							LPTSTR psz, pszFname;
 							for (psz = pszFname = g_Gui.pItem->Local.pszFile; *psz; psz++)
@@ -162,7 +162,7 @@ void GuiExpandKeywords(
 							lstrcpyn( szNewValue, pszFname, ARRAYSIZE( szNewValue ) );
 							break;
 						}
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, _T( "Memory" ), ARRAYSIZE( szNewValue ) ); break;
+						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "FileSize" ))) {
 						if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {

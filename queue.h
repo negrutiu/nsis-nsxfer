@@ -7,6 +7,13 @@
 #define ANY_TRANSFER_ID				0
 #define ANY_PRIORITY				0
 
+#define TEXT_STATUS_WAITING			_T( "Waiting" )
+#define TEXT_STATUS_DOWNLOADING		_T( "Downloading" )
+#define TEXT_STATUS_COMPLETED		_T( "Completed" )
+#define TEXT_LOCAL_NONE				_T( "None" )
+#define TEXT_LOCAL_FILE				_T( "File" )
+#define TEXT_LOCAL_MEMORY			_T( "Memory" )
+
 /*
 	Queue facts:
 	- A "queue" is an object that manages a list of download requests (queue items), and a list of worker threads

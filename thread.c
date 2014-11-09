@@ -1095,7 +1095,7 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 		_T( "  Th:%s Id:%u ThreadDownload(%s %s -> %s)\n" ),
 		pItem->pThread->szName, pItem->iId,
 		pItem->szMethod, pItem->pszURL,
-		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
+		pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
 		);
 
 	if ( pItem->pszURL && *pItem->pszURL ) {
@@ -1137,7 +1137,7 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
 		pItem->pThread->szName, pItem->iId,
 		ItemGetRecvPercent( pItem ), pItem->iFileSize, pItem->Speed.szSpeed,
 		pItem->szMethod, pItem->pszURL, pItem->pszSrvIP,
-		pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
+		pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
 		);
 }
 

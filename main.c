@@ -135,9 +135,9 @@ void __cdecl Transfer(
 		} else if (lstrcmpi( psz, _T( "/LOCAL" ) ) == 0) {
 			if (popstring( psz ) == 0) {
 				MyFree( pszFile );
-				if (lstrcmpi( psz, _T( "NONE" ) ) == 0) {
+				if (lstrcmpi( psz, TEXT_LOCAL_NONE ) == 0) {
 					iLocalType = ITEM_LOCAL_NONE;
-				} else if (lstrcmpi( psz, _T( "MEMORY" ) ) == 0) {
+				} else if (lstrcmpi( psz, TEXT_LOCAL_MEMORY ) == 0) {
 					iLocalType = ITEM_LOCAL_MEMORY;
 				} else {
 					iLocalType = ITEM_LOCAL_FILE;
@@ -418,13 +418,13 @@ void __cdecl Query(
 			} else if (lstrcmpi( pParam[i], _T( "/STATUS" ) ) == 0) {
 				switch (pItem->iStatus) {
 				case ITEM_STATUS_WAITING:
-					pushstring( _T( "waiting" ) );
+					pushstring( TEXT_STATUS_WAITING );
 					break;
 				case ITEM_STATUS_DOWNLOADING:
-					pushstring( _T( "downloading" ) );
+					pushstring( TEXT_STATUS_DOWNLOADING );
 					break;
 				case ITEM_STATUS_DONE:
-					pushstring( _T( "completed" ) );
+					pushstring( TEXT_STATUS_COMPLETED );
 					break;
 				default:
 					pushstring( _T( "" ) );
@@ -442,13 +442,13 @@ void __cdecl Query(
 			} else if (lstrcmpi( pParam[i], _T( "/LOCAL" ) ) == 0) {
 				switch (pItem->iLocalType) {
 				case ITEM_LOCAL_NONE:
-					pushstring( _T( "None" ) );
+					pushstring( TEXT_LOCAL_NONE );
 					break;
 				case ITEM_LOCAL_FILE:
 					pushstring( pItem->Local.pszFile );
 					break;
 				case ITEM_LOCAL_MEMORY:
-					pushstring( _T( "Memory" ) );
+					pushstring( TEXT_LOCAL_MEMORY );
 					break;
 				default:
 					pushstring( _T( "" ) );
@@ -564,11 +564,11 @@ void __cdecl Enumerate(
 	if (popstring( psz ) == 0) {
 		if (lstrcmpi( psz, _T( "all" ) ) == 0) {
 			iStatus = ITEM_STATUS_ALL;
-		} else if (lstrcmpi( psz, _T( "downloading" ) ) == 0) {
+		} else if (lstrcmpi( psz, TEXT_STATUS_DOWNLOADING ) == 0) {
 			iStatus = ITEM_STATUS_DOWNLOADING;
-		} else if (lstrcmpi( psz, _T( "waiting" ) ) == 0) {
+		} else if (lstrcmpi( psz, TEXT_STATUS_WAITING ) == 0) {
 			iStatus = ITEM_STATUS_WAITING;
-		} else if (lstrcmpi( psz, _T( "completed" ) ) == 0) {
+		} else if (lstrcmpi( psz, TEXT_STATUS_COMPLETED ) == 0) {
 			iStatus = ITEM_STATUS_DONE;
 		//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
 		//	iStatus = ITEM_STATUS_PAUSED;

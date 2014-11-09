@@ -277,7 +277,7 @@ BOOL QueueAdd(
 				pItem->iId,
 				pItem->szMethod,
 				pItem->pszURL,
-				pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T("Memory")),
+				pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY ),
 				pItem->iPriority
 				);
 
@@ -303,12 +303,12 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 			pItem->iId,
 			pItem->iWin32Error != ERROR_SUCCESS ? pItem->iWin32Error : pItem->iHttpStatus,
 			pItem->iWin32Error != ERROR_SUCCESS ? pItem->pszWin32Error : pItem->pszHttpStatus,
-			pItem->iStatus == ITEM_STATUS_WAITING ? _T("Waiting") : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T("Downloading") : _T("Done")),
+			pItem->iStatus == ITEM_STATUS_WAITING ? TEXT_STATUS_WAITING : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED ),
 			pItem->Speed.szSpeed,
 			MyTimeDiff(&pItem->tmDisconnect, &pItem->tmConnect),
 			pItem->szMethod,
 			pItem->pszURL,
-			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
+			pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
 			);
 
 		// Free item's content
@@ -367,10 +367,10 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 			_T( "  QueueAbort(%s, ID:%u, Prio:%u, St:%s, %s %s -> %s)\n" ),
 			pQueue->szName,
 			pItem->iId, pItem->iPriority,
-			pItem->iStatus == ITEM_STATUS_WAITING ? _T( "Waiting" ) : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? _T( "Downloading" ) : _T( "Done" )),
+			pItem->iStatus == ITEM_STATUS_WAITING ? TEXT_STATUS_WAITING : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED ),
 			pItem->szMethod,
 			pItem->pszURL,
-			pItem->iLocalType == ITEM_LOCAL_NONE ? _T( "None" ) : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : _T( "Memory" ))
+			pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
 			);
 
 		switch (pItem->iStatus) {
