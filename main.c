@@ -282,9 +282,10 @@ void __cdecl QueryGlobal(
 	LPTSTR pParam[30];
 	int iParamCount = 0, iDropCount = 0, i;
 
-	ULONG iThreadCount;
-	ULONG iCountTotal, iCountDone, iCountDownloading, iCountWaiting;
-	ULONG iSpeed;
+	ULONG iTotalThreads;
+	ULONG iTotalCount, iTotalCompleted, iTotalDownloading, iTotalWaiting;
+	ULONG64 iTotalRecvBytes;
+	ULONG iTotalSpeed;
 
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
@@ -301,9 +302,9 @@ void __cdecl QueryGlobal(
 	/// Statistics
 	QueueStatistics(
 		&g_Queue,
-		&iThreadCount,
-		&iCountTotal, &iCountDone, &iCountDownloading, &iCountWaiting,
-		&iSpeed
+		&iTotalThreads,
+		&iTotalCount, &iTotalCompleted, &iTotalDownloading, &iTotalWaiting,
+		&iTotalRecvBytes, &iTotalSpeed
 		);
 
 	/// Pop all parameters and remember them
@@ -327,27 +328,37 @@ void __cdecl QueryGlobal(
 
 	/// Iterate all parameters (in reverse order) and return their values
 	for (i = iParamCount - 1; i >= 0; i--) {
-		if (lstrcmpi( pParam[i], _T( "/COUNTTOTAL" ) ) == 0) {
-			pushint( iCountTotal );
-		} else if (lstrcmpi( pParam[i], _T( "/COUNTWAITING" ) ) == 0) {
-			pushint( iCountWaiting );
-		} else if (lstrcmpi( pParam[i], _T( "/COUNTDOWNLOADING" ) ) == 0) {
-			pushint( iCountDownloading );
-		} else if (lstrcmpi( pParam[i], _T( "/COUNTCOMPLETED" ) ) == 0) {
-			pushint( iCountDone );
-		} else if (lstrcmpi( pParam[i], _T( "/SPEEDBYTES" ) ) == 0) {
-			pushint( iSpeed );
-		} else if (lstrcmpi( pParam[i], _T( "/SPEED" ) ) == 0) {
+		if (lstrcmpi( pParam[i], _T( "/TOTALCOUNT" ) ) == 0) {
+			pushint( iTotalCount );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALWAITING" ) ) == 0) {
+			pushint( iTotalWaiting );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALDOWNLOADING" ) ) == 0) {
+			pushint( iTotalDownloading );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALCOMPLETED" ) ) == 0) {
+			pushint( iTotalCompleted );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALRECVSIZE" ) ) == 0) {
+			TCHAR szSize[50];
+#ifdef UNICODE
+			StrFormatByteSizeW( iTotalRecvBytes, szSize, ARRAYSIZE( szSize ) );
+#else
+			StrFormatByteSizeA( (ULONG)iTotalRecvBytes, szSize, ARRAYSIZE( szSize ) );
+#endif
+			pushstring( szSize );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALRECVSIZEBYTES" ) ) == 0) {
+			pushintptr( iTotalSpeed );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALSPEED" ) ) == 0) {
 			TCHAR szSpeed[50];
 #ifdef UNICODE
-			StrFormatByteSizeW( (LONGLONG)iSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
+			StrFormatByteSizeW( (LONGLONG)iTotalSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
 #else
-			StrFormatByteSizeA( iSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
+			StrFormatByteSizeA( iTotalSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
 #endif
 			lstrcat( szSpeed, _T( "/s" ) );
 			pushstring( szSpeed );
-		} else if (lstrcmpi( pParam[i], _T( "/COUNTTHREADS" ) ) == 0) {
-			pushint( iThreadCount );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALSPEEDBYTES" ) ) == 0) {
+			pushint( iTotalSpeed );
+		} else if (lstrcmpi( pParam[i], _T( "/TOTALTHREADS" ) ) == 0) {
+			pushint( iTotalThreads );
 		} else {
 			/// Unknown parameter. Return an empty string
 			pushstring( _T( "" ) );

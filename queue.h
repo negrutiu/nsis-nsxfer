@@ -223,5 +223,6 @@ BOOL QueueStatistics(
 	_Out_opt_ PULONG piItemsDone,
 	_Out_opt_ PULONG piItemsDownloading,
 	_Out_opt_ PULONG piItemsWaiting,
+	_Out_opt_ PULONG64 piItemsRecv,
 	_Out_opt_ PULONG piItemsSpeed				/// Combined transfer speed in bytes/s
 	);

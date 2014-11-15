@@ -417,6 +417,7 @@ BOOL QueueStatistics(
 	_Out_opt_ PULONG piItemsDone,
 	_Out_opt_ PULONG piItemsDownloading,
 	_Out_opt_ PULONG piItemsWaiting,
+	_Out_opt_ PULONG64 piItemsRecv,
 	_Out_opt_ PULONG piItemsSpeed
 	)
 {
@@ -436,6 +437,8 @@ BOOL QueueStatistics(
 			*piItemsDownloading = 0;
 		if (piItemsWaiting)
 			*piItemsWaiting = 0;
+		if (piItemsRecv)
+			*piItemsRecv = 0;
 		if (piItemsSpeed)
 			*piItemsSpeed = 0;
 
@@ -448,6 +451,8 @@ BOOL QueueStatistics(
 				(*piItemsDownloading)++;
 			if (piItemsWaiting && (pItem->iStatus == ITEM_STATUS_WAITING))
 				(*piItemsWaiting)++;
+			if (piItemsRecv)
+				*piItemsRecv += pItem->iRecvSize;
 			if (piItemsSpeed && (pItem->iStatus == ITEM_STATUS_DOWNLOADING))
 				*piItemsSpeed += pItem->Speed.iSpeed;
 		}
