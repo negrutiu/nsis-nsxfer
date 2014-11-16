@@ -87,3 +87,6 @@ ULONGLONG MyMulDiv64( __in ULONGLONG iNumber, __in ULONGLONG iNumerator, __in UL
 
 //+ MyTimeDiff (returns milliseconds)
 ULONG MyTimeDiff( __in PFILETIME pEndTime, __in PFILETIME pStartTime );
+
+//+ ReadVersionInfoString
+DWORD ReadVersionInfoString( __in_opt LPCTSTR szFile, __in LPCTSTR szStringName, __out LPTSTR szStringValue, __in UINT iStringValueLen );

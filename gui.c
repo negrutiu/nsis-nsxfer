@@ -8,7 +8,6 @@
 #define GUI_TIMER_REFRESH_TIME	500
 #define GUI_OUTPUT_STRING_LEN	1024
 #define TEXT_NA					_T( "n/a" )
-#define PLUGINNAME				_T( "NSxfer" )
 
 #define DEFAULT_TITLE_SINGLE	_T("{PERCENT}% - Downloading...")
 #define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
@@ -69,6 +68,7 @@ struct {
 
 	/// Output strings
 	ULONG iAnimationStep;
+	TCHAR szPluginVer[128];
 	TCHAR szTitle[GUI_OUTPUT_STRING_LEN];
 	TCHAR szStatus[GUI_OUTPUT_STRING_LEN];
 
@@ -300,9 +300,14 @@ void GuiExpandKeywords(
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "OriginalStatus" ))) {
 						lstrcpyn( szNewValue, g_Gui.pszOriginalStatusText ? g_Gui.pszOriginalStatusText : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "PluginName" ))) {
-						lstrcpyn( szNewValue, PLUGINNAME, ARRAYSIZE( szNewValue ) );	/// TODO
+						lstrcpyn( szNewValue, PLUGINNAME, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "PluginVersion" ))) {
-						lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );		/// TODO
+						if (!*g_Gui.szPluginVer) {
+							TCHAR szPath[MAX_PATH];
+							if (GetModuleFileName( g_hInst, szPath, ARRAYSIZE( szPath ) ) > 0)
+								ReadVersionInfoString( szPath, _T( "FileVersion" ), g_Gui.szPluginVer, ARRAYSIZE( g_Gui.szPluginVer ) );
+						}
+						lstrcpyn( szNewValue, *g_Gui.szPluginVer ? g_Gui.szPluginVer : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "AnimLine" ))) {
 						int i = iAnimationStep % 4;
 						TCHAR szFrames[] = _T( "-\\|/" );

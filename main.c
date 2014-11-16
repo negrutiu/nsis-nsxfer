@@ -359,6 +359,14 @@ void __cdecl QueryGlobal(
 			pushint( iTotalSpeed );
 		} else if (lstrcmpi( pParam[i], _T( "/TOTALTHREADS" ) ) == 0) {
 			pushint( iTotalThreads );
+		} else if (lstrcmpi( pParam[i], _T( "/PLUGINNAME" ) ) == 0) {
+			pushstring( PLUGINNAME );
+		} else if (lstrcmpi( pParam[i], _T( "/PLUGINVERSION" ) ) == 0) {
+			TCHAR szPath[MAX_PATH], szVer[50];
+			szVer[0] = 0;
+			if (GetModuleFileName( g_hInst, szPath, ARRAYSIZE( szPath ) ) > 0)
+				ReadVersionInfoString( szPath, _T( "FileVersion" ), szVer, ARRAYSIZE( szVer ) );
+			pushstring( szVer );
 		} else {
 			/// Unknown parameter. Return an empty string
 			pushstring( _T( "" ) );

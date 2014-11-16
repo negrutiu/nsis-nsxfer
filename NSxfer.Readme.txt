@@ -277,6 +277,7 @@ NSxfer::QueryGlobal /NOUNLOAD
 					[/TOTALCOUNT] [/TOTALWAITING] [/TOTALDOWNLOADING] [/TOTALCOMPLETED]
 					[/TOTALSPEED] [/TOTALSPEEDBYTES]
 					[/TOTALTHREADS]
+					[/PLUGINNAME] [/PLUGINVERSION]
 					/END
 
 Remarks:
@@ -293,6 +294,8 @@ Parameters:
 	/TOTALSPEED				| The combined speed of transfers in progress (nicely formatted, ex: "1,4 MB/s")
 	/TOTALSPEEDBYTES		| The combined speed of transfers in progress (bytes/second)
 	/TOTALTHREADS			| Worker thread count
+	/PLUGINNAME				| "NSxfer"
+	/PLUGINVERSION			| Version string such as "1.2014.11.16"
 	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:

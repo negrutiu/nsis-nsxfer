@@ -225,6 +225,8 @@ Function PrintStatus
 
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
+	Push "/PLUGINVERSION"
+	Push "/PLUGINNAME"
 	Push "/COUNTTHREADS"
 	Push "/SPEED"
 	Push "/COUNTDOWNLOADING"
@@ -239,8 +241,11 @@ Function PrintStatus
 	Pop $R2 ; Downloading
 	Pop $R3 ; Speed
 	Pop $R4 ; Worker threads
+	Pop $1	; Plugin Name
+	Pop $2	; Plugin Version
 
 	DetailPrint "Transferring $R1+$R2/$R0 items at $R3 using $R4 worker threads"
+	DetailPrint "$1 $2"
 	
 	Pop $R4
 	Pop $R3

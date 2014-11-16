@@ -159,3 +159,82 @@ ULONG MyTimeDiff( __in PFILETIME pEndTime, __in PFILETIME pStartTime )
 	}
 	return 0;
 }
+
+
+//++ ReadVersionInfoString
+DWORD ReadVersionInfoString(
+	__in_opt LPCTSTR szFile,
+	__in LPCTSTR szStringName,
+	__out LPTSTR szStringValue,
+	__in UINT iStringValueLen
+	)
+{
+	DWORD err = ERROR_SUCCESS;
+
+	// Validate parameters
+	if (szStringName && *szStringName && szStringValue && (iStringValueLen > 0)) {
+
+		TCHAR szExeFile[MAX_PATH];
+		DWORD dwVerInfoSize;
+		szStringValue[0] = 0;
+
+		if (szFile && *szFile) {
+			lstrcpyn( szExeFile, szFile, ARRAYSIZE( szExeFile ) );
+		} else {
+			GetModuleFileName( NULL, szExeFile, ARRAYSIZE( szExeFile ) );	/// Current executable
+		}
+
+		dwVerInfoSize = GetFileVersionInfoSize( szExeFile, NULL );
+		if (dwVerInfoSize > 0) {
+			HANDLE hMem = GlobalAlloc( GMEM_MOVEABLE, dwVerInfoSize );
+			if (hMem) {
+				LPBYTE pMem = GlobalLock( hMem );
+				if (pMem) {
+					if (GetFileVersionInfo( szExeFile, 0, dwVerInfoSize, pMem )) {
+						typedef struct _LANGANDCODEPAGE { WORD wLanguage; WORD wCodePage; } LANGANDCODEPAGE;
+						LANGANDCODEPAGE *pCodePage;
+						UINT iCodePageSize = sizeof( *pCodePage );
+						/// Code page
+						if (VerQueryValue( pMem, _T( "\\VarFileInfo\\Translation" ), (LPVOID*)&pCodePage, &iCodePageSize )) {
+							TCHAR szTemp[255];
+							LPCTSTR szValue = NULL;
+							UINT iValueLen = 0;
+							/// Read version string
+							wnsprintf( szTemp, ARRAYSIZE( szTemp ), _T( "\\StringFileInfo\\%04x%04x\\%s" ), pCodePage->wLanguage, pCodePage->wCodePage, szStringName );
+							if (VerQueryValue( pMem, szTemp, (LPVOID*)&szValue, &iValueLen )) {
+								/// Output
+								if (*szValue) {
+									lstrcpyn( szStringValue, szValue, iStringValueLen );
+									if (iValueLen > iStringValueLen) {
+										/// The output buffer is not large enough
+										/// We'll return the truncated string, and ERROR_BUFFER_OVERFLOW error code
+										err = ERROR_BUFFER_OVERFLOW;
+									}
+								} else {
+									err = ERROR_NOT_FOUND;
+								}
+							} else {
+								err = ERROR_NOT_FOUND;
+							}
+						} else {
+							err = ERROR_NOT_FOUND;
+						}
+					} else {
+						err = GetLastError();
+					}
+					GlobalUnlock( hMem );
+				} else {
+					err = GetLastError();
+				}
+				GlobalFree( hMem );
+			} else {
+				err = GetLastError();
+			}
+		} else {
+			err = GetLastError();
+		}
+	} else {
+		err = ERROR_INVALID_PARAMETER;
+	}
+	return err;
+}

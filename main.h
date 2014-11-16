@@ -6,6 +6,8 @@
 	#endif
 #endif
 
+#define PLUGINNAME					_T( "NSxfer" )
+
 #define COBJMACROS
 
 #define _WIN32_WINNT 0x0500
