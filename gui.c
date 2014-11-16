@@ -182,7 +182,11 @@ void GuiExpandKeywords(
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "FileSize" ))) {
 						if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
-							StrFormatByteSize( g_Gui.pItem->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#ifdef UNICODE
+							StrFormatByteSizeW( g_Gui.pItem->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#else
+							StrFormatByteSizeA( (ULONG)g_Gui.pItem->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#endif
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
@@ -193,7 +197,11 @@ void GuiExpandKeywords(
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "RecvSize" ))) {
-						StrFormatByteSize( g_Gui.pItem->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#ifdef UNICODE
+						StrFormatByteSizeW( g_Gui.pItem->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#else
+						StrFormatByteSizeA( (ULONG)g_Gui.pItem->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#endif
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "RecvSizeBytes" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pItem->iRecvSize );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Percent" ))) {
@@ -261,12 +269,20 @@ void GuiExpandKeywords(
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalCompleted" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDone );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalRecvSize" ))) {
-						StrFormatByteSize( g_Gui.iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#ifdef UNICODE
+						StrFormatByteSizeW( g_Gui.iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#else
+						StrFormatByteSizeA( (ULONG)g_Gui.iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+#endif
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalRecvSizeBytes" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.iRecvSize );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalSpeed" ))) {
 						if (g_Gui.iItemsDownloading > 0) {
-							StrFormatByteSize( g_Gui.iItemsSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
+#ifdef UNICODE
+							StrFormatByteSizeW( g_Gui.iItemsSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
+#else
+							StrFormatByteSizeA( (ULONG)g_Gui.iItemsSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
+#endif
 							lstrcat( szNewValue, _T( "/s" ) );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
