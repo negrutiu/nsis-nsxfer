@@ -1,25 +1,40 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2013 for Windows Desktop
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NSxfer", "NSxfer.vcxproj", "{FE51110F-82BE-423E-800C-F5951C998D22}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		DebugA|Win32 = DebugA|Win32
+		DebugA-CRT|Win32 = DebugA-CRT|Win32
 		DebugW|Win32 = DebugW|Win32
-		ReleaseNoCrtW|Win32 = ReleaseNoCrtW|Win32
+		DebugW-CRT|Win32 = DebugW-CRT|Win32
+		ReleaseA|Win32 = ReleaseA|Win32
+		ReleaseA-CRT|Win32 = ReleaseA-CRT|Win32
 		ReleaseW|Win32 = ReleaseW|Win32
+		ReleaseW-CRT|Win32 = ReleaseW-CRT|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugA|Win32.ActiveCfg = DebugA|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugA|Win32.Build.0 = DebugA|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugA-CRT|Win32.ActiveCfg = DebugA-CRT|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugA-CRT|Win32.Build.0 = DebugA-CRT|Win32
 		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW|Win32.ActiveCfg = DebugW|Win32
 		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW|Win32.Build.0 = DebugW|Win32
 		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW|Win32.Deploy.0 = DebugW|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseNoCrtW|Win32.ActiveCfg = ReleaseNoCrtW|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseNoCrtW|Win32.Build.0 = ReleaseNoCrtW|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW-CRT|Win32.ActiveCfg = DebugW-CRT|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW-CRT|Win32.Build.0 = DebugW-CRT|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA|Win32.ActiveCfg = ReleaseA|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA|Win32.Build.0 = ReleaseA|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA-CRT|Win32.ActiveCfg = ReleaseA-CRT|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA-CRT|Win32.Build.0 = ReleaseA-CRT|Win32
 		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW|Win32.ActiveCfg = ReleaseW|Win32
 		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW|Win32.Build.0 = ReleaseW|Win32
 		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW|Win32.Deploy.0 = ReleaseW|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-CRT|Win32.ActiveCfg = ReleaseW-CRT|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-CRT|Win32.Build.0 = ReleaseW-CRT|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

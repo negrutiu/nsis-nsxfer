@@ -1,5 +1,8 @@
 @echo off
 
+%~d0
+cd "\%~p0"
+
 rem  >>> Delete everything twice! <<<
 call :CLEANUP
 call :CLEANUP
@@ -8,11 +11,8 @@ goto :EOF
 
 
 :CLEANUP
-rd /S /Q DebugA
-rd /S /Q ReleaseA
-rd /S /Q DebugW
-rd /S /Q ReleaseW
-rd /S /Q ReleaseNoCrtW
+for /D %%a in (Debug*) do rd /S /Q "%%a"
+for /D %%a in (Release*) do rd /S /Q "%%a"
 rd /S /Q ipch
 
 attrib -H *.suo /S /D
