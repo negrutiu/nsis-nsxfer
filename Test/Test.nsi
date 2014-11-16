@@ -234,7 +234,7 @@ Function PrintStatus
 	Push "/COUNTTOTAL"
 	CallInstDLL "${NSXFER}" "QueryGlobal"
 !else
-	NSxfer::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /END
+	NSxfer::QueryGlobal /NOUNLOAD /COUNTTOTAL /COUNTCOMPLETED /COUNTDOWNLOADING /SPEED /COUNTTHREADS /PLUGINNAME /PLUGINVERSION /END
 !endif
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
@@ -389,11 +389,13 @@ Section "Transfer: SysinternalsSuite (direct)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
+	Push "POST"
+	Push "/METHOD
 	Push 10
 	Push "/PRIORITY"
 	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -422,7 +424,7 @@ Section "Transfer: SysinternalsSuite (nefertiti)"
 	Push "/PRIORITY"
 	CallInstDLL "${NSXFER}" "Transfer"
 !else
-	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /METHOD GET /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
 !endif
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
@@ -533,7 +535,7 @@ Section Wait
 	Push "/MODE"
 	CallInstDLL "${NSXFER}" "Wait"
 !else
-	NSxfer::Wait /NOUNLOAD /MODE Popup /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
 !endif
 	Pop $0
 
