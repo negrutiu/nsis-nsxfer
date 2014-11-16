@@ -148,7 +148,6 @@ void CALLBACK ThreadDownload_StatusCallback(
 	_In_ DWORD dwStatusInformationLength
 	)
 {
-#if DBG || _DEBUG
 	PQUEUE_ITEM pItem = (PQUEUE_ITEM)dwContext;
 
 	/// Remember the status
@@ -191,7 +190,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 	{
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTED_TO_SERVER \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
-		pItem->bConnected = TRUE;
+		pItem->bConnected = TRUE;	/// NOTE: INTERNET_STATUS_CONNECTED_TO_SERVER might not be received when connecting to the same server multiple times
 		break;
 	}
 	case INTERNET_STATUS_SENDING_REQUEST:
@@ -201,6 +200,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 	{
 		DWORD dwBytesSent = *((LPDWORD)lpvStatusInformation);
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_SENT BytesSent:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwBytesSent );
+		pItem->bConnected = TRUE;	/// INTERNET_STATUS_CONNECTED_TO_SERVER is not reliable...
 		break;
 	}
 	case INTERNET_STATUS_RECEIVING_RESPONSE:
@@ -290,7 +290,6 @@ void CALLBACK ThreadDownload_StatusCallback(
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_UNKNOWN )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
 		break;
 	}
-#endif ///DBG || _DEBUG
 }
 
 
