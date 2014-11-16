@@ -19,7 +19,6 @@ attrib -H *.suo /S /D
 del *.suo
 attrib -R *.ncb /S /D
 del *.ncb
-del *.user
 del *.bak
 del *.sdf
 del *.aps
