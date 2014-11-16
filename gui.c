@@ -63,10 +63,9 @@ struct {
 	PBRANGE OriginalProgressRange;
 	int iOriginalProgressPos;
 
-	BOOL bOriginalCancelEnabled;
-
 	BOOLEAN bNsisAborted;
-	WNDPROC fnOriginalNsisWndProc;
+	BOOL bOriginalAbortEnabled;
+	WNDPROC fnOriginalAbortParentWndProc;
 
 	/// Output strings
 	ULONG iAnimationStep;
@@ -609,7 +608,7 @@ LRESULT CALLBACK GuiWaitPageWindowProc( _In_ HWND hwnd, _In_ UINT uMsg, _In_ WPA
 		}
 		break;
 	}
-	return CallWindowProc( g_Gui.fnOriginalNsisWndProc, hwnd, uMsg, wParam, lParam );
+	return CallWindowProc( g_Gui.fnOriginalAbortParentWndProc, hwnd, uMsg, wParam, lParam );
 }
 
 
@@ -623,7 +622,7 @@ ULONG GuiWaitPage()
 	RECT rcStatus, rcProgress, rcDetailsBtn, rcDetailsList;
 	LONG_PTR iStatusStyle, iStatusStyleEx;
 	LONG_PTR iProgressStyle, iProgressStyleEx;
-	HWND hCancelBtn = NULL;
+	HWND hAbortBtn = NULL;
 
 	/// New controls
 	HWND hNewStatus = NULL, hNewProgress = NULL;
@@ -671,16 +670,16 @@ ULONG GuiWaitPage()
 					ScreenToClient( hInstFilesPage, (LPPOINT)&rcDetailsList.right );
 				}
 
-				/// Cancel button
-				hCancelBtn = GetDlgItem( g_hwndparent, IDCANCEL );
-				if (hCancelBtn) {
-					g_Gui.bOriginalCancelEnabled = IsWindowEnabled( hCancelBtn );
+				/// Abort button
+				hAbortBtn = GetDlgItem( g_hwndparent, IDCANCEL );
+				if (hAbortBtn) {
+					g_Gui.bOriginalAbortEnabled = IsWindowEnabled( hAbortBtn );
 					if (g_Gui.bAbort) {
-						EnableWindow( hCancelBtn, TRUE );
-						/// Hook main NSIS window (Cancel's parent) to receive click notification
-						g_Gui.fnOriginalNsisWndProc = (WNDPROC)SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)GuiWaitPageWindowProc );
+						EnableWindow( hAbortBtn, TRUE );
+						/// Hook Abort's parent (main NSIS window) to receive click notification
+						g_Gui.fnOriginalAbortParentWndProc = (WNDPROC)SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)GuiWaitPageWindowProc );
 					} else {
-						EnableWindow( hCancelBtn, FALSE );
+						EnableWindow( hAbortBtn, FALSE );
 					}
 				}
 
@@ -748,15 +747,15 @@ ULONG GuiWaitPage()
 				SetWindowPos( hDetailsList, NULL, LTWH( rcDetailsList ), SWP_NOZORDER | SWP_NOACTIVATE | SWP_DRAWFRAME );
 			}
 		}
-		if (hCancelBtn) {
-			EnableWindow( hCancelBtn, g_Gui.bOriginalCancelEnabled );
-			if (g_Gui.fnOriginalNsisWndProc) {
+		if (hAbortBtn) {
+			EnableWindow( hAbortBtn, g_Gui.bOriginalAbortEnabled );
+			if (g_Gui.fnOriginalAbortParentWndProc) {
 				/// Destroy child dialogs (such as the aborting confirmation message box)
 				EnumThreadWindows( GetWindowThreadProcessId( g_hwndparent, NULL ), GuiEndChildDialogCallback, (LPARAM)g_hwndparent );
 				/// Process pending messages
 				///GuiSleep( 0 );
 				/// Unhook NSIS main window
-				SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)g_Gui.fnOriginalNsisWndProc );
+				SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)g_Gui.fnOriginalAbortParentWndProc );
 			}
 		}
 	}
