@@ -636,7 +636,7 @@ LRESULT CALLBACK GuiWaitPageWindowProc( _In_ HWND hwnd, _In_ UINT uMsg, _In_ WPA
 ULONG GuiWaitPage()
 {
 	ULONG err = ERROR_SUCCESS;
-	BOOL bCustom = g_Gui.hTitleWnd || g_Gui.hStatusWnd || g_Gui.hProgressWnd;
+	BOOL bCustom = /*g_Gui.hTitleWnd ||*/ g_Gui.hStatusWnd || g_Gui.hProgressWnd;
 
 	/// Original InstFiles page controls
 	HWND hInstFilesPage = NULL, hStatus = NULL, hProgress = NULL, hDetailsBtn = NULL, hDetailsList = NULL;
@@ -730,7 +730,6 @@ ULONG GuiWaitPage()
 				}
 
 				/// Use the new controls
-				g_Gui.hTitleWnd = NULL;
 				g_Gui.hStatusWnd = hNewStatus;
 				g_Gui.hProgressWnd = hNewProgress;
 

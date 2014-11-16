@@ -527,6 +527,8 @@ Section Wait
 	Push "Are you sure?"
 	Push "Abort"
 	Push "/ABORT"
+	;Push $HWNDPARENT
+	;Push "/TITLEHWND"
 	Push "PAGE"
 	Push "/MODE"
 	CallInstDLL "${NSXFER}" "Wait"
