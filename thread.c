@@ -14,9 +14,9 @@
 
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
-VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem );
-ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pItem, _In_ ULONG iError );
-ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pItem );
+VOID ThreadDownload( _Inout_ PQUEUE_ITEM pReq );
+ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pReq, _In_ ULONG iError );
+ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pReq );
 
 
 //++ ThreadIsTerminating
@@ -47,7 +47,7 @@ BOOL ThreadSleep(_In_ PTHREAD pThread, _In_ ULONG iMilliseconds)
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 {
 	HANDLE handles[2];
-	PQUEUE_ITEM pItem;
+	PQUEUE_ITEM pReq;
 
 	assert( pThread );
 	assert( pThread->hTermEvent );
@@ -66,25 +66,25 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 			break;
 		}
 
-		// Dequeue the first waiting item
+		// Dequeue the first waiting request
 		QueueLock( (PQUEUE)pThread->pQueue );
-		pItem = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
-		if ( pItem ) {
-			pItem->pThread = pThread;
-			GetLocalFileTime( &pItem->tmConnect );
-			pItem->iStatus = ITEM_STATUS_DOWNLOADING;
-			///TRACE( _T( "  Th:%s Id:%u Dequeued\n" ), pThread->szName, pItem->iId );
+		pReq = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
+		if (pReq) {
+			pReq->pThread = pThread;
+			GetLocalFileTime( &pReq->tmConnect );
+			pReq->iStatus = REQUEST_STATUS_DOWNLOADING;
+			///TRACE( _T( "  Th:%s Id:%u Dequeued\n" ), pThread->szName, pReq->iId );
 		} else {
 			TRACE( _T( "  Th:%s going to sleep (empty queue)\n" ), pThread->szName );
 		}
 		QueueUnlock( (PQUEUE)pThread->pQueue );
 
 		// Start downloading
-		if ( pItem ) {
+		if (pReq) {
 
-			ThreadDownload( pItem );
-			GetLocalFileTime( &pItem->tmDisconnect );
-			pItem->iStatus = ITEM_STATUS_DONE;
+			ThreadDownload( pReq );
+			GetLocalFileTime( &pReq->tmDisconnect );
+			pReq->iStatus = REQUEST_STATUS_DONE;
 
 		} else {
 
@@ -148,10 +148,10 @@ void CALLBACK ThreadDownload_StatusCallback(
 	_In_ DWORD dwStatusInformationLength
 	)
 {
-	PQUEUE_ITEM pItem = (PQUEUE_ITEM)dwContext;
+	PQUEUE_ITEM pReq = (PQUEUE_ITEM)dwContext;
 
 	/// Remember the status
-	pItem->iLastCallbackStatus = dwInternetStatus;
+	pReq->iLastCallbackStatus = dwInternetStatus;
 
 	/// Inspect the status
 	switch (dwInternetStatus)
@@ -159,7 +159,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 	case INTERNET_STATUS_RESOLVING_NAME:
 	{
 		PCTSTR pszName = (PCTSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RESOLVING_NAME \"%s\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszName );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RESOLVING_NAME \"%s\" )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, pszName );
 		break;
 	}
 	case INTERNET_STATUS_NAME_RESOLVED:
@@ -170,185 +170,185 @@ void CALLBACK ThreadDownload_StatusCallback(
 #ifdef _UNICODE
 			TCHAR szAddr[50];
 			if (MultiByteToWideChar( CP_ACP, 0, pszAddrA, -1, szAddr, ARRAYSIZE( szAddr ) ) > 0) {
-				MyFree( pItem->pszSrvIP );
-				MyStrDup( pItem->pszSrvIP, szAddr );
+				MyFree( pReq->pszSrvIP );
+				MyStrDup( pReq->pszSrvIP, szAddr );
 			}
 #else
-			MyStrDup( pItem->pszSrvIP, pszAddrA );
+			MyStrDup( pReq->pszSrvIP, pszAddrA );
 #endif
 		}
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_NAME_RESOLVED \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_NAME_RESOLVED \"%hs\" )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, pszAddrA );
 		break;
 	}
 	case INTERNET_STATUS_CONNECTING_TO_SERVER:
 	{
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTING_TO_SERVER \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTING_TO_SERVER \"%hs\" )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, pszAddrA );
 		break;
 	}
 	case INTERNET_STATUS_CONNECTED_TO_SERVER:
 	{
 		PCSTR pszAddrA = (PCSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTED_TO_SERVER \"%hs\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszAddrA );
-		pItem->bConnected = TRUE;	/// NOTE: INTERNET_STATUS_CONNECTED_TO_SERVER might not be received when connecting to the same server multiple times
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTED_TO_SERVER \"%hs\" )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, pszAddrA );
+		pReq->bConnected = TRUE;	/// NOTE: INTERNET_STATUS_CONNECTED_TO_SERVER might not be received when connecting to the same server multiple times
 		break;
 	}
 	case INTERNET_STATUS_SENDING_REQUEST:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_SENDING_REQUEST )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_SENDING_REQUEST )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_REQUEST_SENT:
 	{
 		DWORD dwBytesSent = *((LPDWORD)lpvStatusInformation);
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_SENT BytesSent:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwBytesSent );
-		pItem->bConnected = TRUE;	/// INTERNET_STATUS_CONNECTED_TO_SERVER is not reliable...
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_SENT BytesSent:%u )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, dwBytesSent );
+		pReq->bConnected = TRUE;	/// INTERNET_STATUS_CONNECTED_TO_SERVER is not reliable...
 		break;
 	}
 	case INTERNET_STATUS_RECEIVING_RESPONSE:
 		/// Too noisy...
-		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RECEIVING_RESPONSE )\n"), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RECEIVING_RESPONSE )\n"), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_RESPONSE_RECEIVED:
 		/// Too noisy...
-		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RESPONSE_RECEIVED )\n"), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		///TRACE2( _T("  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_RESPONSE_RECEIVED )\n"), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_CTL_RESPONSE_RECEIVED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CTL_RESPONSE_RECEIVED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CTL_RESPONSE_RECEIVED )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_PREFETCH:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_PREFETCH )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_PREFETCH )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_CLOSING_CONNECTION:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CLOSING_CONNECTION )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CLOSING_CONNECTION )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_CONNECTION_CLOSED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTION_CLOSED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_CONNECTION_CLOSED )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_HANDLE_CREATED:
 	{
 		HINTERNET hNewHandle = *((HINTERNET*)lpvStatusInformation);
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_HANDLE_CREATED, Handle:0x%p )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, hNewHandle );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_HANDLE_CREATED, Handle:0x%p )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, hNewHandle );
 		break;
 	}
 	case INTERNET_STATUS_HANDLE_CLOSING:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_HANDLE_CLOSING )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_HANDLE_CLOSING )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_DETECTING_PROXY:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_DETECTING_PROXY )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_DETECTING_PROXY )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_REQUEST_COMPLETE:
 	{
 		LPINTERNET_ASYNC_RESULT pResult = (LPINTERNET_ASYNC_RESULT)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_COMPLETE )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REQUEST_COMPLETE )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	}
 	case INTERNET_STATUS_REDIRECT:
 	{
 		PCTSTR pszNewURL = (PCTSTR)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REDIRECT \"%s\" )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, pszNewURL );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_REDIRECT \"%s\" )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, pszNewURL );
 		break;
 	}
 	case INTERNET_STATUS_INTERMEDIATE_RESPONSE:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_INTERMEDIATE_RESPONSE )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_INTERMEDIATE_RESPONSE )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_USER_INPUT_REQUIRED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_USER_INPUT_REQUIRED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_USER_INPUT_REQUIRED )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_STATE_CHANGE:
 	{
 		DWORD dwFlags = *((LPDWORD)lpvStatusInformation);
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_STATE_CHANGE Flags:0x%08x )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwFlags );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_STATE_CHANGE Flags:0x%08x )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, dwFlags );
 		break;
 	}
 	case INTERNET_STATUS_COOKIE_SENT:
 	{
 		DWORD dwSentCookies = (DWORD)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_SENT CookiesSent:%u)\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwSentCookies );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_SENT CookiesSent:%u)\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, dwSentCookies );
 		break;
 	}
 	case INTERNET_STATUS_COOKIE_RECEIVED:
 	{
 		DWORD dwRecvCookies = (DWORD)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_RECEIVED CookiesRecv:%u )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus, dwRecvCookies );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_RECEIVED CookiesRecv:%u )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, dwRecvCookies );
 		break;
 	}
 	case INTERNET_STATUS_PRIVACY_IMPACTED:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_PRIVACY_IMPACTED )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_PRIVACY_IMPACTED )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_P3P_HEADER:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_P3P_HEADER )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_P3P_HEADER )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_P3P_POLICYREF:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_P3P_POLICYREF )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_P3P_POLICYREF )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	case INTERNET_STATUS_COOKIE_HISTORY:
 	{
 		InternetCookieHistory *pHistory = (InternetCookieHistory*)lpvStatusInformation;
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_HISTORY )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_HISTORY )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	}
 	default:
-		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_UNKNOWN )\n" ), pItem->pThread->szName, pItem->iId, hRequest, dwInternetStatus );
+		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_UNKNOWN )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus );
 		break;
 	}
 }
 
 
 //++ ThreadDownload_CloseSession
-VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_ITEM pItem )
+VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_ITEM pReq )
 {
-	assert( pItem );
-	assert( pItem->hSession );
+	assert( pReq );
+	assert( pReq->hSession );
 
-	if (pItem->hSession) {
-		InternetCloseHandle( pItem->hSession );
-		pItem->hSession = NULL;
+	if (pReq->hSession) {
+		InternetCloseHandle( pReq->hSession );
+		pReq->hSession = NULL;
 	}
 }
 
 
 //++ ThreadDownload_OpenSession
-BOOL ThreadDownload_OpenSession(_Inout_ PQUEUE_ITEM pItem)
+BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_ITEM pReq )
 {
 	DWORD err = ERROR_SUCCESS;
-	assert( pItem );
-	assert( pItem->hSession == NULL );
+	assert( pReq );
+	assert( pReq->hSession == NULL );
 
-	pItem->hSession = InternetOpen( USERAGENT, pItem->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pItem->pszProxy, NULL, 0 );
-	if ( pItem->hSession ) {
+	pReq->hSession = InternetOpen( USERAGENT, pReq->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pReq->pszProxy, NULL, 0 );
+	if (pReq->hSession) {
 
 		// Set callback function
-		InternetSetStatusCallback(pItem->hSession, ThreadDownload_StatusCallback);
+		InternetSetStatusCallback( pReq->hSession, ThreadDownload_StatusCallback );
 
 		/// Authenticated proxy
-		if (pItem->pszProxy) {
-			if (pItem->pszProxyUser && *pItem->pszProxyUser)
-				verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_PROXY_USERNAME, pItem->pszProxyUser, lstrlen( pItem->pszProxyUser ) ) );
-			if (pItem->pszProxyPass && *pItem->pszProxyPass)
-				verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_PROXY_PASSWORD, pItem->pszProxyPass, lstrlen( pItem->pszProxyPass ) ) );
+		if (pReq->pszProxy) {
+			if (pReq->pszProxyUser && *pReq->pszProxyUser)
+				verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_PROXY_USERNAME, pReq->pszProxyUser, lstrlen( pReq->pszProxyUser ) ) );
+			if (pReq->pszProxyPass && *pReq->pszProxyPass)
+				verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_PROXY_PASSWORD, pReq->pszProxyPass, lstrlen( pReq->pszProxyPass ) ) );
 		}
 
 		/// Options
-		if (pItem->iOptConnectRetries != DEFAULT_VALUE)
-			verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pItem->iOptConnectRetries, sizeof( pItem->iOptConnectRetries ) ) );
-		if (pItem->iOptConnectTimeout != DEFAULT_VALUE)
-			verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pItem->iOptConnectTimeout, sizeof( pItem->iOptConnectTimeout ) ) );
-		if (pItem->iOptReceiveTimeout != DEFAULT_VALUE)
-			verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pItem->iOptReceiveTimeout, sizeof( pItem->iOptReceiveTimeout ) ) );
+		if (pReq->iOptConnectRetries != DEFAULT_VALUE)
+			verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pReq->iOptConnectRetries, sizeof( pReq->iOptConnectRetries ) ) );
+		if (pReq->iOptConnectTimeout != DEFAULT_VALUE)
+			verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pReq->iOptConnectTimeout, sizeof( pReq->iOptConnectTimeout ) ) );
+		if (pReq->iOptReceiveTimeout != DEFAULT_VALUE)
+			verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pReq->iOptReceiveTimeout, sizeof( pReq->iOptReceiveTimeout ) ) );
 
 		/// Reconnect if disconnected by user
 		if ( TRUE ) {
 			DWORD dwConnectState = 0;
 			DWORD dwConnectStateSize = sizeof( dwConnectState );
-			if ( InternetQueryOption( pItem->hSession, INTERNET_OPTION_CONNECTED_STATE, &dwConnectState, &dwConnectStateSize ) &&
+			if (InternetQueryOption( pReq->hSession, INTERNET_OPTION_CONNECTED_STATE, &dwConnectState, &dwConnectStateSize ) &&
 				(dwConnectState & INTERNET_STATE_DISCONNECTED_BY_USER) )
 			{
 				INTERNET_CONNECTED_INFO ci = { INTERNET_STATE_CONNECTED, 0 };
-				verify( InternetSetOption( pItem->hSession, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof( ci ) ) );
+				verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_CONNECTED_STATE, &ci, sizeof( ci ) ) );
 			}
 		}
 
 	} else {
-		err = ThreadSetWin32Error( pItem, GetLastError() );	/// InternetOpen
+		err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetOpen
 	}
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
@@ -356,38 +356,38 @@ BOOL ThreadDownload_OpenSession(_Inout_ PQUEUE_ITEM pItem)
 
 
 //++ ThreadDownload_RemoteDisconnect
-VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_ITEM pItem )
+VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_ITEM pReq )
 {
-	assert( pItem );
+	assert( pReq );
 
-	if ( pItem->hRequest ) {
-		InternetCloseHandle( pItem->hRequest );
-		pItem->hRequest = NULL;
+	if (pReq->hRequest) {
+		InternetCloseHandle( pReq->hRequest );
+		pReq->hRequest = NULL;
 	}
-	if ( pItem->hConnect ) {
-		InternetCloseHandle( pItem->hConnect );
-		pItem->hConnect = NULL;
+	if (pReq->hConnect) {
+		InternetCloseHandle( pReq->hConnect );
+		pReq->hConnect = NULL;
 	}
 }
 
 
 //++ ThreadDownload_RemoteConnect
-BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconnecting )
+BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pReq, _In_ BOOL bReconnecting )
 {
 	BOOL bRet = FALSE;
 	DWORD dwStartTime;
 	ULONG i, iTimeout;
 	URL_COMPONENTS uc;
 
-	assert( pItem );
-	assert( pItem->hConnect == NULL );
-	assert( pItem->hRequest == NULL );
+	assert( pReq );
+	assert( pReq->hConnect == NULL );
+	assert( pReq->hRequest == NULL );
 
 	// Grand timeout value
 	if ( bReconnecting ) {
-		iTimeout = (pItem->iTimeoutReconnect != DEFAULT_VALUE ? pItem->iTimeoutReconnect : 0);	/// Default: 0ms
+		iTimeout = (pReq->iTimeoutReconnect != DEFAULT_VALUE ? pReq->iTimeoutReconnect : 0);	/// Default: 0ms
 	} else {
-		iTimeout = (pItem->iTimeoutConnect != DEFAULT_VALUE ? pItem->iTimeoutConnect : 0);		/// Default: 0ms
+		iTimeout = (pReq->iTimeoutConnect != DEFAULT_VALUE ? pReq->iTimeoutConnect : 0);		/// Default: 0ms
 	}
 
 	// Crack the URL
@@ -408,14 +408,14 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 	uc.lpszExtraInfo = MyAllocStr( uc.dwExtraInfoLength );
 
 	if ( uc.lpszScheme && uc.lpszHostName && uc.lpszUserName && uc.lpszPassword && uc.lpszUrlPath && uc.lpszExtraInfo ) {
-		if ( InternetCrackUrl( pItem->pszURL, 0, 0, &uc ) ) {
+		if (InternetCrackUrl( pReq->pszURL, 0, 0, &uc )) {
 
 			/// Multiple attempts to connect
 			for (dwStartTime = GetTickCount(), i = 0; TRUE; i++) {
 
 				/// Check TERM event, Check ABORT flag
-				if ( ThreadIsTerminating( pItem->pThread ) || pItem->bAbort ) {
-					ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
+				if (ThreadIsTerminating( pReq->pThread ) || pReq->bAbort) {
+					ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
 					break;
 				}
 
@@ -423,8 +423,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 				if ( i > 0 ) {
 					if ( GetTickCount() - dwStartTime < iTimeout ) {
 						/// Delay between attempts. Keep monitoring TERM event
-						if ( !ThreadSleep( pItem->pThread, CONNECT_RETRY_DELAY ) ) {
-							ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
+						if (!ThreadSleep( pReq->pThread, CONNECT_RETRY_DELAY )) {
+							ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
 							break;	/// Canceled
 						}
 					} else {
@@ -434,26 +434,26 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 				TRACE(
 					_T( "  Th:%s Id:%u %s(#%d, Elapsed:%ums/%ums, %s %s)\n" ),
-					pItem->pThread->szName, pItem->iId,
+					pReq->pThread->szName, pReq->iId,
 					bReconnecting ? _T( "Reconnect" ) : _T( "Connect" ),
 					i + 1,
 					GetTickCount() - dwStartTime, iTimeout,
-					pItem->szMethod, pItem->pszURL
+					pReq->szMethod, pReq->pszURL
 					);
 
 				// Connect
-				pItem->hConnect = InternetConnect(
-					pItem->hSession,
+				pReq->hConnect = InternetConnect(
+					pReq->hSession,
 					uc.lpszHostName, uc.nPort,
 					*uc.lpszUserName ? uc.lpszUserName : NULL,
 					*uc.lpszPassword ? uc.lpszPassword : NULL,
-					INTERNET_SERVICE_HTTP, 0, (DWORD_PTR)pItem
+					INTERNET_SERVICE_HTTP, 0, (DWORD_PTR)pReq
 					);
 
-				if ( pItem->hConnect ) {
+				if (pReq->hConnect) {
 
 					// Check the TERM event, Check ABORT flag
-					if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
+					if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
 
 						// Make an HTTP request
 						LPCTSTR szReqType[2] = { _T( "*/*" ), 0 };
@@ -461,15 +461,15 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 						LPTSTR pszObjectName = MyAllocStr( iObjectNameLen );
 
 						/// Set callback function
-						InternetSetStatusCallback( pItem->hConnect, ThreadDownload_StatusCallback );
+						InternetSetStatusCallback( pReq->hConnect, ThreadDownload_StatusCallback );
 
 						assert( pszObjectName );
 						if ( pszObjectName ) {
 
 							wnsprintf( pszObjectName, iObjectNameLen + 1, _T( "%s%s" ), uc.lpszUrlPath, uc.lpszExtraInfo );
 
-							if (pItem->iHttpInternetFlags == DEFAULT_VALUE) {
-								pItem->iHttpInternetFlags =
+							if (pReq->iHttpInternetFlags == DEFAULT_VALUE) {
+								pReq->iHttpInternetFlags =
 									INTERNET_FLAG_NO_CACHE_WRITE |
 									INTERNET_FLAG_IGNORE_CERT_DATE_INVALID |
 									///INTERNET_FLAG_IGNORE_CERT_CN_INVALID |
@@ -478,56 +478,56 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 									INTERNET_FLAG_RELOAD;
 							}
 							if ( uc.nScheme == INTERNET_SCHEME_HTTPS )
-								pItem->iHttpInternetFlags |= INTERNET_FLAG_SECURE;
+								pReq->iHttpInternetFlags |= INTERNET_FLAG_SECURE;
 
-							pItem->hRequest = HttpOpenRequest(
-								pItem->hConnect,
-								pItem->szMethod,
+							pReq->hRequest = HttpOpenRequest(
+								pReq->hConnect,
+								pReq->szMethod,
 								pszObjectName,
 								_T( "HTTP/1.1" ),
-								pItem->pszReferer,
+								pReq->pszReferer,
 								szReqType,
-								pItem->iHttpInternetFlags,
-								(DWORD_PTR)pItem		/// Context
+								pReq->iHttpInternetFlags,
+								(DWORD_PTR)pReq		/// Context
 								);
 
 							MyFree( pszObjectName );
 						}
 
-						if ( pItem->hRequest ) {
+						if (pReq->hRequest) {
 
 							// Set callback function
-							InternetSetStatusCallback( pItem->hRequest, ThreadDownload_StatusCallback );
+							InternetSetStatusCallback( pReq->hRequest, ThreadDownload_StatusCallback );
 
 							// On some Vistas (Home edition), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
 							// By default, we ignore the revocation information
-							if (pItem->iHttpSecurityFlags == DEFAULT_VALUE) {
-								pItem->iHttpSecurityFlags =
+							if (pReq->iHttpSecurityFlags == DEFAULT_VALUE) {
+								pReq->iHttpSecurityFlags =
 									SECURITY_FLAG_IGNORE_REVOCATION |
 									///SECURITY_FLAG_IGNORE_UNKNOWN_CA |
 									///SECURITY_FLAG_IGNORE_CERT_CN_INVALID |
 									SECURITY_FLAG_IGNORE_CERT_DATE_INVALID;
 							}
-							InternetSetOption( pItem->hRequest, INTERNET_OPTION_SECURITY_FLAGS, &pItem->iHttpSecurityFlags, sizeof( DWORD ) );
+							InternetSetOption( pReq->hRequest, INTERNET_OPTION_SECURITY_FLAGS, &pReq->iHttpSecurityFlags, sizeof( DWORD ) );
 
 							// The stupid 'Work offline' setting from IE
-							InternetSetOption( pItem->hRequest, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
+							InternetSetOption( pReq->hRequest, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
 
 							// Check TERM event, Check ABORT flag
-							if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
+							if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
 
 								/// Add the Range header if local content is present (resume)
 								/// NOTE: If the file is already downloaded, the server will return HTTP status 416 (see below!)
-								pItem->bRangeSent = FALSE;
-								if ( pItem->iRecvSize > 0 ) {
+								pReq->bRangeSent = FALSE;
+								if (pReq->iRecvSize > 0) {
 									TCHAR szRangeHeader[255];
-									wnsprintf( szRangeHeader, ARRAYSIZE( szRangeHeader ), _T( "Range: bytes=%I64u-" ), pItem->iRecvSize );
-									pItem->bRangeSent = HttpAddRequestHeaders( pItem->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
+									wnsprintf( szRangeHeader, ARRAYSIZE( szRangeHeader ), _T( "Range: bytes=%I64u-" ), pReq->iRecvSize );
+									pReq->bRangeSent = HttpAddRequestHeaders( pReq->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
 								}
 
 								// Send the HTTP request
 								_send_request:
-								if ( HttpSendRequest( pItem->hRequest, pItem->pszHeaders, -1, pItem->pData, pItem->iDataSize ) ) {
+								if (HttpSendRequest( pReq->hRequest, pReq->pszHeaders, -1, pReq->pData, pReq->iDataSize )) {
 
 									ULONG iHttpStatus;
 
@@ -539,9 +539,9 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										ULONG iHeadersSize = sizeof(szHeaders);
 
 										szHeaders[0] = 0;
-										if (HttpQueryInfo( pItem->hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, szHeaders, &iHeadersSize, NULL )) {
-											MyFree( pItem->pszSrvHeaders );
-											MyStrDup( pItem->pszSrvHeaders, szHeaders );	/// Remember the headers
+										if (HttpQueryInfo( pReq->hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, szHeaders, &iHeadersSize, NULL )) {
+											MyFree( pReq->pszSrvHeaders );
+											MyStrDup( pReq->pszSrvHeaders, szHeaders );	/// Remember the headers
 										} else {
 											err = GetLastError();
 										}
@@ -555,12 +555,12 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 												if (*psz == _T( '\n' ))
 													*psz = _T( 'n' );
 											}
-											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(HTTP_QUERY_RAW_HEADERS_CRLF) == 0x%x, \"%s\"\n" ), pItem->pThread->szName, pItem->iId, err, szHeaders );
+											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(HTTP_QUERY_RAW_HEADERS_CRLF) == 0x%x, \"%s\"\n" ), pReq->pThread->szName, pReq->iId, err, szHeaders );
 										}
 									}
 
 									/// HTTP status code
-									iHttpStatus = ThreadSetHttpStatus( pItem );
+									iHttpStatus = ThreadSetHttpStatus( pReq );
 
 									// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 									if ( iHttpStatus <= 299 ) {
@@ -569,11 +569,11 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										/// 2xx Success
 
 										// Extract the remote content length
-										if (ThreadDownload_QueryContentLength64( pItem->hRequest, &pItem->iFileSize ) == ERROR_SUCCESS) {
-											if (pItem->bRangeSent) {
+										if (ThreadDownload_QueryContentLength64( pReq->hRequest, &pReq->iFileSize ) == ERROR_SUCCESS) {
+											if (pReq->bRangeSent) {
 												/// If the Range header was used, the remote content length represents the amount not yet downloaded,
 												/// rather the full file size
-												pItem->iFileSize += pItem->iRecvSize;
+												pReq->iFileSize += pReq->iRecvSize;
 											}
 										}
 
@@ -588,16 +588,16 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 										/// 5xx Server Error
 
 										if ( iHttpStatus == 416 ) {								/// 416 Requested Range Not Satisfiable
-											if ( pItem->bRangeSent ) {
+											if (pReq->bRangeSent) {
 												/// Download all remote content before making another HTTP request
 												if ( TRUE ) {
 													CHAR szBufA[255];
 													DWORD iBytesRecv;
-													while ( (InternetReadFile( pItem->hRequest, szBufA, ARRAYSIZE(szBufA), &iBytesRecv )) && (iBytesRecv > 0) );
+													while ((InternetReadFile( pReq->hRequest, szBufA, ARRAYSIZE( szBufA ), &iBytesRecv )) && (iBytesRecv > 0));
 												}
 												/// Retry without the Range header
-												pItem->bRangeSent = FALSE;
-												HttpAddRequestHeaders( pItem->hRequest, _T("Range:"), -1, HTTP_ADDREQ_FLAG_REPLACE );
+												pReq->bRangeSent = FALSE;
+												HttpAddRequestHeaders( pReq->hRequest, _T( "Range:" ), -1, HTTP_ADDREQ_FLAG_REPLACE );
 												goto _send_request;
 											}
 										}
@@ -613,37 +613,37 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 									}
 
 								} else {
-									ThreadSetWin32Error( pItem, GetLastError() );	/// HttpSendRequest error
+									ThreadSetWin32Error( pReq, GetLastError() );	/// HttpSendRequest error
 								}
 							} else {
-								ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
+							ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 								break;
 							}
 						} else {
-							ThreadSetWin32Error( pItem, GetLastError() );	/// HttpOpenRequest error
+						ThreadSetWin32Error( pReq, GetLastError() );	/// HttpOpenRequest error
 						}
 					} else {
-						ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
+					ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 						break;
 					}
 				} else {
-					ThreadSetWin32Error( pItem, GetLastError() );	/// InternetConnect error
+				ThreadSetWin32Error( pReq, GetLastError() );	/// InternetConnect error
 				}
 
 				TRACE(
 					_T( "  Th:%s Id:%u Status (#%d, %u \"%s\")\n" ),
-					pItem->pThread->szName, pItem->iId,
+					pReq->pThread->szName, pReq->iId,
 					i + 1,
-					pItem->iWin32Error == ERROR_SUCCESS ? pItem->iHttpStatus : pItem->iWin32Error,
-					pItem->iWin32Error == ERROR_SUCCESS ? pItem->pszHttpStatus : pItem->pszWin32Error
+					pReq->iWin32Error == ERROR_SUCCESS ? pReq->iHttpStatus : pReq->iWin32Error,
+					pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error
 					);
 
 			}	/// for
 		} else {
-			ThreadSetWin32Error( pItem, GetLastError() );	/// InternetCrackUrl error
+		ThreadSetWin32Error( pReq, GetLastError() );	/// InternetCrackUrl error
 		}
 	} else {
-		ThreadSetWin32Error( pItem, ERROR_OUTOFMEMORY );	/// MyAllocStr
+	ThreadSetWin32Error( pReq, ERROR_OUTOFMEMORY );	/// MyAllocStr
 	}
 
 	MyFree( uc.lpszScheme );
@@ -655,52 +655,52 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bReconne
 
 	/// Cleanup
 	if ( !bRet )
-		ThreadDownload_RemoteDisconnect( pItem );
+		ThreadDownload_RemoteDisconnect( pReq );
 
 	return bRet;
 }
 
 
 //++ ThreadDownload_LocalCreate1
-ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pItem )
+ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pReq )
 {
 	///
 	/// NOTE:
 	/// This function is called *before* sending the HTTP request
-	/// The remote content length (pItem->iFileSize) is unknown at this point
+	/// The remote content length (pReq->iFileSize) is unknown at this point
 	/// We'll simply open the local file and get its size
 	///
 	ULONG err = ERROR_SUCCESS;
 
-	assert( pItem );
-	assert( pItem->hRequest == NULL );			/// Must not be connected
+	assert( pReq );
+	assert( pReq->hRequest == NULL );			/// Must not be connected
 
 	/// Cleanup
-	pItem->iRecvSize = 0;
+	pReq->iRecvSize = 0;
 
-	switch ( pItem->iLocalType ) {
+	switch (pReq->iLocalType) {
 
-		case ITEM_LOCAL_NONE:
+		case REQUEST_LOCAL_NONE:
 		{
 			// Exit immediately
 			break;
 		}
 
-		case ITEM_LOCAL_FILE:
+		case REQUEST_LOCAL_FILE:
 		{
 			DWORD dwTime;
-			assert( !VALID_FILE_HANDLE( pItem->Local.hFile ) );			/// File must not be opened
-			assert( pItem->Local.pszFile && *pItem->Local.pszFile );	/// File name must not be empty
+			assert( !VALID_FILE_HANDLE( pReq->Local.hFile ) );			/// File must not be opened
+			assert( pReq->Local.pszFile && *pReq->Local.pszFile );	/// File name must not be empty
 
 			// Try and open already existing file (resume)
 			dwTime = GetTickCount();
 		_create_file:
-			pItem->Local.hFile = CreateFile( pItem->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-			if (pItem->Local.hFile != INVALID_HANDLE_VALUE) {
+			pReq->Local.hFile = CreateFile( pReq->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+			if (pReq->Local.hFile != INVALID_HANDLE_VALUE) {
 				LARGE_INTEGER iExistingSize;
-				if (GetFileSizeEx( pItem->Local.hFile, &iExistingSize )) {
+				if (GetFileSizeEx( pReq->Local.hFile, &iExistingSize )) {
 					/// SUCCESS
-					pItem->iRecvSize = iExistingSize.QuadPart;
+					pReq->iRecvSize = iExistingSize.QuadPart;
 				} else {
 					err = GetLastError();	/// GetFileSizeEx
 				}
@@ -714,30 +714,30 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pItem )
 			}
 
 			/// Handle errors
-			if ((err != ERROR_SUCCESS) && VALID_FILE_HANDLE( pItem->Local.hFile )) {
-				CloseHandle( pItem->Local.hFile );
-				pItem->Local.hFile = NULL;
+			if ((err != ERROR_SUCCESS) && VALID_FILE_HANDLE( pReq->Local.hFile )) {
+				CloseHandle( pReq->Local.hFile );
+				pReq->Local.hFile = NULL;
 			}
 			break;
 		}
 
-		case ITEM_LOCAL_MEMORY:
+		case REQUEST_LOCAL_MEMORY:
 		{
 			/// Nothing to do without the remote content length
-			assert( pItem->Local.pMemory == NULL );
+			assert( pReq->Local.pMemory == NULL );
 			break;
 		}
 	}
 
 	/// Handle errors
-	ThreadSetWin32Error( pItem, err );
+	ThreadSetWin32Error( pReq, err );
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
 }
 
 
 //++ ThreadDownload_LocalCreate2
-ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
+ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pReq )
 {
 	///
 	/// NOTE:
@@ -748,27 +748,27 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
 	///
 	ULONG err = ERROR_SUCCESS;
 
-	assert( pItem );
-	assert( pItem->hRequest != NULL );			/// Must be connected
+	assert( pReq );
+	assert( pReq->hRequest != NULL );			/// Must be connected
 
-	switch ( pItem->iLocalType ) {
+	switch (pReq->iLocalType) {
 
-		case ITEM_LOCAL_NONE:
+		case REQUEST_LOCAL_NONE:
 		{
 			// Exit immediately
 			break;
 		}
 
-		case ITEM_LOCAL_FILE:
+		case REQUEST_LOCAL_FILE:
 		{
-			assert( VALID_FILE_HANDLE( pItem->Local.hFile ));		/// The file must already be opened
+			assert( VALID_FILE_HANDLE( pReq->Local.hFile ) );		/// The file must already be opened
 
 			// Determine if resuming is possible
-			if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
-				if ( !pItem->bRangeSent || (pItem->iHttpStatus == HTTP_STATUS_PARTIAL_CONTENT) ) {	/// Server supports the Range header
-					if ( pItem->iRecvSize <= pItem->iFileSize ) {
+			if (pReq->iFileSize != INVALID_FILE_SIZE64) {
+				if (!pReq->bRangeSent || (pReq->iHttpStatus == HTTP_STATUS_PARTIAL_CONTENT)) {	/// Server supports the Range header
+					if (pReq->iRecvSize <= pReq->iFileSize) {
 						ULONG iZero = 0;
-						if ( (SetFilePointer( pItem->Local.hFile, 0, &iZero, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS) ) {
+						if ((SetFilePointer( pReq->Local.hFile, 0, &iZero, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS)) {
 							/// SUCCESS (resume)
 						} else {
 							err = GetLastError();		/// SetFilePointer
@@ -786,10 +786,10 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
 			// Full download if we can't resume
 			if (err != ERROR_SUCCESS) {
 				ULONG iZero = 0;
-				if ( (SetFilePointer( pItem->Local.hFile, 0, &iZero, FILE_BEGIN ) != INVALID_SET_FILE_POINTER ) || (GetLastError() == ERROR_SUCCESS)) {
-					if ( SetEndOfFile( pItem->Local.hFile ) ) {
+				if ((SetFilePointer( pReq->Local.hFile, 0, &iZero, FILE_BEGIN ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS)) {
+					if (SetEndOfFile( pReq->Local.hFile )) {
 						/// SUCCESS (full download)
-						pItem->iRecvSize = 0;
+						pReq->iRecvSize = 0;
 						err = ERROR_SUCCESS;
 					} else {
 						err = GetLastError();	/// SetEndOfFile
@@ -800,21 +800,21 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
 			}
 
 			/// Handle errors
-			if ( (err != ERROR_SUCCESS) && VALID_FILE_HANDLE(pItem->Local.hFile) ) {
-				CloseHandle( pItem->Local.hFile );
-				pItem->Local.hFile = NULL;
+			if ((err != ERROR_SUCCESS) && VALID_FILE_HANDLE( pReq->Local.hFile )) {
+				CloseHandle( pReq->Local.hFile );
+				pReq->Local.hFile = NULL;
 			}
 			break;
 		}
 
-		case ITEM_LOCAL_MEMORY:
+		case REQUEST_LOCAL_MEMORY:
 		{
 			/// NOTE: If we're reconnecting, the memory buffer is already be allocated. We'll resume the transfer...
-			if ( pItem->iFileSize != INVALID_FILE_SIZE64 ) {
-				if ( pItem->iFileSize <= MAX_MEMORY_CONTENT_LENGTH ) {		// Size limit
-					if (!pItem->Local.pMemory) {
-						pItem->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pItem->iFileSize );
-						if (pItem->Local.pMemory) {
+			if (pReq->iFileSize != INVALID_FILE_SIZE64) {
+				if (pReq->iFileSize <= MAX_MEMORY_CONTENT_LENGTH) {		// Size limit
+					if (!pReq->Local.pMemory) {
+						pReq->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pReq->iFileSize );
+						if (pReq->Local.pMemory) {
 							/// SUCCESS (full download)
 						} else {
 							err = ERROR_OUTOFMEMORY;	/// MyAlloc
@@ -834,38 +834,38 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pItem )
 	}
 
 	/// Handle errors
-	ThreadSetWin32Error( pItem, err );
+	ThreadSetWin32Error( pReq, err );
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
 }
 
 
 //++ ThreadDownload_LocalClose
-BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pItem )
+BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pReq )
 {
 	BOOL bRet = TRUE;
 
-	assert( pItem );
+	assert( pReq );
 
-	switch ( pItem->iLocalType ) {
+	switch (pReq->iLocalType) {
 
-		case ITEM_LOCAL_NONE:
+		case REQUEST_LOCAL_NONE:
 		{
 			break;
 		}
 
-		case ITEM_LOCAL_FILE:
+		case REQUEST_LOCAL_FILE:
 		{
-			if ( VALID_FILE_HANDLE(pItem->Local.hFile) ) {
-				bRet = CloseHandle( pItem->Local.hFile );
-				pItem->Local.hFile = NULL;
+			if (VALID_FILE_HANDLE( pReq->Local.hFile )) {
+				bRet = CloseHandle( pReq->Local.hFile );
+				pReq->Local.hFile = NULL;
 			}
 			break;
 		}
 
-		case ITEM_LOCAL_MEMORY:
+		case REQUEST_LOCAL_MEMORY:
 		{
-			///MyFree( pItem->Local.pMemory );	// Memory content must remain available after the transfer has completed
+			///MyFree( pReq->Local.pMemory );	// Memory content must remain available after the transfer has completed
 			break;
 		}
 	}
@@ -875,71 +875,71 @@ BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pItem )
 
 
 //++ ThreadDownload_RefreshSpeed
-void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pItem, _In_ BOOL bXferFinished )
+void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pReq, _In_ BOOL bXferFinished )
 {
 	BOOL bFormatString = FALSE;
-	assert( pItem );
+	assert( pReq );
 
 	// Compute speed
 	if (bXferFinished) {
 
-		ULONG iTimeDiff = MyTimeDiff( &pItem->Xfer.tmEnd, &pItem->Xfer.tmStart );		/// Milliseconds
+		ULONG iTimeDiff = MyTimeDiff( &pReq->Xfer.tmEnd, &pReq->Xfer.tmStart );		/// Milliseconds
 		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
-			pItem->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pItem->Xfer.iXferSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
+			pReq->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pReq->Xfer.iXferSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
 		} else {
-			pItem->Speed.iSpeed = (ULONG)pItem->Xfer.iXferSize;
+			pReq->Speed.iSpeed = (ULONG)pReq->Xfer.iXferSize;
 		}
 		bFormatString = TRUE;
 
-		pItem->Speed.iChunkTime = 0;
-		pItem->Speed.iChunkSize = 0;
+		pReq->Speed.iChunkTime = 0;
+		pReq->Speed.iChunkSize = 0;
 
 	} else {
 
-		ULONG iTimeDiff = GetTickCount() - pItem->Speed.iChunkTime;
+		ULONG iTimeDiff = GetTickCount() - pReq->Speed.iChunkTime;
 		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
 
-			pItem->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pItem->Speed.iChunkSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
+			pReq->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pReq->Speed.iChunkSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
 			bFormatString = TRUE;
 
-			pItem->Speed.iChunkSize = 0;
-			pItem->Speed.iChunkTime = GetTickCount();
+			pReq->Speed.iChunkSize = 0;
+			pReq->Speed.iChunkTime = GetTickCount();
 		}
 	}
 
 	// Format as text
 	if (bFormatString) {
 #ifdef UNICODE
-		StrFormatByteSizeW( (LONGLONG)pItem->Speed.iSpeed, pItem->Speed.szSpeed, ARRAYSIZE( pItem->Speed.szSpeed ) );
+		StrFormatByteSizeW( (LONGLONG)pReq->Speed.iSpeed, pReq->Speed.szSpeed, ARRAYSIZE( pReq->Speed.szSpeed ) );
 #else
-		StrFormatByteSizeA( pItem->Speed.iSpeed, pItem->Speed.szSpeed, ARRAYSIZE( pItem->Speed.szSpeed ) );
+		StrFormatByteSizeA( pReq->Speed.iSpeed, pReq->Speed.szSpeed, ARRAYSIZE( pReq->Speed.szSpeed ) );
 #endif
-		lstrcat( pItem->Speed.szSpeed, _T( "/s" ) );
+		lstrcat( pReq->Speed.szSpeed, _T( "/s" ) );
 	}
 }
 
 
 //++ ThreadDownload_Transfer
-BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
+BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pReq )
 {
 	DWORD err = ERROR_SUCCESS;
 
-	assert( pItem );
-	assert( pItem->hRequest != NULL );
+	assert( pReq );
+	assert( pReq->hRequest != NULL );
 
 	/// Initializations
-	GetLocalFileTime( &pItem->Xfer.tmStart );
-	pItem->Xfer.tmEnd.dwLowDateTime = 0;
-	pItem->Xfer.tmEnd.dwHighDateTime = 0;
-	pItem->Xfer.iXferSize = 0;
+	GetLocalFileTime( &pReq->Xfer.tmStart );
+	pReq->Xfer.tmEnd.dwLowDateTime = 0;
+	pReq->Xfer.tmEnd.dwHighDateTime = 0;
+	pReq->Xfer.iXferSize = 0;
 
-	pItem->Speed.iSpeed = 0;
-	lstrcpy( pItem->Speed.szSpeed, _T( "..." ) );
-	pItem->Speed.iChunkTime = GetTickCount();
-	pItem->Speed.iChunkSize = 0;
+	pReq->Speed.iSpeed = 0;
+	lstrcpy( pReq->Speed.szSpeed, _T( "..." ) );
+	pReq->Speed.iChunkTime = GetTickCount();
+	pReq->Speed.iChunkSize = 0;
 
 	/// Anything to download?
-	if ( pItem->iRecvSize >= pItem->iFileSize )
+	if (pReq->iRecvSize >= pReq->iFileSize)
 		return TRUE;
 
 	// Debugging definitions
@@ -947,15 +947,15 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 ///#define DEBUG_XFER_SLOWDOWN		500
 ///#define DEBUG_XFER_PROGRESS
 
-	switch ( pItem->iLocalType ) {
+	switch (pReq->iLocalType) {
 
-		case ITEM_LOCAL_NONE:
+		case REQUEST_LOCAL_NONE:
 		{
 			/// Don't transfer anything
 			break;
 		}
 
-		case ITEM_LOCAL_FILE:
+		case REQUEST_LOCAL_FILE:
 		{
 			/// Allocate a transfer buffer
 			CONST ULONG iBufSize = 1024 * TRANSFER_CHUNK_SIZE;
@@ -964,53 +964,53 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 
 				/// Transfer loop
 				ULONG iBytesRecv, iBytesWritten;
-				while ( err == ERROR_SUCCESS && (pItem->iRecvSize < pItem->iFileSize)) {
+				while (err == ERROR_SUCCESS && (pReq->iRecvSize < pReq->iFileSize)) {
 #ifdef DEBUG_XFER_MAX_BYTES
 					/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
-					if ( pItem->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
-						err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
+					if ( pReq->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
+						err = ThreadSetWin32Error( pReq, ERROR_INTERNET_CONNECTION_RESET );
 						break;
 					}
 #endif ///DEBUG_XFER_MAX_BYTES
-					if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
-						if ( InternetReadFile( pItem->hRequest, pBuf, iBufSize, &iBytesRecv ) ) {
+					if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
+						if (InternetReadFile( pReq->hRequest, pBuf, iBufSize, &iBytesRecv )) {
 							if ( iBytesRecv > 0 ) {
-								if ( WriteFile( pItem->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL ) ) {
+								if (WriteFile( pReq->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL )) {
 									/// Update fields
-									pItem->iRecvSize += iBytesRecv;
-									pItem->Xfer.iXferSize += iBytesRecv;
-									pItem->Speed.iChunkSize += iBytesRecv;
+									pReq->iRecvSize += iBytesRecv;
+									pReq->Xfer.iXferSize += iBytesRecv;
+									pReq->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
 									/// Simulate transfer slow download
 									Sleep( DEBUG_XFER_SLOWDOWN );
 #endif ///DEBUG_XFER_SLOWDOWN
 									/// Speed measurement
-									ThreadDownload_RefreshSpeed( pItem, FALSE );
+									ThreadDownload_RefreshSpeed( pReq, FALSE );
 #ifdef DEBUG_XFER_PROGRESS
 									/// Display transfer progress
 									TRACE(
 										_T( "  Th:%s Id:%u ThreadTransfer(Recv:%d%% %I64u/%I64u @ %s, %s %s -> File)\n" ),
-										pItem->pThread->szName, pItem->iId,
-										ItemGetRecvPercent( pItem ),
-										pItem->iRecvSize, pItem->iFileSize == INVALID_FILE_SIZE64 ? 0 : pItem->iFileSize,
-										pItem->Speed.szSpeed,
-										pItem->szMethod, pItem->pszURL
+										pReq->pThread->szName, pReq->iId,
+										RequestRecvPercent( pReq ),
+										pReq->iRecvSize, pReq->iFileSize == INVALID_FILE_SIZE64 ? 0 : pReq->iFileSize,
+										pReq->Speed.szSpeed,
+										pReq->szMethod, pReq->pszURL
 										);
 #endif ///DEBUG_XFER_PROGRESS
 								} else {
-									err = ThreadSetWin32Error( pItem, GetLastError() );	/// WriteFile
+									err = ThreadSetWin32Error( pReq, GetLastError() );	/// WriteFile
 								}
 							} else {
 								// Transfer complete
-								ThreadSetWin32Error( pItem, ERROR_SUCCESS );
-								ThreadSetHttpStatus( pItem );
+								ThreadSetWin32Error( pReq, ERROR_SUCCESS );
+								ThreadSetHttpStatus( pReq );
 								break;
 							}
 						} else {
-							err = ThreadSetWin32Error( pItem, GetLastError() );	/// InternetReadFile
+							err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetReadFile
 						}
 					} else {
-						err = ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
+						err = ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
 					}
 				}	///while
 
@@ -1022,53 +1022,53 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 			break;
 		}
 
-		case ITEM_LOCAL_MEMORY:
+		case REQUEST_LOCAL_MEMORY:
 		{
 			/// Transfer loop
 			ULONG iBytesRecv;
-			while ( err == ERROR_SUCCESS && (pItem->iRecvSize < pItem->iFileSize)) {
+			while (err == ERROR_SUCCESS && (pReq->iRecvSize < pReq->iFileSize)) {
 #ifdef DEBUG_XFER_MAX_BYTES
 				/// Simulate connection drop after transferring DEBUG_XFER_MAX_BYTES bytes
-				if ( pItem->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
-					err = ThreadSetWin32Error( pItem, ERROR_INTERNET_CONNECTION_RESET );
+				if ( pReq->Xfer.iXferSize >= DEBUG_XFER_MAX_BYTES ) {
+					err = ThreadSetWin32Error( pReq, ERROR_INTERNET_CONNECTION_RESET );
 					break;
 				}
 #endif ///DEBUG_XFER_MAX_BYTES
-				if ( !ThreadIsTerminating( pItem->pThread ) && !pItem->bAbort ) {
-					if ( InternetReadFile( pItem->hRequest, pItem->Local.pMemory + pItem->iRecvSize, 1024 * TRANSFER_CHUNK_SIZE, &iBytesRecv ) ) {
+				if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
+					if (InternetReadFile( pReq->hRequest, pReq->Local.pMemory + pReq->iRecvSize, 1024 * TRANSFER_CHUNK_SIZE, &iBytesRecv )) {
 						if ( iBytesRecv > 0 ) {
 							/// Update fields
-							pItem->iRecvSize += iBytesRecv;
-							pItem->Xfer.iXferSize += iBytesRecv;
-							pItem->Speed.iChunkSize += iBytesRecv;
+							pReq->iRecvSize += iBytesRecv;
+							pReq->Xfer.iXferSize += iBytesRecv;
+							pReq->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
 							/// Simulate transfer slow download
 							Sleep( DEBUG_XFER_SLOWDOWN );	/// Emulate slow download
 #endif ///DEBUG_XFER_SLOWDOWN
 							/// Speed measurement
-							ThreadDownload_RefreshSpeed( pItem, FALSE );
+							ThreadDownload_RefreshSpeed( pReq, FALSE );
 #ifdef DEBUG_XFER_PROGRESS
 							/// Display transfer progress
 							TRACE(
 								_T( "  Th:%s Id:%u ThreadTransfer(Recv:%d%% %I64u/%I64u @ %s, %s %s -> Memory)\n" ),
-								pItem->pThread->szName, pItem->iId,
-								ItemGetRecvPercent( pItem ),
-								pItem->iRecvSize, pItem->iFileSize == INVALID_FILE_SIZE64 ? 0 : pItem->iFileSize,
-								pItem->Speed.szSpeed,
-								pItem->szMethod, pItem->pszURL
+								pReq->pThread->szName, pReq->iId,
+								RequestRecvPercent( pReq ),
+								pReq->iRecvSize, pReq->iFileSize == INVALID_FILE_SIZE64 ? 0 : pReq->iFileSize,
+								pReq->Speed.szSpeed,
+								pReq->szMethod, pReq->pszURL
 								);
 #endif ///DEBUG_XFER_PROGRESS
 						} else {
 							// Transfer complete
-							ThreadSetWin32Error( pItem, ERROR_SUCCESS );
-							ThreadSetHttpStatus( pItem );
+							ThreadSetWin32Error( pReq, ERROR_SUCCESS );
+							ThreadSetHttpStatus( pReq );
 							break;
 						}
 					} else {
-						err = ThreadSetWin32Error( pItem, GetLastError() );	/// InternetReadFile
+						err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetReadFile
 					}
 				} else {
-					err = ThreadSetWin32Error( pItem, ERROR_INTERNET_OPERATION_CANCELLED );
+					err = ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
 				}
 			}
 			break;
@@ -1076,94 +1076,94 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pItem )
 	}
 
 	/// Finalize
-	if (pItem->iFileSize == INVALID_FILE_SIZE64)
-		pItem->iFileSize = pItem->iRecvSize;		/// Set the (previously unknown) file size
-	GetLocalFileTime( &pItem->Xfer.tmEnd );
-	ThreadDownload_RefreshSpeed( pItem, TRUE );
+	if (pReq->iFileSize == INVALID_FILE_SIZE64)
+		pReq->iFileSize = pReq->iRecvSize;		/// Set the (previously unknown) file size
+	GetLocalFileTime( &pReq->Xfer.tmEnd );
+	ThreadDownload_RefreshSpeed( pReq, TRUE );
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
 }
 
 
 //++ ThreadDownload
-VOID ThreadDownload( _Inout_ PQUEUE_ITEM pItem )
+VOID ThreadDownload( _Inout_ PQUEUE_ITEM pReq )
 {
-	assert( pItem );
+	assert( pReq );
 	TRACE(
 		_T( "  Th:%s Id:%u ThreadDownload(%s %s -> %s)\n" ),
-		pItem->pThread->szName, pItem->iId,
-		pItem->szMethod, pItem->pszURL,
-		pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
+		pReq->pThread->szName, pReq->iId,
+		pReq->szMethod, pReq->pszURL,
+		pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY)
 		);
 
-	if ( pItem->pszURL && *pItem->pszURL ) {
+	if (pReq->pszURL && *pReq->pszURL) {
 
-		if ( ThreadDownload_LocalCreate1( pItem ) ) {
-			if ( ThreadDownload_OpenSession( pItem ) ) {
+		if (ThreadDownload_LocalCreate1( pReq )) {
+			if (ThreadDownload_OpenSession( pReq )) {
 
 				BOOL bReconnectAllowed = TRUE;
 				int i;
 				for (i = 0; (i < 1000) && bReconnectAllowed; i++) {
 
 					bReconnectAllowed = FALSE;
-					if ( ThreadDownload_RemoteConnect( pItem, (BOOL)(i > 0) ) ) {
-						if ( ThreadDownload_LocalCreate2( pItem ) ) {
+					if (ThreadDownload_RemoteConnect( pReq, (BOOL)(i > 0) )) {
+						if (ThreadDownload_LocalCreate2( pReq )) {
 
-							if ( ThreadDownload_Transfer( pItem ) ) {
+							if (ThreadDownload_Transfer( pReq )) {
 								// Success
 							}
 
-							ThreadDownload_RemoteDisconnect( pItem );
+							ThreadDownload_RemoteDisconnect( pReq );
 
 							/// Reconnect and resume?
 							bReconnectAllowed =
-								pItem->iWin32Error != ERROR_SUCCESS &&
-								pItem->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
-								pItem->Xfer.iXferSize > 0 &&			/// We already received something...
-								ItemIsReconnectAllowed( pItem );
+								pReq->iWin32Error != ERROR_SUCCESS &&
+								pReq->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
+								pReq->Xfer.iXferSize > 0 &&			/// We already received something...
+								RequestReconnectionAllowed( pReq );
 						}
 					}
 				}
-				ThreadDownload_CloseSession( pItem );
+				ThreadDownload_CloseSession( pReq );
 			}
-			ThreadDownload_LocalClose( pItem );
+			ThreadDownload_LocalClose( pReq );
 		}
 	}
 
 	TRACE(
 		_T( "  Th:%s Id:%u ThreadDownload(Recv:%d%% %I64u @ %s, %s %s [%s] -> %s)\n" ),
-		pItem->pThread->szName, pItem->iId,
-		ItemGetRecvPercent( pItem ), pItem->iFileSize, pItem->Speed.szSpeed,
-		pItem->szMethod, pItem->pszURL, pItem->pszSrvIP,
-		pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
+		pReq->pThread->szName, pReq->iId,
+		RequestRecvPercent( pReq ), pReq->iFileSize, pReq->Speed.szSpeed,
+		pReq->szMethod, pReq->pszURL, pReq->pszSrvIP,
+		pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY)
 		);
 }
 
 
 //++ ThreadSetWin32Error
-ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pItem, _In_ ULONG iError )
+ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pReq, _In_ ULONG iError )
 {
-	assert( pItem );
-	if ( pItem->iWin32Error != iError ) {
+	assert( pReq );
+	if (pReq->iWin32Error != iError) {
 		/// Numeric error code
-		pItem->iWin32Error = iError;
+		pReq->iWin32Error = iError;
 		/// Error string
-		MyFree( pItem->pszWin32Error );
-		AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
+		MyFree( pReq->pszWin32Error );
+		AllocErrorStr( pReq->iWin32Error, &pReq->pszWin32Error );
 	}
 
 	/// Handle ERROR_INTERNET_EXTENDED_ERROR
-	if ( pItem->iWin32Error == ERROR_INTERNET_EXTENDED_ERROR ) {
+	if (pReq->iWin32Error == ERROR_INTERNET_EXTENDED_ERROR) {
 		DWORD dwWebError;
 		TCHAR szWebError[512];
 		DWORD dwWebErrorLen = ARRAYSIZE( szWebError );
 		szWebError[0] = 0;
 		if ( InternetGetLastResponseInfo( &dwWebError, szWebError, &dwWebErrorLen ) ) {
-			MyFree( pItem->pszWin32Error );
-			MyStrDup( pItem->pszWin32Error, szWebError );
+			MyFree( pReq->pszWin32Error );
+			MyStrDup( pReq->pszWin32Error, szWebError );
 		} else {
-			MyFree( pItem->pszWin32Error );
-			AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
+			MyFree( pReq->pszWin32Error );
+			AllocErrorStr( pReq->iWin32Error, &pReq->pszWin32Error );
 		}
 	}
 	return iError;
@@ -1171,32 +1171,32 @@ ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pItem, _In_ ULONG iError )
 
 
 //++ ThreadSetHttpStatus
-ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pItem )
+ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pReq )
 {
 	ULONG iHttpStatus = 0;
 
-	assert( pItem );
-	assert( pItem->hRequest );
+	assert( pReq );
+	assert( pReq->hRequest );
 
-	if ( pItem && pItem->hRequest ) {
+	if (pReq && pReq->hRequest) {
 
 		TCHAR szErrorText[512];
 		ULONG iDataSize;
 
 		/// Get HTTP status (numeric)
 		iDataSize = sizeof( iHttpStatus );
-		if ( HttpQueryInfo( pItem->hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &iHttpStatus, &iDataSize, NULL ) ) {
-			if ( pItem->iHttpStatus != iHttpStatus ) {
+		if (HttpQueryInfo( pReq->hRequest, HTTP_QUERY_STATUS_CODE | HTTP_QUERY_FLAG_NUMBER, &iHttpStatus, &iDataSize, NULL )) {
+			if (pReq->iHttpStatus != iHttpStatus) {
 
-				pItem->iHttpStatus = iHttpStatus;
+				pReq->iHttpStatus = iHttpStatus;
 
 				/// Get HTTP status (string)
-				MyFree( pItem->pszHttpStatus );
+				MyFree( pReq->pszHttpStatus );
 				szErrorText[0] = 0;
 				iDataSize = sizeof( szErrorText );
-				HttpQueryInfo( pItem->hRequest, HTTP_QUERY_STATUS_TEXT, szErrorText, &iDataSize, NULL );
+				HttpQueryInfo( pReq->hRequest, HTTP_QUERY_STATUS_TEXT, szErrorText, &iDataSize, NULL );
 				if ( *szErrorText )
-					MyStrDup( pItem->pszHttpStatus, szErrorText );
+					MyStrDup( pReq->pszHttpStatus, szErrorText );
 			}
 		}
 	}

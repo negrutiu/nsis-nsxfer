@@ -26,7 +26,7 @@ BOOL PluginInit()
 		if (TRUE) {
 			SYSTEM_INFO si;
 			GetSystemInfo( &si );
-			QueueInitialize( &g_Queue, _T( "MAIN" ), __max( si.dwNumberOfProcessors, 2 ) );
+			QueueInitialize( &g_Queue, _T( "MAIN" ), __max( si.dwNumberOfProcessors, MIN_WORKER_THREADS ) );
 		}
 
 		if ( TRUE ) {
@@ -75,9 +75,9 @@ UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage )
 }
 
 
-//++ Transfer
+//++ Request
 EXTERN_C __declspec(dllexport)
-void __cdecl Transfer(
+void __cdecl Request(
 	HWND   parent,
 	int    string_size,
 	TCHAR   *variables,
@@ -89,7 +89,7 @@ void __cdecl Transfer(
 	ULONG iPriority = DEFAULT_VALUE;
 	LPTSTR pszMethod = NULL;
 	LPTSTR pszUrl = NULL, pszFile = NULL;
-	ITEM_LOCAL_TYPE iLocalType = ITEM_LOCAL_NONE;
+	REQUEST_LOCAL_TYPE iLocalType = REQUEST_LOCAL_NONE;
 	LPTSTR pszHeaders = NULL;
 	LPVOID pData = NULL;
 	ULONG iDataSize = 0;
@@ -98,15 +98,15 @@ void __cdecl Transfer(
 	LPTSTR pszProxyHost = NULL, pszProxyUser = NULL, pszProxyPass = NULL;
 	LPTSTR pszReferer = NULL;
 	ULONG iHttpInternetFlags = DEFAULT_VALUE, iHttpSecurityFlags = DEFAULT_VALUE;
-	PQUEUE_ITEM pItem = NULL;
+	PQUEUE_ITEM pReq = NULL;
 
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	// Request unload notification
+	// Receive unloading notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
-	TRACE( _T("NSxfer!Transfer\n"));
+	TRACE( _T("NSxfer!Request\n"));
 
 	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
 	for (;;)
@@ -128,8 +128,6 @@ void __cdecl Transfer(
 				if (*psz) {
 					MyFree( pszMethod );
 					MyStrDup( pszMethod, psz );
-				} else {
-					/// TODO:
 				}
 			}
 		} else if (lstrcmpi( psz, _T( "/URL" ) ) == 0) {
@@ -141,11 +139,11 @@ void __cdecl Transfer(
 			if (popstring( psz ) == 0) {
 				MyFree( pszFile );
 				if (lstrcmpi( psz, TEXT_LOCAL_NONE ) == 0) {
-					iLocalType = ITEM_LOCAL_NONE;
+					iLocalType = REQUEST_LOCAL_NONE;
 				} else if (lstrcmpi( psz, TEXT_LOCAL_MEMORY ) == 0) {
-					iLocalType = ITEM_LOCAL_MEMORY;
+					iLocalType = REQUEST_LOCAL_MEMORY;
 				} else {
-					iLocalType = ITEM_LOCAL_FILE;
+					iLocalType = REQUEST_LOCAL_FILE;
 					MyStrDup( pszFile, psz );
 				}
 			}
@@ -238,7 +236,7 @@ void __cdecl Transfer(
 		}
 	}
 
-	// Add to the download queue
+	// Add to the queue
 	QueueLock( &g_Queue );
 	QueueAdd(
 		&g_Queue,
@@ -250,9 +248,9 @@ void __cdecl Transfer(
 		iOptConnectRetries, iOptConnectTimeout, iOptRecvTimeout,
 		pszReferer,
 		iHttpInternetFlags, iHttpSecurityFlags,
-		&pItem
+		&pReq
 		);
-	pushint( pItem ? pItem->iId : 0 );	/// Return the item's ID
+	pushint( pReq ? pReq->iId : 0 );	/// Return the request's ID
 	QueueUnlock( &g_Queue );
 
 	MyFree( psz );
@@ -392,7 +390,7 @@ void __cdecl Query(
 	)
 {
 	LPTSTR psz;
-	PQUEUE_ITEM pItem = NULL;
+	PQUEUE_ITEM pReq = NULL;
 
 	LPTSTR pParam[30];
 	int iParamCount = 0, iDropCount = 0, i;
@@ -409,10 +407,10 @@ void __cdecl Query(
 	// Lock the queue
 	QueueLock( &g_Queue );
 
-	/// Look for the transfer ID
+	/// Look for the request ID
 	i = popint();
-	for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext)
-		if (pItem->iId == (ULONG)i)
+	for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext)
+		if (pReq->iId == (ULONG)i)
 			break;
 
 	/// Pop all parameters and remember them
@@ -436,120 +434,120 @@ void __cdecl Query(
 
 	/// Iterate all parameters (in reverse order) and return their values
 	for (i = iParamCount - 1; i >= 0; i--) {
-		if (pItem) {
+		if (pReq) {
 			if (lstrcmpi( pParam[i], _T( "/PRIORITY" ) ) == 0) {
-				pushint( pItem->iPriority );
+				pushint( pReq->iPriority );
 			} else if (lstrcmpi( pParam[i], _T( "/STATUS" ) ) == 0) {
-				switch (pItem->iStatus) {
-				case ITEM_STATUS_WAITING:
+				switch (pReq->iStatus) {
+				case REQUEST_STATUS_WAITING:
 					pushstring( TEXT_STATUS_WAITING );
 					break;
-				case ITEM_STATUS_DOWNLOADING:
+				case REQUEST_STATUS_DOWNLOADING:
 					pushstring( TEXT_STATUS_DOWNLOADING );
 					break;
-				case ITEM_STATUS_DONE:
+				case REQUEST_STATUS_DONE:
 					pushstring( TEXT_STATUS_COMPLETED );
 					break;
 				default:
 					pushstring( _T( "" ) );
 				}
 			} else if (lstrcmpi( pParam[i], _T( "/WININETSTATUS" ) ) == 0) {
-				pushint( pItem->iLastCallbackStatus );
+				pushint( pReq->iLastCallbackStatus );
 			} else if (lstrcmpi( pParam[i], _T( "/METHOD" ) ) == 0) {
-				pushstring( pItem->szMethod );
+				pushstring( pReq->szMethod );
 			} else if (lstrcmpi( pParam[i], _T( "/URL" ) ) == 0) {
-				pushstring( pItem->pszURL );
+				pushstring( pReq->pszURL );
 			} else if (lstrcmpi( pParam[i], _T( "/IP" ) ) == 0) {
-				pushstring( pItem->pszSrvIP );
+				pushstring( pReq->pszSrvIP );
 			} else if (lstrcmpi( pParam[i], _T( "/PROXY" ) ) == 0) {
-				pushstring( pItem->pszProxy );
+				pushstring( pReq->pszProxy );
 			} else if (lstrcmpi( pParam[i], _T( "/LOCAL" ) ) == 0) {
-				switch (pItem->iLocalType) {
-				case ITEM_LOCAL_NONE:
+				switch (pReq->iLocalType) {
+				case REQUEST_LOCAL_NONE:
 					pushstring( TEXT_LOCAL_NONE );
 					break;
-				case ITEM_LOCAL_FILE:
-					pushstring( pItem->Local.pszFile );
+				case REQUEST_LOCAL_FILE:
+					pushstring( pReq->Local.pszFile );
 					break;
-				case ITEM_LOCAL_MEMORY:
+				case REQUEST_LOCAL_MEMORY:
 					pushstring( TEXT_LOCAL_MEMORY );
 					break;
 				default:
 					pushstring( _T( "" ) );
 				}
 			} else if (lstrcmpi( pParam[i], _T( "/SENTHEADERS" ) ) == 0) {
-				pushstring( pItem->pszHeaders );
+				pushstring( pReq->pszHeaders );
 			} else if (lstrcmpi( pParam[i], _T( "/RECVHEADERS" ) ) == 0) {
-				pushstring( pItem->pszSrvHeaders );
+				pushstring( pReq->pszSrvHeaders );
 			} else if (lstrcmpi( pParam[i], _T( "/FILESIZE" ) ) == 0) {
-				if (pItem->iFileSize != INVALID_FILE_SIZE64) {
+				if (pReq->iFileSize != INVALID_FILE_SIZE64) {
 					TCHAR sz[30];
-					wnsprintf( sz, ARRAYSIZE( sz ), _T( "%I64u" ), pItem->iFileSize );
+					wnsprintf( sz, ARRAYSIZE( sz ), _T( "%I64u" ), pReq->iFileSize );
 					pushstring( sz );
 				} else {
 					pushstring( _T( "" ) );
 				}
 			} else if (lstrcmpi( pParam[i], _T( "/RECVSIZE" ) ) == 0) {
 				TCHAR sz[30];
-				wnsprintf( sz, ARRAYSIZE( sz ), _T( "%I64u" ), pItem->iRecvSize );
+				wnsprintf( sz, ARRAYSIZE( sz ), _T( "%I64u" ), pReq->iRecvSize );
 				pushstring( sz );
 			} else if (lstrcmpi( pParam[i], _T( "/PERCENT" ) ) == 0) {
-				pushint( ItemGetRecvPercent( pItem ) );
+				pushint( RequestRecvPercent( pReq ) );
 			} else if (lstrcmpi( pParam[i], _T( "/SPEEDBYTES" ) ) == 0) {
-				pushint( pItem->Speed.iSpeed );
+				pushint( pReq->Speed.iSpeed );
 			} else if (lstrcmpi( pParam[i], _T( "/SPEED" ) ) == 0) {
-				pushstring( pItem->Speed.szSpeed );
+				pushstring( pReq->Speed.szSpeed );
 			} else if (lstrcmpi( pParam[i], _T( "/CONTENT" ) ) == 0) {
-				ItemMemoryContentToString( pItem, psz, string_size );
+				RequestMemoryToString( pReq, psz, string_size );
 				pushstring( psz );
 			} else if (lstrcmpi( pParam[i], _T( "/TIMEWAITING" ) ) == 0) {
-				switch (pItem->iStatus) {
-				case ITEM_STATUS_WAITING:
+				switch (pReq->iStatus) {
+				case REQUEST_STATUS_WAITING:
 				{
 					FILETIME tmNow;
 					GetLocalFileTime( &tmNow );
-					pushint( MyTimeDiff( &tmNow, &pItem->tmEnqueue ) );
+					pushint( MyTimeDiff( &tmNow, &pReq->tmEnqueue ) );
 					break;
 				}
-				case ITEM_STATUS_DOWNLOADING:
-				case ITEM_STATUS_DONE:
+				case REQUEST_STATUS_DOWNLOADING:
+				case REQUEST_STATUS_DONE:
 				{
-					pushint( MyTimeDiff( &pItem->tmConnect, &pItem->tmEnqueue ) );
+					pushint( MyTimeDiff( &pReq->tmConnect, &pReq->tmEnqueue ) );
 					break;
 				}
 				default:
 					pushstring( _T( "" ) );
 				}
 			} else if (lstrcmpi( pParam[i], _T( "/TIMEDOWNLOADING" ) ) == 0) {
-				switch (pItem->iStatus) {
-				case ITEM_STATUS_WAITING:
+				switch (pReq->iStatus) {
+				case REQUEST_STATUS_WAITING:
 					pushstring( _T( "" ) );		/// No downloading time
 					break;
-				case ITEM_STATUS_DOWNLOADING:
+				case REQUEST_STATUS_DOWNLOADING:
 				{
 					FILETIME tmNow;
 					GetLocalFileTime( &tmNow );
-					pushint( MyTimeDiff( &tmNow, &pItem->tmConnect ) );
+					pushint( MyTimeDiff( &tmNow, &pReq->tmConnect ) );
 					break;
 				}
-				case ITEM_STATUS_DONE:
+				case REQUEST_STATUS_DONE:
 				{
-					pushint( MyTimeDiff( &pItem->tmDisconnect, &pItem->tmConnect ) );
+					pushint( MyTimeDiff( &pReq->tmDisconnect, &pReq->tmConnect ) );
 					break;
 				}
 				default:
 					pushstring( _T( "" ) );
 				}
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORCODE" ) ) == 0) {
-				pushint( pItem->iWin32Error == ERROR_SUCCESS ? pItem->iHttpStatus : pItem->iWin32Error );
+				pushint( pReq->iWin32Error == ERROR_SUCCESS ? pReq->iHttpStatus : pReq->iWin32Error );
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORTEXT" ) ) == 0) {
-				pushstring( pItem->iWin32Error == ERROR_SUCCESS ? pItem->pszHttpStatus : pItem->pszWin32Error );
+				pushstring( pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error );
 			} else {
 				/// Unknown parameter. Return an empty string
 				pushstring( _T( "" ) );
 			}
 		} else {
-			/// Unknown transfer ID
+			/// Unknown request ID
 			pushstring( _T( "" ) );
 		}
 		MyFree( pParam[i] );
@@ -573,7 +571,7 @@ void __cdecl Enumerate(
 	)
 {
 	LPTSTR psz;
-	ITEM_STATUS iStatus = ANY_STATUS;
+	REQUEST_STATUS iStatus = ANY_STATUS;
 	ULONG iPrio = ANY_PRIORITY;
 
 	EXDLL_INIT();
@@ -581,7 +579,7 @@ void __cdecl Enumerate(
 
 	TRACE( _T( "NSxfer!Enumerate\n" ) );
 
-	// Decide what items to enumerate
+	// Decide what requests to enumerate
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	while (TRUE) {
 		if (popstring( psz ) != 0)
@@ -591,13 +589,13 @@ void __cdecl Enumerate(
 		} else if (lstrcmpi( psz, _T( "/STATUS" ) ) == 0) {
 			if (popstring( psz ) == 0) {
 				if (lstrcmpi( psz, TEXT_STATUS_DOWNLOADING ) == 0) {
-					iStatus = ITEM_STATUS_DOWNLOADING;
+					iStatus = REQUEST_STATUS_DOWNLOADING;
 				} else if (lstrcmpi( psz, TEXT_STATUS_WAITING ) == 0) {
-					iStatus = ITEM_STATUS_WAITING;
+					iStatus = REQUEST_STATUS_WAITING;
 				} else if (lstrcmpi( psz, TEXT_STATUS_COMPLETED ) == 0) {
-					iStatus = ITEM_STATUS_DONE;
+					iStatus = REQUEST_STATUS_DONE;
 				//} else if (lstrcmpi( psz, _T( "paused" ) ) == 0) {
-				//	iStatus = ITEM_STATUS_PAUSED;
+				//	iStatus = REQUEST_STATUS_PAUSED;
 				}
 			}
 		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
@@ -608,12 +606,12 @@ void __cdecl Enumerate(
 
 	// Enumerate
 	if (TRUE) {
-		PQUEUE_ITEM pItem;
+		PQUEUE_ITEM pReq;
 		int iCount = 0;
 		QueueLock( &g_Queue );
-		for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext) {
-			if (ItemMatched( pItem, ANY_TRANSFER_ID, iPrio, iStatus )) {
-				pushint( pItem->iId );
+		for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
+			if (RequestMatched( pReq, ANY_REQUEST_ID, iPrio, iStatus )) {
+				pushint( pReq->iId );
 				iCount++;
 			}
 		}
@@ -635,7 +633,7 @@ void __cdecl Wait(
 {
 	INT_PTR iRet = 0;
 	LPTSTR psz;
-	UINT iId = ANY_TRANSFER_ID;
+	UINT iId = ANY_REQUEST_ID;
 	ULONG iPrio = ANY_PRIORITY;
 	GUI_MODE iMode = GUI_MODE_POPUP;
 	HWND hTitle = NULL, hStatus = NULL, hProgress = NULL;
@@ -749,7 +747,7 @@ void __cdecl Abort(
 {
 	INT_PTR iRet = 0;
 	LPTSTR psz;
-	UINT iId = ANY_TRANSFER_ID;
+	UINT iId = ANY_REQUEST_ID;
 	ULONG iPrio = ANY_PRIORITY;
 
 	EXDLL_INIT();
@@ -779,11 +777,11 @@ void __cdecl Abort(
 
 	// Abort
 	if (TRUE) {
-		PQUEUE_ITEM pItem;
+		PQUEUE_ITEM pReq;
 		QueueLock( &g_Queue );
-		for (pItem = g_Queue.pHead; pItem; pItem = pItem->pNext) {
-			if (ItemMatched( pItem, iId, iPrio, ANY_STATUS )) {
-				if (QueueAbort( &g_Queue, pItem )) {
+		for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
+			if (RequestMatched( pReq, iId, iPrio, ANY_STATUS )) {
+				if (QueueAbort( &g_Queue, pReq )) {
 					iRet++;
 				}
 			}

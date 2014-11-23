@@ -1,12 +1,14 @@
 #pragma once
 #include "thread.h"
 
-#define QUEUE_MAX_THREADS			20
+#define MIN_WORKER_THREADS			2
+#define MAX_WORKER_THREADS			20
 #define INVALID_FILE_SIZE64			(ULONG64)-1
-#define ITEM_DEFAULT_PRIORITY		1000
-#define ANY_TRANSFER_ID				0
+#define DEFAULT_VALUE				((ULONG)-1)
+#define DEFAULT_PRIORITY			1000
+#define ANY_REQUEST_ID				0
 #define ANY_PRIORITY				0
-#define ANY_STATUS					(ITEM_STATUS)-1
+#define ANY_STATUS					(REQUEST_STATUS)-1
 
 #define TEXT_STATUS_WAITING			_T( "Waiting" )
 #define TEXT_STATUS_DOWNLOADING		_T( "Downloading" )
@@ -16,37 +18,33 @@
 #define TEXT_LOCAL_MEMORY			_T( "Memory" )
 
 /*
-	Queue facts:
-	- A "queue" is an object that manages a list of download requests (queue items), and a list of worker threads
-	- An item waits in the queue (ITEM_STATUS_WAITING) until a worker thread will handle it
-	- When a worker thread becomes available, it'll start processing the item (ITEM_STATUS_DOWNLOADING)
-	- After the download is completed, the item will be left in the queue (ITEM_STATUS_DONE)
-	- Items are stored in the queue forever. Their status can be queried at any time.
-	- QueueClear(...) will empty the queue. All completed downloads will be forgotten.
+	About queues:
+	- A queue manages the list of transfer requests, and a pool of worker threads
+	- Each transfer request waits in queue (REQUEST_STATUS_WAITING) until a worker thread becomes available (REQUEST_STATUS_DOWNLOADING)
+	- After completion, the request will remain in queue (REQUEST_STATUS_DONE) until explicitly removed
+	- QueueClear(...) will empty the queue. All completed transfers will be forgotten.
 */
 
-#define DEFAULT_VALUE				((ULONG)-1)
+typedef enum {
+	REQUEST_STATUS_WAITING,			/// The request is waiting in queue. Not downloaded yet
+	REQUEST_STATUS_DOWNLOADING,		/// The request is being downloaded
+	REQUEST_STATUS_DONE				/// The request has been downloaded (successful or not)
+} REQUEST_STATUS;
 
 typedef enum {
-	ITEM_STATUS_WAITING,			/// The item is waiting in queue. Not downloaded yet
-	ITEM_STATUS_DOWNLOADING,		/// The item is being downloaded
-	ITEM_STATUS_DONE				/// The item has been downloaded (successful or not)
-} ITEM_STATUS;
-
-typedef enum {
-	ITEM_LOCAL_NONE,				/// The remote content will not be downloaded. Useful to simply connect (HTTP GET) and disconnect instantly
-	ITEM_LOCAL_FILE,				/// The remote content will be downloaded to a local file
-	ITEM_LOCAL_MEMORY				/// The remote content will be downloaded to a memory
-} ITEM_LOCAL_TYPE;
+	REQUEST_LOCAL_NONE,				/// The remote content will not be downloaded. Useful to simply connect (HTTP GET) and disconnect instantly
+	REQUEST_LOCAL_FILE,				/// The remote content will be downloaded to a local file
+	REQUEST_LOCAL_MEMORY			/// The remote content will be downloaded to a memory
+} REQUEST_LOCAL_TYPE;
 
 
 typedef struct _QUEUE_ITEM {
 
-	ULONG iId;						/// Unique transfer ID
-	ITEM_STATUS iStatus;
+	ULONG iId;						/// Unique request ID
+	REQUEST_STATUS iStatus;
 	ULONG iPriority;				/// 0 (high prio) -> ULONG_MAX-1 (low prio)
 
-	// Objects this item belongs to
+	// Related objects
 	struct _QUEUE *pQueue;
 	struct _THREAD *pThread;
 
@@ -58,13 +56,13 @@ typedef struct _QUEUE_ITEM {
 	LPTSTR pszProxyPass;
 
 	// Destination
-	ITEM_LOCAL_TYPE iLocalType;
+	REQUEST_LOCAL_TYPE iLocalType;
 	union {
 		struct {
-			LPTSTR pszFile;			/// Valid for ITEM_LOCAL_FILE
+			LPTSTR pszFile;			/// Valid for REQUEST_LOCAL_FILE
 			HANDLE hFile;
 		};
-		LPBYTE pMemory;				/// Valid for ITEM_LOCAL_MEMORY. The buffer size will be iFileSize
+		LPBYTE pMemory;				/// Valid for REQUEST_LOCAL_MEMORY. The buffer size will be iFileSize
 	} Local;
 
 	// Transfer options
@@ -124,20 +122,23 @@ typedef struct _QUEUE_ITEM {
 } QUEUE_ITEM, *PQUEUE_ITEM;
 
 
-#define ItemIsReconnectAllowed(pItem) \
-	((pItem)->iTimeoutReconnect != DEFAULT_VALUE) && \
-	((pItem)->iTimeoutReconnect > 0)
+#define RequestReconnectionAllowed(pReq) \
+	((pReq)->iTimeoutReconnect != DEFAULT_VALUE) && \
+	((pReq)->iTimeoutReconnect > 0)
 
-#define ItemGetRecvPercent(pItem) \
-	(int)(((pItem)->iFileSize == 0 || (pItem)->iFileSize == INVALID_FILE_SIZE64) ? 0 : MyMulDiv64((pItem)->iRecvSize, 100, (pItem)->iFileSize))
+#define RequestRecvPercent(pReq) \
+	(int)(((pReq)->iFileSize == 0 || (pReq)->iFileSize == INVALID_FILE_SIZE64) ? 0 : MyMulDiv64((pReq)->iRecvSize, 100, (pReq)->iFileSize))
 
-#define ItemMatched(pItem, ID, Prio, Status) \
-	(ID == ANY_TRANSFER_ID || ID == pItem->iId) && \
-	(Prio == ANY_PRIORITY || Prio == pItem->iPriority) && \
-	(Status == ANY_STATUS || Status == pItem->iStatus)
+#define RequestMatched(pReq, ID, Prio, Status) \
+	(ID == ANY_REQUEST_ID || ID == pReq->iId) && \
+	(Prio == ANY_PRIORITY || Prio == pReq->iPriority) && \
+	(Status == ANY_STATUS || Status == pReq->iStatus)
 
-BOOL ItemMemoryContentToString( _In_ PQUEUE_ITEM pItem, _Out_ LPTSTR pszString, _In_ ULONG iStringLen );
-
+BOOL RequestMemoryToString(
+	_In_ PQUEUE_ITEM pReq,
+	_Out_ LPTSTR pszString,
+	_In_ ULONG iStringLen
+	);
 
 
 typedef struct _QUEUE {
@@ -150,7 +151,7 @@ typedef struct _QUEUE {
 	ULONG iLastId;
 
 	// Worker threads
-	THREAD pThreads[QUEUE_MAX_THREADS];
+	THREAD pThreads[MAX_WORKER_THREADS];
 	int iThreadCount;
 	HANDLE hThreadTermEvent;
 	HANDLE hThreadWakeEvent;
@@ -171,18 +172,18 @@ VOID QueueUnlock( _Inout_ PQUEUE pQueue );
 // The queue must be locked
 BOOL QueueReset( _Inout_ PQUEUE pQueue );
 
-// Find an item in the queue
+// Find a request in the queue
 // The queue must be locked
-PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID );	/// ...by ID
+PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iReqID );	/// ...by ID
 PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
 
-// Add a new queue item
+// Add a new request in the queue
 // The queue must be locked
 BOOL QueueAdd(
 	_Inout_ PQUEUE pQueue,
 	_In_opt_ ULONG iPriority,					/// can be DEFAULT_VALUE
 	_In_ LPCTSTR pszURL,
-	_In_ ITEM_LOCAL_TYPE iLocalType,
+	_In_ REQUEST_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
 	_In_opt_ LPCTSTR pszProxy,					/// can be NULL
 	_In_opt_ LPCTSTR pszProxyUser,				/// can be NULL
@@ -199,16 +200,16 @@ BOOL QueueAdd(
 	_In_opt_ LPCTSTR pszReferer,				/// can be NULL
 	_In_opt_ ULONG iHttpInternetFlags,			/// can be DEFAULT_VALUE
 	_In_opt_ ULONG iHttpSecurityFlags,			/// can be DEFAULT_VALUE
-	_Outptr_opt_ PQUEUE_ITEM *ppItem
+	_Outptr_opt_ PQUEUE_ITEM *ppReq
 	);
 
-// Remove an item from the queue and destroys the item
+// Remove a request from the queue and destroy it
 // The queue must be locked
-BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
+BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pReq );
 
-// Abort a transfer
+// Abort a request
 // The queue must be locked
-BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem );
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pReq );
 
 // Retrieve the queue size
 // The queue must be locked
@@ -219,10 +220,10 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue );
 BOOL QueueStatistics(
 	_In_ PQUEUE pQueue,
 	_Out_opt_ PULONG piThreadCount,
-	_Out_opt_ PULONG piItemsTotal,
-	_Out_opt_ PULONG piItemsDone,
-	_Out_opt_ PULONG piItemsDownloading,
-	_Out_opt_ PULONG piItemsWaiting,
-	_Out_opt_ PULONG64 piItemsRecv,
-	_Out_opt_ PULONG piItemsSpeed				/// Combined transfer speed in bytes/s
+	_Out_opt_ PULONG piTotalCount,
+	_Out_opt_ PULONG piTotalDone,
+	_Out_opt_ PULONG piTotalDownloading,
+	_Out_opt_ PULONG piTotalWaiting,
+	_Out_opt_ PULONG64 piTotalRecvSize,
+	_Out_opt_ PULONG piTotalSpeed				/// Combined transfer speed in bytes/s
 	);

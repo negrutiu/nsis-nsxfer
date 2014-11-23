@@ -13,7 +13,7 @@ VOID QueueInitialize(
 
 	assert( pQueue );
 	assert( szName && *szName );
-	assert( iThreadCount < QUEUE_MAX_THREADS );
+	assert( iThreadCount < MAX_WORKER_THREADS );
 
 	// Name
 	if ( szName && *szName ) {
@@ -28,7 +28,7 @@ VOID QueueInitialize(
 	pQueue->iLastId = 0;
 
 	// Worker threads
-	pQueue->iThreadCount = __min( iThreadCount, QUEUE_MAX_THREADS - 1 );
+	pQueue->iThreadCount = __min( iThreadCount, MAX_WORKER_THREADS - 1 );
 	pQueue->hThreadTermEvent = CreateEvent( NULL, TRUE, FALSE, NULL );	/// Manual
 	pQueue->hThreadWakeEvent = CreateEvent( NULL, FALSE, FALSE, NULL );	/// Automatic
 	assert( pQueue->hThreadTermEvent );
@@ -75,7 +75,7 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
 
 		} else {
 
-			HANDLE pObj[QUEUE_MAX_THREADS];
+			HANDLE pObj[MAX_WORKER_THREADS];
 			int i, iObjCnt = 0;
 			const ULONG QUEUE_WAIT_FOR_THREADS = 12000;
 
@@ -149,36 +149,36 @@ BOOL QueueReset( _Inout_ PQUEUE pQueue )
 	return bRet;
 }
 
-PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iItemID )
+PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iReqID )
 {
-	PQUEUE_ITEM pItem;
+	PQUEUE_ITEM pReq;
 	assert( pQueue );
-	for ( pItem = pQueue->pHead; pItem && pItem->iId != iItemID; pItem = pItem->pNext );
-	TRACE2( _T( "  QueueFind(%s, ID:%u) == 0x%p\n" ), pQueue->szName, iItemID, pItem );
-	return pItem;
+	for (pReq = pQueue->pHead; pReq && pReq->iId != iReqID; pReq = pReq->pNext);
+	TRACE2( _T( "  QueueFind(%s, ID:%u) == 0x%p\n" ), pQueue->szName, iReqID, pReq );
+	return pReq;
 }
 
 PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 {
 	// NOTES:
-	// New items are always added to the front of the queue. The first (chronologically) waiting item is the last one
-	// We'll select the item with the highest priority (Note: lower value means higher priority)
+	// New requests are always added to the front of the queue. The first (chronologically) waiting request is the last one
+	// We'll select the request with the highest priority (Note: lower value means higher priority)
 
-	PQUEUE_ITEM pItem, pSelectedItem = NULL;
+	PQUEUE_ITEM pReq, pSelectedReq = NULL;
 	ULONG iSelectedPrio = ULONG_MAX - 1;
 	assert( pQueue );
-	for (pItem = pQueue->pHead; pItem; pItem = pItem->pNext)
-		if (pItem->iStatus == ITEM_STATUS_WAITING && !pItem->bAbort && pItem->iPriority <= iSelectedPrio)
-			pSelectedItem = pItem, iSelectedPrio = pItem->iPriority;
-	TRACE2( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Prio:%u, Ptr:0x%p\n" ), pQueue->szName, pSelectedItem ? pSelectedItem->iId : 0, pSelectedItem ? pSelectedItem->iPriority : 0, pSelectedItem );
-	return pSelectedItem;
+	for (pReq = pQueue->pHead; pReq; pReq = pReq->pNext)
+		if (pReq->iStatus == REQUEST_STATUS_WAITING && !pReq->bAbort && pReq->iPriority <= iSelectedPrio)
+			pSelectedReq = pReq, iSelectedPrio = pReq->iPriority;
+	TRACE2( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Prio:%u, Ptr:0x%p\n" ), pQueue->szName, pSelectedReq ? pSelectedReq->iId : 0, pSelectedReq ? pSelectedReq->iPriority : 0, pSelectedReq );
+	return pSelectedReq;
 }
 
 BOOL QueueAdd(
 	_Inout_ PQUEUE pQueue,
 	_In_opt_ ULONG iPriority,
 	_In_ LPCTSTR pszURL,
-	_In_ ITEM_LOCAL_TYPE iLocalType,
+	_In_ REQUEST_LOCAL_TYPE iLocalType,
 	_In_opt_ LPCTSTR pszLocalFile,
 	_In_opt_ LPCTSTR pszProxy,
 	_In_opt_ LPCTSTR pszProxyUser,
@@ -195,90 +195,90 @@ BOOL QueueAdd(
 	_In_opt_ LPCTSTR pszReferrer,
 	_In_opt_ ULONG iHttpInternetFlags,
 	_In_opt_ ULONG iHttpSecurityFlags,
-	_Outptr_opt_ PQUEUE_ITEM *ppItem
+	_Outptr_opt_ PQUEUE_ITEM *ppReq
 	)
 {
 	BOOL bRet = TRUE;
 	assert( pQueue );
-	if ( pszURL && *pszURL && ((iLocalType != ITEM_LOCAL_FILE) || (pszLocalFile && *pszLocalFile)) ) {
+	if (pszURL && *pszURL && ((iLocalType != REQUEST_LOCAL_FILE) || (pszLocalFile && *pszLocalFile))) {
 
-		PQUEUE_ITEM pItem = (PQUEUE_ITEM)MyAlloc( sizeof(QUEUE_ITEM) );
-		if ( pItem ) {
+		PQUEUE_ITEM pReq = (PQUEUE_ITEM)MyAlloc( sizeof( QUEUE_ITEM ) );
+		if (pReq) {
 
-			MyZeroMemory( pItem, sizeof( *pItem ) );
-			pItem->iId = ++pQueue->iLastId;
-			pItem->iPriority = (iPriority == DEFAULT_VALUE) ? ITEM_DEFAULT_PRIORITY : iPriority;
-			pItem->iStatus = ITEM_STATUS_WAITING;
-			pItem->pQueue = pQueue;
+			MyZeroMemory( pReq, sizeof( *pReq ) );
+			pReq->iId = ++pQueue->iLastId;
+			pReq->iPriority = (iPriority == DEFAULT_VALUE) ? DEFAULT_PRIORITY : iPriority;
+			pReq->iStatus = REQUEST_STATUS_WAITING;
+			pReq->pQueue = pQueue;
 
-			MyStrDup( pItem->pszURL, pszURL );
+			MyStrDup( pReq->pszURL, pszURL );
 
-			pItem->iLocalType = iLocalType;
-			if (pItem->iLocalType == ITEM_LOCAL_FILE)
-				MyStrDup( pItem->Local.pszFile, pszLocalFile );
+			pReq->iLocalType = iLocalType;
+			if (pReq->iLocalType == REQUEST_LOCAL_FILE)
+				MyStrDup( pReq->Local.pszFile, pszLocalFile );
 
 			if (pszProxy && *pszProxy) {
-				MyStrDup( pItem->pszProxy, pszProxy );
+				MyStrDup( pReq->pszProxy, pszProxy );
 			}
 			if (pszProxyUser && *pszProxyUser) {
-				MyStrDup( pItem->pszProxyUser, pszProxyUser );
+				MyStrDup( pReq->pszProxyUser, pszProxyUser );
 			}
 			if (pszProxyPass && *pszProxyPass) {
-				MyStrDup( pItem->pszProxyPass, pszProxyPass );
+				MyStrDup( pReq->pszProxyPass, pszProxyPass );
 			}
 
 			if ( pszMethod && *pszMethod ) {
-				lstrcpyn( pItem->szMethod, pszMethod, ARRAYSIZE( pItem->szMethod ) );
+				lstrcpyn( pReq->szMethod, pszMethod, ARRAYSIZE( pReq->szMethod ) );
 			} else {
-				lstrcpy( pItem->szMethod, _T("GET") );		/// Default
+				lstrcpy( pReq->szMethod, _T( "GET" ) );		/// Default
 			}
 			if (pszHeaders && *pszHeaders) {
-				MyStrDup( pItem->pszHeaders, pszHeaders );
+				MyStrDup( pReq->pszHeaders, pszHeaders );
 			}
 			if (pData && (iDataSize > 0)) {
-				MyDataDup( pItem->pData, pData, iDataSize );
-				pItem->iDataSize = iDataSize;
+				MyDataDup( pReq->pData, pData, iDataSize );
+				pReq->iDataSize = iDataSize;
 			}
-			pItem->iTimeoutConnect = iTimeoutConnect;
-			pItem->iTimeoutReconnect = iTimeoutReconnect;
-			pItem->iOptConnectRetries = iOptConnectRetries;
-			pItem->iOptConnectTimeout = iOptConnectTimeout;
-			pItem->iOptReceiveTimeout = iOptReceiveTimeout;
+			pReq->iTimeoutConnect = iTimeoutConnect;
+			pReq->iTimeoutReconnect = iTimeoutReconnect;
+			pReq->iOptConnectRetries = iOptConnectRetries;
+			pReq->iOptConnectTimeout = iOptConnectTimeout;
+			pReq->iOptReceiveTimeout = iOptReceiveTimeout;
 			if (pszReferrer && *pszReferrer) {
-				MyStrDup( pItem->pszReferer, pszReferrer );
+				MyStrDup( pReq->pszReferer, pszReferrer );
 			}
-			pItem->iHttpInternetFlags = iHttpInternetFlags;
-			pItem->iHttpSecurityFlags = iHttpSecurityFlags;
+			pReq->iHttpInternetFlags = iHttpInternetFlags;
+			pReq->iHttpSecurityFlags = iHttpSecurityFlags;
 
-			GetLocalFileTime( &pItem->tmEnqueue );
+			GetLocalFileTime( &pReq->tmEnqueue );
 
-			pItem->iWin32Error = ERROR_SUCCESS;
-			pItem->pszWin32Error = NULL;
-			AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
+			pReq->iWin32Error = ERROR_SUCCESS;
+			pReq->pszWin32Error = NULL;
+			AllocErrorStr( pReq->iWin32Error, &pReq->pszWin32Error );
 
-			pItem->iHttpStatus = 0;
-			pItem->pszHttpStatus = NULL;
-			MyStrDup( pItem->pszHttpStatus, _T( "N/A" ) );
+			pReq->iHttpStatus = 0;
+			pReq->pszHttpStatus = NULL;
+			MyStrDup( pReq->pszHttpStatus, _T( "N/A" ) );
 
 			// Add to the front
-			pItem->pNext = pQueue->pHead;
-			pQueue->pHead = pItem;
+			pReq->pNext = pQueue->pHead;
+			pQueue->pHead = pReq;
 
 			// Return
-			if ( ppItem )
-				*ppItem = pItem;
+			if (ppReq)
+				*ppReq = pReq;
 
-			// Wake up one worker thread to process this item
+			// Wake up one worker thread
 			SetEvent( pQueue->hThreadWakeEvent );
 
 			TRACE(
 				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s, Prio:%u)\n" ),
 				pQueue->szName,
-				pItem->iId,
-				pItem->szMethod,
-				pItem->pszURL,
-				pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY ),
-				pItem->iPriority
+				pReq->iId,
+				pReq->szMethod,
+				pReq->pszURL,
+				pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY),
+				pReq->iPriority
 				);
 
 		} else {
@@ -291,64 +291,64 @@ BOOL QueueAdd(
 }
 
 
-BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
+BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pReq )
 {
 	BOOL bRet = TRUE;
 	assert( pQueue );
-	if ( pItem ) {
+	if (pReq) {
 
 		TRACE(
 			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, Speed:%s, Time:%ums, %s %s -> %s)\n" ),
 			pQueue->szName,
-			pItem->iId,
-			pItem->iWin32Error != ERROR_SUCCESS ? pItem->iWin32Error : pItem->iHttpStatus,
-			pItem->iWin32Error != ERROR_SUCCESS ? pItem->pszWin32Error : pItem->pszHttpStatus,
-			pItem->iStatus == ITEM_STATUS_WAITING ? TEXT_STATUS_WAITING : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED ),
-			pItem->Speed.szSpeed,
-			MyTimeDiff(&pItem->tmDisconnect, &pItem->tmConnect),
-			pItem->szMethod,
-			pItem->pszURL,
-			pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
+			pReq->iId,
+			pReq->iWin32Error != ERROR_SUCCESS ? pReq->iWin32Error : pReq->iHttpStatus,
+			pReq->iWin32Error != ERROR_SUCCESS ? pReq->pszWin32Error : pReq->pszHttpStatus,
+			pReq->iStatus == REQUEST_STATUS_WAITING ? TEXT_STATUS_WAITING : (pReq->iStatus == REQUEST_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED),
+			pReq->Speed.szSpeed,
+			MyTimeDiff( &pReq->tmDisconnect, &pReq->tmConnect ),
+			pReq->szMethod,
+			pReq->pszURL,
+			pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY)
 			);
 
-		// Free item's content
-		MyFree( pItem->pszURL );
-		MyFree( pItem->pszProxy );
-		MyFree( pItem->pszProxyUser );
-		MyFree( pItem->pszProxyPass );
-		MyFree( pItem->pszHeaders );
-		MyFree( pItem->pData );
-		MyFree( pItem->pszSrvHeaders );
-		MyFree( pItem->pszSrvIP );
-		MyFree( pItem->pszWin32Error );
-		MyFree( pItem->pszHttpStatus );
-		MyFree( pItem->pszReferer );
+		// Free request's content
+		MyFree( pReq->pszURL );
+		MyFree( pReq->pszProxy );
+		MyFree( pReq->pszProxyUser );
+		MyFree( pReq->pszProxyPass );
+		MyFree( pReq->pszHeaders );
+		MyFree( pReq->pData );
+		MyFree( pReq->pszSrvHeaders );
+		MyFree( pReq->pszSrvIP );
+		MyFree( pReq->pszWin32Error );
+		MyFree( pReq->pszHttpStatus );
+		MyFree( pReq->pszReferer );
 
-		switch ( pItem->iLocalType )
+		switch (pReq->iLocalType)
 		{
-		case ITEM_LOCAL_FILE:
-			MyFree( pItem->Local.pszFile );
-			if ( pItem->Local.hFile != NULL && pItem->Local.hFile != INVALID_HANDLE_VALUE )
-				CloseHandle( pItem->Local.hFile );
+		case REQUEST_LOCAL_FILE:
+			MyFree( pReq->Local.pszFile );
+			if (pReq->Local.hFile != NULL && pReq->Local.hFile != INVALID_HANDLE_VALUE)
+				CloseHandle( pReq->Local.hFile );
 			break;
-		case ITEM_LOCAL_MEMORY:
-			MyFree( pItem->Local.pMemory );
+		case REQUEST_LOCAL_MEMORY:
+			MyFree( pReq->Local.pMemory );
 			break;
 		}
 
 		// Remove from list
 		{
-			PQUEUE_ITEM pPrevItem;
-			for ( pPrevItem = pQueue->pHead; (pPrevItem != NULL) && (pPrevItem->pNext != pItem); pPrevItem = pPrevItem->pNext );
-			if ( pPrevItem ) {
-				pPrevItem->pNext = pItem->pNext;
+			PQUEUE_ITEM pPrevReq;
+			for (pPrevReq = pQueue->pHead; (pPrevReq != NULL) && (pPrevReq->pNext != pReq); pPrevReq = pPrevReq->pNext);
+			if (pPrevReq) {
+				pPrevReq->pNext = pReq->pNext;
 			} else {
-				pQueue->pHead = pItem->pNext;
+				pQueue->pHead = pReq->pNext;
 			}
 		}
 
-		// Destroy the item
-		MyFree( pItem );
+		// Destroy the request
+		MyFree( pReq );
 	}
 	else {
 		bRet = FALSE;
@@ -357,39 +357,39 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 }
 
 
-BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pReq )
 {
 	BOOL bRet = TRUE;
 	assert( pQueue );
-	if (pItem) {
+	if (pReq) {
 
 		TRACE(
 			_T( "  QueueAbort(%s, ID:%u, Prio:%u, St:%s, %s %s -> %s)\n" ),
 			pQueue->szName,
-			pItem->iId, pItem->iPriority,
-			pItem->iStatus == ITEM_STATUS_WAITING ? TEXT_STATUS_WAITING : (pItem->iStatus == ITEM_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED ),
-			pItem->szMethod,
-			pItem->pszURL,
-			pItem->iLocalType == ITEM_LOCAL_NONE ? TEXT_LOCAL_NONE : (pItem->iLocalType == ITEM_LOCAL_FILE ? pItem->Local.pszFile : TEXT_LOCAL_MEMORY )
+			pReq->iId, pReq->iPriority,
+			pReq->iStatus == REQUEST_STATUS_WAITING ? TEXT_STATUS_WAITING : (pReq->iStatus == REQUEST_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED),
+			pReq->szMethod,
+			pReq->pszURL,
+			pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY)
 			);
 
-		switch (pItem->iStatus) {
-		case ITEM_STATUS_WAITING:
-			pItem->bAbort = TRUE;
-			pItem->iStatus = ITEM_STATUS_DONE;
+		switch (pReq->iStatus) {
+		case REQUEST_STATUS_WAITING:
+			pReq->bAbort = TRUE;
+			pReq->iStatus = REQUEST_STATUS_DONE;
 			/// Error code
-			pItem->iWin32Error = ERROR_INTERNET_OPERATION_CANCELLED;
-			MyFree( pItem->pszWin32Error );
-			AllocErrorStr( pItem->iWin32Error, &pItem->pszWin32Error );
+			pReq->iWin32Error = ERROR_INTERNET_OPERATION_CANCELLED;
+			MyFree( pReq->pszWin32Error );
+			AllocErrorStr( pReq->iWin32Error, &pReq->pszWin32Error );
 			break;
-		case ITEM_STATUS_DOWNLOADING:
-			pItem->bAbort = TRUE;
+		case REQUEST_STATUS_DOWNLOADING:
+			pReq->bAbort = TRUE;
 			/// The worker thread will do the rest...
 			break;
-		case ITEM_STATUS_DONE:
+		case REQUEST_STATUS_DONE:
 			/// Nothing to do
 			break;
-		default: assert( !"Unknown item status" );
+		default: assert( !"Unknown request status" );
 		}
 
 	} else {
@@ -401,10 +401,10 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pItem )
 
 ULONG QueueSize( _Inout_ PQUEUE pQueue )
 {
-	PQUEUE_ITEM pItem;
+	PQUEUE_ITEM pReq;
 	ULONG iSize;
 	assert( pQueue );
-	for ( pItem = pQueue->pHead, iSize = 0; pItem; pItem = pItem->pNext, iSize++ );
+	for (pReq = pQueue->pHead, iSize = 0; pReq; pReq = pReq->pNext, iSize++);
 	TRACE2( _T( "  QueueSize(%s) == %u\n" ), pQueue->szName, iSize );
 	return iSize;
 }
@@ -413,48 +413,48 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue )
 BOOL QueueStatistics(
 	_In_ PQUEUE pQueue,
 	_Out_opt_ PULONG piThreadCount,
-	_Out_opt_ PULONG piItemsTotal,
-	_Out_opt_ PULONG piItemsDone,
-	_Out_opt_ PULONG piItemsDownloading,
-	_Out_opt_ PULONG piItemsWaiting,
-	_Out_opt_ PULONG64 piItemsRecv,
-	_Out_opt_ PULONG piItemsSpeed
+	_Out_opt_ PULONG piTotalCount,
+	_Out_opt_ PULONG piTotalDone,
+	_Out_opt_ PULONG piTotalDownloading,
+	_Out_opt_ PULONG piTotalWaiting,
+	_Out_opt_ PULONG64 piTotalRecvSize,
+	_Out_opt_ PULONG piTotalSpeed
 	)
 {
 	BOOL bRet = TRUE;
 	assert( pQueue );
 	if (pQueue) {
-		PQUEUE_ITEM pItem;
+		PQUEUE_ITEM pReq;
 
 		if (piThreadCount)
 			*piThreadCount = (ULONG)pQueue->iThreadCount;
 
-		if (piItemsTotal)
-			*piItemsTotal = 0;
-		if (piItemsDone)
-			*piItemsDone = 0;
-		if (piItemsDownloading)
-			*piItemsDownloading = 0;
-		if (piItemsWaiting)
-			*piItemsWaiting = 0;
-		if (piItemsRecv)
-			*piItemsRecv = 0;
-		if (piItemsSpeed)
-			*piItemsSpeed = 0;
+		if (piTotalCount)
+			*piTotalCount = 0;
+		if (piTotalDone)
+			*piTotalDone = 0;
+		if (piTotalDownloading)
+			*piTotalDownloading = 0;
+		if (piTotalWaiting)
+			*piTotalWaiting = 0;
+		if (piTotalRecvSize)
+			*piTotalRecvSize = 0;
+		if (piTotalSpeed)
+			*piTotalSpeed = 0;
 
-		for (pItem = pQueue->pHead; pItem; pItem = pItem->pNext) {
-			if (piItemsTotal)
-				(*piItemsTotal)++;
-			if (piItemsDone && (pItem->iStatus == ITEM_STATUS_DONE))
-				(*piItemsDone)++;
-			if (piItemsDownloading && (pItem->iStatus == ITEM_STATUS_DOWNLOADING))
-				(*piItemsDownloading)++;
-			if (piItemsWaiting && (pItem->iStatus == ITEM_STATUS_WAITING))
-				(*piItemsWaiting)++;
-			if (piItemsRecv)
-				*piItemsRecv += pItem->iRecvSize;
-			if (piItemsSpeed && (pItem->iStatus == ITEM_STATUS_DOWNLOADING))
-				*piItemsSpeed += pItem->Speed.iSpeed;
+		for (pReq = pQueue->pHead; pReq; pReq = pReq->pNext) {
+			if (piTotalCount)
+				(*piTotalCount)++;
+			if (piTotalDone && (pReq->iStatus == REQUEST_STATUS_DONE))
+				(*piTotalDone)++;
+			if (piTotalDownloading && (pReq->iStatus == REQUEST_STATUS_DOWNLOADING))
+				(*piTotalDownloading)++;
+			if (piTotalWaiting && (pReq->iStatus == REQUEST_STATUS_WAITING))
+				(*piTotalWaiting)++;
+			if (piTotalRecvSize)
+				*piTotalRecvSize += pReq->iRecvSize;
+			if (piTotalSpeed && (pReq->iStatus == REQUEST_STATUS_DOWNLOADING))
+				*piTotalSpeed += pReq->Speed.iSpeed;
 		}
 
 	} else {
@@ -464,21 +464,21 @@ BOOL QueueStatistics(
 }
 
 
-BOOL ItemMemoryContentToString( _In_ PQUEUE_ITEM pItem, _Out_ LPTSTR pszString, _In_ ULONG iStringLen )
+BOOL RequestMemoryToString( _In_ PQUEUE_ITEM pReq, _Out_ LPTSTR pszString, _In_ ULONG iStringLen )
 {
 	BOOL bRet = FALSE;
-	if (pItem && pszString && iStringLen) {
+	if (pReq && pszString && iStringLen) {
 		pszString[0] = 0;
-		if (pItem->iLocalType == ITEM_LOCAL_MEMORY) {
-			if (pItem->iStatus == ITEM_STATUS_DONE) {
-				if (pItem->iWin32Error == ERROR_SUCCESS && (pItem->iHttpStatus >= 200 && pItem->iHttpStatus < 300)) {
-					if (pItem->iFileSize > 0 && pItem->iFileSize != INVALID_FILE_SIZE64) {
+		if (pReq->iLocalType == REQUEST_LOCAL_MEMORY) {
+			if (pReq->iStatus == REQUEST_STATUS_DONE) {
+				if (pReq->iWin32Error == ERROR_SUCCESS && (pReq->iHttpStatus >= 200 && pReq->iHttpStatus < 300)) {
+					if (pReq->iFileSize > 0 && pReq->iFileSize != INVALID_FILE_SIZE64) {
 						ULONG i, n;
 						CHAR ch;
-						for (i = 0, n = (ULONG)__min( iStringLen - 1, pItem->iFileSize ); i < n; i++) {
-							ch = pItem->Local.pMemory[i];
+						for (i = 0, n = (ULONG)__min( iStringLen - 1, pReq->iFileSize ); i < n; i++) {
+							ch = pReq->Local.pMemory[i];
 							if ((ch >= 32 /*&& ch < 127*/) || ch == '\r' || ch == '\n') {
-								pszString[i] = pItem->Local.pMemory[i];
+								pszString[i] = pReq->Local.pMemory[i];
 							} else {
 								pszString[i] = _T( '.' );
 							}

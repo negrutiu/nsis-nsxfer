@@ -9,7 +9,7 @@ typedef enum {
 
 /// Returns Win32 error code
 ULONG GuiWait(
-	__in UINT iTransferID,					/// Can be ANY_TRANSFER_ID
+	__in UINT iID,					/// Can be ANY_REQUEST_ID
 	__in ULONG iPriority,
 	__in GUI_MODE iMode,
 	__in_opt HWND hTitleWnd,

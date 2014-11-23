@@ -26,7 +26,7 @@ x Download to temporary file => Easily done by the caller
 * Measure transfer speed
 * Save the raw headers and make them available for querying
 * Queue priorities
-* Enumerate transfers in queue
+* Enumerate requests in queue
 - Pause/Resume transfer. Create paused
 * Abort transfer
 - Attach the "Zone.Identifier" stream (optional)
@@ -37,3 +37,4 @@ x Download to temporary file => Easily done by the caller
 - Configurable: worker threads, NSXFER_USERAGENT, TRANSFER_CHUNK_SIZE, MAX_MEMORY_CONTENT_LENGTH, CONNECT_RETRY_DELAY, SPEED_MEASURE_INTERVAL
 * Transfer GUI
 - Test with silent installers
+- Reuse connection to the same server

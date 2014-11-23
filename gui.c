@@ -22,7 +22,7 @@
 extern QUEUE g_Queue;		/// main.c
 
 struct {
-	UINT iTransferID;
+	UINT iID;
 	ULONG iPriority;
 	GUI_MODE iMode;
 	HWND hTaskbarWnd;
@@ -43,15 +43,15 @@ struct {
 	HICON hPopupIco;
 
 	/// Runtime data
-	BOOLEAN bFinished;		/// The transfers we're waiting for have all completed
-	PQUEUE_ITEM pItem;		/// Valid when a single transfer is in progress, or the wait is performed on a specific transfer ID
+	BOOLEAN bFinished;		/// All transfers finished
+	PQUEUE_ITEM pReq;		/// Valid when a single request is in progress
 	LONG iThreadCount;
-	LONG iItemsTotal;
-	LONG iItemsDone;
-	LONG iItemsDownloading;
-	LONG iItemsWaiting;
-	ULONG64 iRecvSize;
-	LONG iItemsSpeed;
+	LONG iTotalCount;
+	LONG iTotalDone;
+	LONG iTotalDownloading;
+	LONG iTotalWaiting;
+	ULONG64 iTotalRecvSize;
+	LONG iTotalSpeed;
 
 	LPCTSTR pszOriginalTitleText;
 	LPCTSTR pszOriginalStatusText;
@@ -122,98 +122,98 @@ void GuiExpandKeywords(
 				szNewValue[0] = 255;	/// Special character
 				szNewValue[1] = 0;
 
-				// Item-specific keywords
-				if (g_Gui.pItem) {
+				// Keywords
+				if (g_Gui.pReq) {
 					if (IS_KEYWORD( pszKeywordStart, _T( "ID" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->iId );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pReq->iId );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Status" ))) {
-						switch (g_Gui.pItem->iStatus) {
-						case ITEM_STATUS_WAITING: lstrcpyn( szNewValue, TEXT_STATUS_WAITING, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_STATUS_DOWNLOADING: lstrcpyn( szNewValue, TEXT_STATUS_DOWNLOADING, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_STATUS_DONE: lstrcpyn( szNewValue, TEXT_STATUS_COMPLETED, ARRAYSIZE( szNewValue ) ); break;
-						default: assert( !"Unknown item status" );
+						switch (g_Gui.pReq->iStatus) {
+						case REQUEST_STATUS_WAITING: lstrcpyn( szNewValue, TEXT_STATUS_WAITING, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_STATUS_DOWNLOADING: lstrcpyn( szNewValue, TEXT_STATUS_DOWNLOADING, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_STATUS_DONE: lstrcpyn( szNewValue, TEXT_STATUS_COMPLETED, ARRAYSIZE( szNewValue ) ); break;
+						default: assert( !"Unknown request status" );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "WininetStatus" ))) {
-						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
-							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->iLastCallbackStatus );
+						if (g_Gui.pReq->iStatus != REQUEST_STATUS_WAITING) {
+							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pReq->iLastCallbackStatus );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Method" ))) {
-						lstrcpyn( szNewValue, g_Gui.pItem->szMethod, ARRAYSIZE( szNewValue ) );
+						lstrcpyn( szNewValue, g_Gui.pReq->szMethod, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "URL" ))) {
-						lstrcpyn( szNewValue, g_Gui.pItem->pszURL, ARRAYSIZE( szNewValue ) );
+						lstrcpyn( szNewValue, g_Gui.pReq->pszURL, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "IP" ))) {
-						lstrcpyn( szNewValue, g_Gui.pItem->pszSrvIP ? g_Gui.pItem->pszSrvIP : TEXT_NA, ARRAYSIZE( szNewValue ) );
+						lstrcpyn( szNewValue, g_Gui.pReq->pszSrvIP ? g_Gui.pReq->pszSrvIP : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Proxy" ))) {
-						lstrcpyn( szNewValue, g_Gui.pItem->pszProxy ? g_Gui.pItem->pszProxy : TEXT_NA, ARRAYSIZE( szNewValue ) );
+						lstrcpyn( szNewValue, g_Gui.pReq->pszProxy ? g_Gui.pReq->pszProxy : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Local" ))) {
-						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_LOCAL_FILE: lstrcpyn( szNewValue, g_Gui.pItem->Local.pszFile, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
+						switch (g_Gui.pReq->iLocalType) {
+						case REQUEST_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_LOCAL_FILE: lstrcpyn( szNewValue, g_Gui.pReq->Local.pszFile, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
 						default: assert( !"Unknown local type" );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileDir" ))) {
-						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_LOCAL_FILE: {
+						switch (g_Gui.pReq->iLocalType) {
+						case REQUEST_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_LOCAL_FILE: {
 							LPTSTR psz, pszBkSlash;
-							for (psz = pszBkSlash = g_Gui.pItem->Local.pszFile; *psz; psz++)
+							for (psz = pszBkSlash = g_Gui.pReq->Local.pszFile; *psz; psz++)
 								if (*psz == _T( '\\' ))
 									pszBkSlash = psz + 1;
-							lstrcpyn( szNewValue, g_Gui.pItem->Local.pszFile, __min( ARRAYSIZE( szNewValue ), (ULONG)(pszBkSlash - g_Gui.pItem->Local.pszFile) ) );
+							lstrcpyn( szNewValue, g_Gui.pReq->Local.pszFile, __min( ARRAYSIZE( szNewValue ), (ULONG)(pszBkSlash - g_Gui.pReq->Local.pszFile) ) );
 							break;
 						}
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "LocalFileName" ))) {
-						switch (g_Gui.pItem->iLocalType) {
-						case ITEM_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
-						case ITEM_LOCAL_FILE: {
+						switch (g_Gui.pReq->iLocalType) {
+						case REQUEST_LOCAL_NONE: lstrcpyn( szNewValue, TEXT_LOCAL_NONE, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_LOCAL_FILE: {
 							LPTSTR psz, pszFname;
-							for (psz = pszFname = g_Gui.pItem->Local.pszFile; *psz; psz++)
+							for (psz = pszFname = g_Gui.pReq->Local.pszFile; *psz; psz++)
 								if (*psz == _T( '\\' ))
 									pszFname = psz + 1;
 							lstrcpyn( szNewValue, pszFname, ARRAYSIZE( szNewValue ) );
 							break;
 						}
-						case ITEM_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
+						case REQUEST_LOCAL_MEMORY: lstrcpyn( szNewValue, TEXT_LOCAL_MEMORY, ARRAYSIZE( szNewValue ) ); break;
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "FileSize" ))) {
-						if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
+						if (g_Gui.pReq->iFileSize != INVALID_FILE_SIZE64) {
 #ifdef UNICODE
-							StrFormatByteSizeW( g_Gui.pItem->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
+							StrFormatByteSizeW( g_Gui.pReq->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
 #else
-							StrFormatByteSizeA( (ULONG)g_Gui.pItem->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
+							StrFormatByteSizeA( (ULONG)g_Gui.pReq->iFileSize, szNewValue, ARRAYSIZE( szNewValue ) );
 #endif
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "FileSizeBytes" ))) {
-						if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
-							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pItem->iFileSize );
+						if (g_Gui.pReq->iFileSize != INVALID_FILE_SIZE64) {
+							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pReq->iFileSize );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "RecvSize" ))) {
 #ifdef UNICODE
-						StrFormatByteSizeW( g_Gui.pItem->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+						StrFormatByteSizeW( g_Gui.pReq->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
 #else
-						StrFormatByteSizeA( (ULONG)g_Gui.pItem->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+						StrFormatByteSizeA( (ULONG)g_Gui.pReq->iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
 #endif
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "RecvSizeBytes" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pItem->iRecvSize );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.pReq->iRecvSize );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Percent" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%hu" ), (USHORT)ItemGetRecvPercent( g_Gui.pItem ) );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%hu" ), (USHORT)RequestRecvPercent( g_Gui.pReq ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "Speed" ))) {
-						lstrcpyn( szNewValue, *g_Gui.pItem->Speed.szSpeed ? g_Gui.pItem->Speed.szSpeed : TEXT_NA, ARRAYSIZE( szNewValue ) );
+						lstrcpyn( szNewValue, *g_Gui.pReq->Speed.szSpeed ? g_Gui.pReq->Speed.szSpeed : TEXT_NA, ARRAYSIZE( szNewValue ) );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "SpeedBytes" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pItem->Speed.iSpeed );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.pReq->Speed.iSpeed );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TimeStart" ))) {
-						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
+						if (g_Gui.pReq->iStatus != REQUEST_STATUS_WAITING) {
 							SYSTEMTIME st;
-							FileTimeToSystemTime( &g_Gui.pItem->tmConnect, &st );
+							FileTimeToSystemTime( &g_Gui.pReq->tmConnect, &st );
 							wnsprintf(
 								szNewValue, ARRAYSIZE( szNewValue ),
 								_T( "%u/%02hu/%02hu %02hu:%02hu:%02hu" ),
@@ -224,24 +224,24 @@ void GuiExpandKeywords(
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TimeElapsed" ))) {
-						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
+						if (g_Gui.pReq->iStatus != REQUEST_STATUS_WAITING) {
 							FILETIME tmNow;
 							GetLocalFileTime( &tmNow );
-							StrFromTimeInterval( szNewValue, ARRAYSIZE( szNewValue ), MyTimeDiff( &tmNow, &g_Gui.pItem->tmConnect ), 3 );
+							StrFromTimeInterval( szNewValue, ARRAYSIZE( szNewValue ), MyTimeDiff( &tmNow, &g_Gui.pReq->tmConnect ), 3 );
 							StrTrim( szNewValue, _T( " " ) );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TimeRemaining" ))) {
-						if (g_Gui.pItem->iStatus != ITEM_STATUS_WAITING) {
-							if (g_Gui.pItem->iFileSize != INVALID_FILE_SIZE64) {
+						if (g_Gui.pReq->iStatus != REQUEST_STATUS_WAITING) {
+							if (g_Gui.pReq->iFileSize != INVALID_FILE_SIZE64) {
 								ULONG iElapsedMs;
 								FILETIME tmNow;
 								GetLocalFileTime( &tmNow );
-								iElapsedMs = MyTimeDiff( &tmNow, &g_Gui.pItem->tmConnect );
+								iElapsedMs = MyTimeDiff( &tmNow, &g_Gui.pReq->tmConnect );
 								iElapsedMs = __max( iElapsedMs, GUI_TIMER_REFRESH_TIME );
-								if ((g_Gui.pItem->iRecvSize > 0) && (iElapsedMs >= 3000)) {
-									ULONG iRemainingMs = (ULONG)MyMulDiv64( iElapsedMs, g_Gui.pItem->iFileSize, g_Gui.pItem->iRecvSize ) - iElapsedMs;
+								if ((g_Gui.pReq->iRecvSize > 0) && (iElapsedMs >= 3000)) {
+									ULONG iRemainingMs = (ULONG)MyMulDiv64( iElapsedMs, g_Gui.pReq->iFileSize, g_Gui.pReq->iRecvSize ) - iElapsedMs;
 									StrFromTimeInterval( szNewValue, ARRAYSIZE( szNewValue ), iRemainingMs, 3 );
 									StrTrim( szNewValue, _T( " " ) );
 								} else {
@@ -259,37 +259,37 @@ void GuiExpandKeywords(
 				// General keywords
 				if (szNewValue[0] == 255) {
 					if (IS_KEYWORD( pszKeywordStart, _T( "TotalCount" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsTotal );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalCount );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalWaiting" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsWaiting );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalWaiting );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalActive" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDownloading + g_Gui.iItemsDone );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalDownloading + g_Gui.iTotalDone );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalDownloading" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDownloading );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalDownloading );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalCompleted" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsDone );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalDone );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalRecvSize" ))) {
 #ifdef UNICODE
-						StrFormatByteSizeW( g_Gui.iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+						StrFormatByteSizeW( g_Gui.iTotalRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
 #else
-						StrFormatByteSizeA( (ULONG)g_Gui.iRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
+						StrFormatByteSizeA( (ULONG)g_Gui.iTotalRecvSize, szNewValue, ARRAYSIZE( szNewValue ) );
 #endif
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalRecvSizeBytes" ))) {
-						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.iRecvSize );
+						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%I64u" ), g_Gui.iTotalRecvSize );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalSpeed" ))) {
-						if (g_Gui.iItemsDownloading > 0) {
+						if (g_Gui.iTotalDownloading > 0) {
 #ifdef UNICODE
-							StrFormatByteSizeW( g_Gui.iItemsSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
+							StrFormatByteSizeW( g_Gui.iTotalSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
 #else
-							StrFormatByteSizeA( (ULONG)g_Gui.iItemsSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
+							StrFormatByteSizeA( (ULONG)g_Gui.iTotalSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
 #endif
 							lstrcat( szNewValue, _T( "/s" ) );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalSpeedBytes" ))) {
-						if (g_Gui.iItemsDownloading > 0) {
-							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iItemsSpeed );
+						if (g_Gui.iTotalDownloading > 0) {
+							wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalSpeed );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}
@@ -351,44 +351,44 @@ ULONG GuiRefreshData()
 	QueueLock( &g_Queue );
 
 	g_Gui.iThreadCount = g_Queue.iThreadCount;
-	g_Gui.iItemsTotal = 0;
-	g_Gui.iItemsDone = 0;
-	g_Gui.iItemsDownloading = 0;
-	g_Gui.iItemsWaiting = 0;
-	g_Gui.iRecvSize = 0;
-	g_Gui.iItemsSpeed = 0;
+	g_Gui.iTotalCount = 0;
+	g_Gui.iTotalDone = 0;
+	g_Gui.iTotalDownloading = 0;
+	g_Gui.iTotalWaiting = 0;
+	g_Gui.iTotalRecvSize = 0;
+	g_Gui.iTotalSpeed = 0;
 
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority, ANY_STATUS )) {
-			if (p->iStatus == ITEM_STATUS_DOWNLOADING) {
-				g_Gui.pItem = p;	/// Remember the last in-progress transfer
+		if (RequestMatched( p, g_Gui.iID, g_Gui.iPriority, ANY_STATUS )) {
+			if (p->iStatus == REQUEST_STATUS_DOWNLOADING) {
+				g_Gui.pReq = p;		/// Remember the last request in progress
 			}
-			g_Gui.iRecvSize += p->iRecvSize;
-			g_Gui.iItemsSpeed += p->Speed.iSpeed;
+			g_Gui.iTotalRecvSize += p->iRecvSize;
+			g_Gui.iTotalSpeed += p->Speed.iSpeed;
 
-			g_Gui.iItemsTotal++;
-			if (p->iStatus == ITEM_STATUS_DONE)
-				g_Gui.iItemsDone++;
-			if (p->iStatus == ITEM_STATUS_DOWNLOADING)
-				g_Gui.iItemsDownloading++;
-			if (p->iStatus == ITEM_STATUS_WAITING)
-				g_Gui.iItemsWaiting++;
+			g_Gui.iTotalCount++;
+			if (p->iStatus == REQUEST_STATUS_DONE)
+				g_Gui.iTotalDone++;
+			if (p->iStatus == REQUEST_STATUS_DOWNLOADING)
+				g_Gui.iTotalDownloading++;
+			if (p->iStatus == REQUEST_STATUS_WAITING)
+				g_Gui.iTotalWaiting++;
 		}
 	}
-	if (g_Gui.iTransferID == ANY_TRANSFER_ID && g_Gui.iItemsDownloading > 1) {
-		g_Gui.pItem = NULL;			/// Wait for multiple transfers
+	if (g_Gui.iID == ANY_REQUEST_ID && g_Gui.iTotalDownloading > 1) {
+		g_Gui.pReq = NULL;			/// Wait for multiple requests
 	}
 
 	// All done?
-	if (g_Gui.pItem) {
-		g_Gui.bFinished = (g_Gui.pItem->iStatus == ITEM_STATUS_DONE);
+	if (g_Gui.pReq) {
+		g_Gui.bFinished = (g_Gui.pReq->iStatus == REQUEST_STATUS_DONE);
 	} else {
-		g_Gui.bFinished = (g_Gui.iItemsDownloading == 0 && g_Gui.iItemsWaiting == 0);
+		g_Gui.bFinished = (g_Gui.iTotalDownloading == 0 && g_Gui.iTotalWaiting == 0);
 	}
 
 	// Title text
 	if (g_Gui.hTitleWnd) {
-		if (g_Gui.pItem) {
+		if (g_Gui.pReq) {
 			/// Single
 			GuiExpandKeywords( g_Gui.pszTitleText, g_Gui.szTitle, ARRAYSIZE( g_Gui.szTitle ), g_Gui.iAnimationStep );
 		} else {
@@ -400,7 +400,7 @@ ULONG GuiRefreshData()
 
 	// Status text
 	if (g_Gui.hStatusWnd) {
-		if (g_Gui.pItem) {
+		if (g_Gui.pReq) {
 			/// Single
 			GuiExpandKeywords( g_Gui.pszStatusText, g_Gui.szStatus, ARRAYSIZE( g_Gui.szStatus ), g_Gui.iAnimationStep );
 		} else {
@@ -414,7 +414,7 @@ ULONG GuiRefreshData()
 	if (g_Gui.hProgressWnd) {
 
 		LONG_PTR iStyle = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE );
-		if (!g_Gui.pItem || !g_Gui.pItem->bConnected) {
+		if (!g_Gui.pReq || !g_Gui.pReq->bConnected) {
 
 			// Indeterminate progress
 			if (!(iStyle & MY_PBS_MARQUEE)) {
@@ -427,7 +427,7 @@ ULONG GuiRefreshData()
 
 		} else {
 
-			int iProgress = ItemGetRecvPercent( g_Gui.pItem );
+			int iProgress = RequestRecvPercent( g_Gui.pReq );
 			if (iStyle & MY_PBS_MARQUEE) {
 				SetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE, iStyle & ~MY_PBS_MARQUEE );
 				SendMessage( g_Gui.hProgressWnd, MY_PBM_SETMARQUEE, FALSE, 0 );
@@ -454,7 +454,7 @@ VOID GuiWaitAbort()
 	PQUEUE_ITEM p;
 	QueueLock( &g_Queue );
 	for (p = g_Queue.pHead; p; p = p->pNext) {
-		if (ItemMatched( p, g_Gui.iTransferID, g_Gui.iPriority, ANY_STATUS )) {
+		if (RequestMatched( p, g_Gui.iID, g_Gui.iPriority, ANY_STATUS )) {
 			QueueAbort( &g_Queue, p );
 		}
 	}
@@ -785,7 +785,7 @@ ULONG GuiWaitPage()
 
 
 ULONG GuiWait(
-	__in UINT iTransferID,
+	__in UINT iID,
 	__in ULONG iPriority,
 	__in GUI_MODE iMode,
 	__in_opt HWND hTitleWnd,
@@ -803,7 +803,7 @@ ULONG GuiWait(
 	ULONG err = ERROR_SUCCESS;
 
 	MyZeroMemory( &g_Gui, sizeof( g_Gui ) );
-	g_Gui.iTransferID = iTransferID;
+	g_Gui.iID = iID;
 	g_Gui.iPriority = iPriority;
 	g_Gui.iMode = iMode;
 	g_Gui.hTitleWnd = hTitleWnd;
@@ -849,7 +849,7 @@ ULONG GuiWait(
 	case GUI_MODE_PAGE:
 		err = GuiWaitPage();
 		if (err == ERROR_NOT_SUPPORTED)
-			err = GuiWaitPopup();
+			err = GuiWaitSilent();
 		break;
 	default:
 		err = ERROR_INVALID_PARAMETER;

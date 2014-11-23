@@ -6,7 +6,7 @@ typedef struct _THREAD {
 	HANDLE hThread;					/// Thread handle
 	ULONG iTID;						/// Cached TID
 	TCHAR szName[50];				/// Thread name. Ex: MAIN01
-	HANDLE hWakeEvent;				/// Wake a thread when new items are added to the queue
+	HANDLE hWakeEvent;				/// Wake a thread when new requests are added to the queue
 	HANDLE hTermEvent;				/// Terminate threads
 } THREAD, *PTHREAD;
 
