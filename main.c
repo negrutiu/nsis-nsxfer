@@ -366,7 +366,7 @@ void __cdecl QueryGlobal(
 				ReadVersionInfoString( szPath, _T( "FileVersion" ), szVer, ARRAYSIZE( szVer ) );
 			pushstring( szVer );
 		} else {
-			/// Unknown parameter. Return an empty string
+			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), pParam[i] );
 			pushstring( _T( "" ) );
 		}
 		MyFree( pParam[i] );
@@ -543,11 +543,11 @@ void __cdecl Query(
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORTEXT" ) ) == 0) {
 				pushstring( pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error );
 			} else {
-				/// Unknown parameter. Return an empty string
+				TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), pParam[i] );
 				pushstring( _T( "" ) );
 			}
 		} else {
-			/// Unknown request ID
+			TRACE( _T( "  [!] Transfer request not found\n" ) );
 			pushstring( _T( "" ) );
 		}
 		MyFree( pParam[i] );
@@ -600,6 +600,8 @@ void __cdecl Enumerate(
 			}
 		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
 			iPrio = popint();
+		} else {
+			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 		}
 	}
 	MyFree( psz );
