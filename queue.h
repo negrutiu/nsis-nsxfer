@@ -38,7 +38,51 @@ typedef enum {
 } REQUEST_LOCAL_TYPE;
 
 
-typedef struct _QUEUE_ITEM {
+//++ struct QUEUE_REQUEST_PARAM
+typedef struct _QUEUE_REQUEST_PARAM {
+	ULONG iPriority;				/// can be DEFAULT_VALUE
+	LPCTSTR pszURL;
+	REQUEST_LOCAL_TYPE iLocalType;
+	LPCTSTR pszLocalFile;
+	LPCTSTR pszProxy;				/// can be NULL
+	LPCTSTR pszProxyUser;			/// can be NULL
+	LPCTSTR pszProxyPass;			/// can be NULL
+	LPCTSTR pszMethod;				/// can be NULL
+	LPCTSTR pszHeaders;				/// can be NULL
+	LPVOID pData;					/// can be NULL
+	ULONG iDataSize;				/// can be 0
+	ULONG iTimeoutConnect;			/// can be DEFAULT_VALUE
+	ULONG iTimeoutReconnect;		/// can be DEFAULT_VALUE
+	ULONG iOptConnectRetries;		/// can be DEFAULT_VALUE
+	ULONG iOptConnectTimeout;		/// can be DEFAULT_VALUE
+	ULONG iOptReceiveTimeout;		/// can be DEFAULT_VALUE
+	LPCTSTR pszReferrer;			/// can be NULL
+	ULONG iHttpInternetFlags;		/// can be DEFAULT_VALUE
+	ULONG iHttpSecurityFlags;		/// can be DEFAULT_VALUE
+} QUEUE_REQUEST_PARAM, *PQUEUE_REQUEST_PARAM;
+
+#define RequestParamInit(Param) \
+	MyZeroMemory( &Param, sizeof( Param ) ); \
+	Param.iPriority = DEFAULT_VALUE; \
+	Param.iTimeoutConnect = Param.iTimeoutReconnect = DEFAULT_VALUE; \
+	Param.iOptConnectRetries = Param.iOptConnectTimeout = Param.iOptReceiveTimeout = DEFAULT_VALUE; \
+	Param.iHttpInternetFlags = Param.iHttpSecurityFlags = DEFAULT_VALUE;
+
+#define RequestParamDestroy(Param) \
+	MyFree( Param.pszMethod ); \
+	MyFree( Param.pszURL ); \
+	MyFree( Param.pszLocalFile ); \
+	MyFree( Param.pszHeaders ); \
+	MyFree( Param.pData ); \
+	MyFree( Param.pszProxy ); \
+	MyFree( Param.pszProxyUser ); \
+	MyFree( Param.pszProxyPass ); \
+	MyFree( Param.pszReferrer ); \
+	MyZeroMemory( &Param, sizeof( Param ) );
+
+
+//++ struct QUEUE_REQUEST
+typedef struct _QUEUE_REQUEST {
 
 	ULONG iId;						/// Unique request ID
 	REQUEST_STATUS iStatus;
@@ -117,9 +161,9 @@ typedef struct _QUEUE_ITEM {
 	ULONG iHttpStatus;				/// Last HTTP status code
 	LPTSTR pszHttpStatus;			/// Last HTTP status code (as string)
 
-	struct _QUEUE_ITEM *pNext;		/// Singly linked list
+	struct _QUEUE_REQUEST *pNext;	/// Singly linked list
 
-} QUEUE_ITEM, *PQUEUE_ITEM;
+} QUEUE_REQUEST, *PQUEUE_REQUEST;
 
 
 #define RequestReconnectionAllowed(pReq) \
@@ -135,19 +179,20 @@ typedef struct _QUEUE_ITEM {
 	(Status == ANY_STATUS || Status == pReq->iStatus)
 
 BOOL RequestMemoryToString(
-	_In_ PQUEUE_ITEM pReq,
+	_In_ PQUEUE_REQUEST pReq,
 	_Out_ LPTSTR pszString,
 	_In_ ULONG iStringLen
 	);
 
 
+//++ struct QUEUE
 typedef struct _QUEUE {
 
 	TCHAR szName[20];				/// Queue name. The default queue will be named MAIN
 
 	// Queue
 	CRITICAL_SECTION csLock;
-	PQUEUE_ITEM pHead;
+	PQUEUE_REQUEST pHead;
 	ULONG iLastId;
 
 	// Worker threads
@@ -174,42 +219,24 @@ BOOL QueueReset( _Inout_ PQUEUE pQueue );
 
 // Find a request in the queue
 // The queue must be locked
-PQUEUE_ITEM QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iReqID );	/// ...by ID
-PQUEUE_ITEM QueueFindFirstWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
+PQUEUE_REQUEST QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iReqID );	/// ...by ID
+PQUEUE_REQUEST QueueFindFirstWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
 
 // Add a new request in the queue
 // The queue must be locked
 BOOL QueueAdd(
 	_Inout_ PQUEUE pQueue,
-	_In_opt_ ULONG iPriority,					/// can be DEFAULT_VALUE
-	_In_ LPCTSTR pszURL,
-	_In_ REQUEST_LOCAL_TYPE iLocalType,
-	_In_opt_ LPCTSTR pszLocalFile,
-	_In_opt_ LPCTSTR pszProxy,					/// can be NULL
-	_In_opt_ LPCTSTR pszProxyUser,				/// can be NULL
-	_In_opt_ LPCTSTR pszProxyPass,				/// can be NULL
-	_In_opt_ LPCTSTR pszMethod,					/// can be NULL
-	_In_opt_ LPCTSTR pszHeaders,				/// can be NULL
-	_In_opt_ LPVOID pData,						/// can be NULL
-	_In_opt_ ULONG iDataSize,					/// can be 0
-	_In_opt_ ULONG iTimeoutConnect,				/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iTimeoutReconnect,			/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iOptConnectRetries,			/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iOptConnectTimeout,			/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iOptReceiveTimeout,			/// can be DEFAULT_VALUE
-	_In_opt_ LPCTSTR pszReferer,				/// can be NULL
-	_In_opt_ ULONG iHttpInternetFlags,			/// can be DEFAULT_VALUE
-	_In_opt_ ULONG iHttpSecurityFlags,			/// can be DEFAULT_VALUE
-	_Outptr_opt_ PQUEUE_ITEM *ppReq
+	_In_ PQUEUE_REQUEST_PARAM pParam,
+	_Outptr_opt_ PQUEUE_REQUEST *ppReq
 	);
 
 // Remove a request from the queue and destroy it
 // The queue must be locked
-BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_ITEM pReq );
+BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq );
 
 // Abort a request
 // The queue must be locked
-BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_ITEM pReq );
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq );
 
 // Retrieve the queue size
 // The queue must be locked

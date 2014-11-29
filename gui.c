@@ -22,10 +22,11 @@
 extern QUEUE g_Queue;		/// main.c
 
 struct {
+
+	/// Input
 	UINT iID;
 	ULONG iPriority;
 	GUI_MODE iMode;
-	HWND hTaskbarWnd;
 	HWND hTitleWnd;
 	HWND hStatusWnd;
 	HWND hProgressWnd;
@@ -40,11 +41,13 @@ struct {
 	LPCTSTR pszStatusText;
 	LPCTSTR pszStatusMultiText;
 
+
+	/// Runtime
+	HWND hTaskbarWnd;
 	HICON hPopupIco;
 
-	/// Runtime data
 	BOOLEAN bFinished;		/// All transfers finished
-	PQUEUE_ITEM pReq;		/// Valid when a single request is in progress
+	PQUEUE_REQUEST pReq;	/// Available when a single transfer request is in progress
 	LONG iThreadCount;
 	LONG iTotalCount;
 	LONG iTotalDone;
@@ -345,7 +348,7 @@ void GuiExpandKeywords(
 ULONG GuiRefreshData()
 {
 	ULONG err = ERROR_SUCCESS;
-	PQUEUE_ITEM p;
+	PQUEUE_REQUEST p;
 
 	// Refresh transfer data
 	QueueLock( &g_Queue );
@@ -451,7 +454,7 @@ ULONG GuiRefreshData()
 
 VOID GuiWaitAbort()
 {
-	PQUEUE_ITEM p;
+	PQUEUE_REQUEST p;
 	QueueLock( &g_Queue );
 	for (p = g_Queue.pHead; p; p = p->pNext) {
 		if (RequestMatched( p, g_Gui.iID, g_Gui.iPriority, ANY_STATUS )) {
@@ -784,38 +787,25 @@ ULONG GuiWaitPage()
 }
 
 
-ULONG GuiWait(
-	__in UINT iID,
-	__in ULONG iPriority,
-	__in GUI_MODE iMode,
-	__in_opt HWND hTitleWnd,
-	__in_opt HWND hStatusWnd,
-	__in_opt HWND hProgressWnd,
-	__in_opt LPCTSTR pszTitleText,
-	__in_opt LPCTSTR pszTitleMultiText,
-	__in_opt LPCTSTR pszStatusText,
-	__in_opt LPCTSTR pszStatusMultiText,
-	__in_opt BOOLEAN bAbort,
-	__in_opt LPCTSTR pszAbortTitle,
-	__in_opt LPCTSTR pszAbortMsg
-	)
+ULONG GuiWait( __in PGUI_WAIT_PARAM pParam )
 {
 	ULONG err = ERROR_SUCCESS;
+	assert( pParam );
 
 	MyZeroMemory( &g_Gui, sizeof( g_Gui ) );
-	g_Gui.iID = iID;
-	g_Gui.iPriority = iPriority;
-	g_Gui.iMode = iMode;
-	g_Gui.hTitleWnd = hTitleWnd;
-	g_Gui.hStatusWnd = hStatusWnd;
-	g_Gui.hProgressWnd = hProgressWnd;
-	g_Gui.pszTitleText = pszTitleText ? pszTitleText : DEFAULT_TITLE_SINGLE;
-	g_Gui.pszTitleMultiText = pszTitleMultiText ? pszTitleMultiText : DEFAULT_TITLE_MULTI;
-	g_Gui.pszStatusText = pszStatusText ? pszStatusText : DEFAULT_STATUS_SINGLE;
-	g_Gui.pszStatusMultiText = pszStatusMultiText ? pszStatusMultiText : DEFAULT_STATUS_MULTI;
-	g_Gui.bAbort = bAbort;
-	g_Gui.pszAbortTitle = pszAbortTitle && *pszAbortTitle ? pszAbortTitle : PLUGINNAME;
-	g_Gui.pszAbortMsg = pszAbortMsg;
+	g_Gui.iID = pParam->iID;
+	g_Gui.iPriority = pParam->iPriority;
+	g_Gui.iMode = pParam->iMode;
+	g_Gui.hTitleWnd = pParam->hTitleWnd;
+	g_Gui.hStatusWnd = pParam->hStatusWnd;
+	g_Gui.hProgressWnd = pParam->hProgressWnd;
+	g_Gui.pszTitleText = pParam->pszTitleText ? pParam->pszTitleText : DEFAULT_TITLE_SINGLE;
+	g_Gui.pszTitleMultiText = pParam->pszTitleMultiText ? pParam->pszTitleMultiText : DEFAULT_TITLE_MULTI;
+	g_Gui.pszStatusText = pParam->pszStatusText ? pParam->pszStatusText : DEFAULT_STATUS_SINGLE;
+	g_Gui.pszStatusMultiText = pParam->pszStatusMultiText ? pParam->pszStatusMultiText : DEFAULT_STATUS_MULTI;
+	g_Gui.bAbort = pParam->bAbort;
+	g_Gui.pszAbortTitle = pParam->pszAbortTitle && *pParam->pszAbortTitle ? pParam->pszAbortTitle : PLUGINNAME;
+	g_Gui.pszAbortMsg = pParam->pszAbortMsg;
 
 	/// Remember original values
 	if (g_Gui.hTitleWnd) {
@@ -839,7 +829,7 @@ ULONG GuiWait(
 	}
 
 	// Start
-	switch (iMode) {
+	switch (pParam->iMode) {
 	case GUI_MODE_SILENT:
 		err = GuiWaitSilent();
 		break;

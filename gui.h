@@ -7,19 +7,39 @@ typedef enum {
 } GUI_MODE;
 
 
+typedef struct _GUI_WAIT_PARAM {
+	UINT iID;							/// Can be ANY_REQUEST_ID
+	ULONG iPriority;					/// Can be ANY_PRIORITY
+	GUI_MODE iMode;
+	HWND hTitleWnd;						/// Can be NULL
+	HWND hStatusWnd;					/// Can be NULL
+	HWND hProgressWnd;					/// Can be NULL
+	LPCTSTR pszTitleText;				/// Can be NULL
+	LPCTSTR pszTitleMultiText;			/// Can be NULL
+	LPCTSTR pszStatusText;				/// Can be NULL
+	LPCTSTR pszStatusMultiText;			/// Can be NULL
+	BOOLEAN bAbort;
+	LPCTSTR pszAbortTitle;				/// Can be NULL
+	LPCTSTR pszAbortMsg;				/// Can be NULL
+} GUI_WAIT_PARAM, *PGUI_WAIT_PARAM;
+
+#define GuiWaitParamInit(Wait) \
+	MyZeroMemory( &Wait, sizeof( Wait ) ); \
+	Wait.iID = ANY_REQUEST_ID; \
+	Wait.iPriority = ANY_PRIORITY; \
+	Wait.iMode = GUI_MODE_PAGE;
+
+#define GuiWaitParamDestroy(Wait) \
+	MyFree( Wait.pszTitleText ); \
+	MyFree( Wait.pszTitleMultiText ); \
+	MyFree( Wait.pszStatusText ); \
+	MyFree( Wait.pszStatusMultiText ); \
+	MyFree( Wait.pszAbortTitle ); \
+	MyFree( Wait.pszAbortMsg ); \
+	MyZeroMemory( &Wait, sizeof( Wait ) );
+
+
 /// Returns Win32 error code
 ULONG GuiWait(
-	__in UINT iID,					/// Can be ANY_REQUEST_ID
-	__in ULONG iPriority,
-	__in GUI_MODE iMode,
-	__in_opt HWND hTitleWnd,
-	__in_opt HWND hStatusWnd,
-	__in_opt HWND hProgressWnd,
-	__in_opt LPCTSTR pszTitleText,
-	__in_opt LPCTSTR pszTitleMultiText,
-	__in_opt LPCTSTR pszStatusText,
-	__in_opt LPCTSTR pszStatusMultiText,
-	__in_opt BOOLEAN bAbort,
-	__in_opt LPCTSTR pszAbortTitle,
-	__in_opt LPCTSTR pszAbortMsg
+	__in PGUI_WAIT_PARAM pParam
 	);

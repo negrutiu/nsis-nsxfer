@@ -343,6 +343,41 @@ Section "Request: CCleaner"
 SectionEnd
 
 
+Section "Transfer: SysinternalsSuite (nefertiti)"
+	SectionIn 1	; All
+	!insertmacro STACK_VERIFY_START
+	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
+	!define /redef FILE "$EXEDIR\_SysinternalsSuite (September 11, 2014)_Transfer.zip"
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "Are you sure?"
+	Push "Abort"
+	Push "/ABORT"
+	Push "Popup"
+	Push "/MODE"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	Push "GET"
+	Push "/METHOD"
+	Push 10
+	Push "/PRIORITY"
+	CallInstDLL "${NSXFER}" "Transfer"
+!else
+	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /METHOD GET /URL "${LINK}" /LOCAL "${FILE}" /MODE P /ABORT "Abort" "Are you sure?" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!endif
+	Pop $0	; Status code
+	DetailPrint '    Status: $0'
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
 Section "Request: SysinternalsSuite (proxy)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START

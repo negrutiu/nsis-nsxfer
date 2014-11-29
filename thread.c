@@ -14,9 +14,9 @@
 
 
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread );
-VOID ThreadDownload( _Inout_ PQUEUE_ITEM pReq );
-ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pReq, _In_ ULONG iError );
-ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pReq );
+VOID ThreadDownload( _Inout_ PQUEUE_REQUEST pReq );
+ULONG ThreadSetWin32Error( _Inout_ PQUEUE_REQUEST pReq, _In_ ULONG iError );
+ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_REQUEST pReq );
 
 
 //++ ThreadIsTerminating
@@ -47,7 +47,7 @@ BOOL ThreadSleep(_In_ PTHREAD pThread, _In_ ULONG iMilliseconds)
 DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 {
 	HANDLE handles[2];
-	PQUEUE_ITEM pReq;
+	PQUEUE_REQUEST pReq;
 
 	assert( pThread );
 	assert( pThread->hTermEvent );
@@ -148,7 +148,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 	_In_ DWORD dwStatusInformationLength
 	)
 {
-	PQUEUE_ITEM pReq = (PQUEUE_ITEM)dwContext;
+	PQUEUE_REQUEST pReq = (PQUEUE_REQUEST)dwContext;
 
 	/// Remember the status
 	pReq->iLastCallbackStatus = dwInternetStatus;
@@ -294,7 +294,7 @@ void CALLBACK ThreadDownload_StatusCallback(
 
 
 //++ ThreadDownload_CloseSession
-VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_ITEM pReq )
+VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_REQUEST pReq )
 {
 	assert( pReq );
 	assert( pReq->hSession );
@@ -307,7 +307,7 @@ VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload_OpenSession
-BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_ITEM pReq )
+BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 {
 	DWORD err = ERROR_SUCCESS;
 	assert( pReq );
@@ -356,7 +356,7 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload_RemoteDisconnect
-VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_ITEM pReq )
+VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_REQUEST pReq )
 {
 	assert( pReq );
 
@@ -372,7 +372,7 @@ VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload_RemoteConnect
-BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pReq, _In_ BOOL bReconnecting )
+BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bReconnecting )
 {
 	BOOL bRet = FALSE;
 	DWORD dwStartTime;
@@ -662,7 +662,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_ITEM pReq, _In_ BOOL bReconnec
 
 
 //++ ThreadDownload_LocalCreate1
-ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pReq )
+ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_REQUEST pReq )
 {
 	///
 	/// NOTE:
@@ -737,7 +737,7 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload_LocalCreate2
-ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pReq )
+ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 {
 	///
 	/// NOTE:
@@ -841,7 +841,7 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload_LocalClose
-BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pReq )
+BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_REQUEST pReq )
 {
 	BOOL bRet = TRUE;
 
@@ -875,7 +875,7 @@ BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload_RefreshSpeed
-void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pReq, _In_ BOOL bXferFinished )
+void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bXferFinished )
 {
 	BOOL bFormatString = FALSE;
 	assert( pReq );
@@ -920,7 +920,7 @@ void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_ITEM pReq, _In_ BOOL bXferFinis
 
 
 //++ ThreadDownload_Transfer
-BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pReq )
+BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 {
 	DWORD err = ERROR_SUCCESS;
 
@@ -1086,7 +1086,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadDownload
-VOID ThreadDownload( _Inout_ PQUEUE_ITEM pReq )
+VOID ThreadDownload( _Inout_ PQUEUE_REQUEST pReq )
 {
 	assert( pReq );
 	TRACE(
@@ -1141,7 +1141,7 @@ VOID ThreadDownload( _Inout_ PQUEUE_ITEM pReq )
 
 
 //++ ThreadSetWin32Error
-ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pReq, _In_ ULONG iError )
+ULONG ThreadSetWin32Error( _Inout_ PQUEUE_REQUEST pReq, _In_ ULONG iError )
 {
 	assert( pReq );
 	if (pReq->iWin32Error != iError) {
@@ -1171,7 +1171,7 @@ ULONG ThreadSetWin32Error( _Inout_ PQUEUE_ITEM pReq, _In_ ULONG iError )
 
 
 //++ ThreadSetHttpStatus
-ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_ITEM pReq )
+ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_REQUEST pReq )
 {
 	ULONG iHttpStatus = 0;
 

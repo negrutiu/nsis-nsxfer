@@ -1,6 +1,88 @@
 
-NSxfer - NSIS WinInet transfer plugin
+NSxfer - NSIS WinINet Plugin
 Marius Negruțiu (marius.negrutiu@gmail.com)
+_________________________________________________________________________________________________
+
+Features:
+- Multi-threaded: download multiple files in parallel
+- Asynchronous: start a download now, check its status later
+- Aggressive: multiple attempts to connect, multiple attempts to reconnect, resume interrupted transfers, etc
+- NSIS aware: download files at any installation stage (from .onInit, from Sections, from custom pages, silent installers, etc)
+- Informative: plenty of useful information is available for each download (size, speed, HTTP status, HTTP headers, etc)
+- Supports all relevant HTTP methods (GET, POST, HEAD, etc)
+- Supports custom HTTP headers and data
+- Supports proxy servers (both authenticated and open)
+- Supports files larger than 4GB
+- Can download remote content to memory
+- Many more...
+
+Examples:
+	# Quick transfer, single file
+	NSxfer::Transfer /NOUNLOAD /URL "http://MyServer" /LOCAL "$TEMP\MyFile" /MODE Page /ABORT "Abort Title" "Are you sure?" /END
+	Pop $0 ; Status text ("OK" for success)
+	DetailPrint "Status: $0"
+
+	# Parallel transfer, multiple files
+	; Start the downloads
+	NSxfer::Request /NOUNLOAD /URL "http://MyServer1" /LOCAL "$TEMP\MyFile1" /END
+	Pop $1 ; Request ID1
+	NSxfer::Request /NOUNLOAD /URL "http://MyServer2" /LOCAL "$TEMP\MyFile2" /END
+	Pop $2 ; Request ID2
+	NSxfer::Request /NOUNLOAD /URL "http://MyServer3" /LOCAL "$TEMP\MyFile3" /END
+	Pop $3 ; Request ID3
+	
+	; ...do other useful stuff...
+	
+	; Wait for downloads to complete
+	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
+
+	; Query status (1)
+	NSxfer::Query /NOUNLOAD $1 /ERRORCODE /END
+	Pop $0 ; Error code (HTTP status 200-299 for success)
+	DetailPrint "Status1: $0"
+	; Query status (2)
+	NSxfer::Query /NOUNLOAD $2 /ERRORCODE /END
+	Pop $0 ; Error code (HTTP status 200-299 for success)
+	DetailPrint "Status2: $0"
+	; Query status (3)
+	NSxfer::Query /NOUNLOAD $3 /ERRORCODE /END
+	Pop $0 ; Error code (HTTP status 200-299 for success)
+	DetailPrint "Status3: $0"
+
+	; ...you got the idea...
+_________________________________________________________________________________________________
+
+NSxfer::Transfer	/NOUNLOAD
+					[/PRIORITY prio]
+					[/METHOD GET|POST]
+					/URL url
+					[/LOCAL file|MEMORY|NONE]
+					[/HEADERS hdr]
+					[/DATA data | /DATAFILE file]
+					[/TIMEOUTCONNECT msec] [/TIMEOUTRECONNECT msec]
+					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
+					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
+					[/REFERER url]
+					[/MODE SILENT|POPUP|PAGE]
+					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
+					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
+					[/ABORT Title Message]
+					/END
+
+Remarks:
+	Make a (single) HTTP request, wait for it to complete and return the status code (Request + Wait + Query).
+	This routine is recommended if you only need to transfer one file at a time.
+
+	To transfer multiple files in parallel, you must use lower level functions (Request(1) + Request(2) + ... + Request(n) + Wait + Query)
+	
+Parameters:
+	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
+	...							| See below for "Request" parameters
+	...							| See below for "Wait" parameters
+	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
+
+Return:
+	[Stack] "OK" for successful transfers, or an error string (HTTP or Win32) otherwise
 _________________________________________________________________________________________________
 
 NSxfer::Request		/NOUNLOAD
@@ -19,7 +101,7 @@ NSxfer::Request		/NOUNLOAD
 Remarks:
 	Add a transfer request to the queue.
 	The transfer will start as soon as a worker thread becomes available.
-	This command will not display any GUI.
+	This command will not display any GUI by itself.
 	
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
@@ -196,7 +278,7 @@ NSxfer::Enumerate	/NOUNLOAD
 					/END
 
 Remarks:
-	Enumerate the transfer requests in the queue.
+	Enumerate transfer requests from the queue.
 	Be aware that completed requests remain in queue. They can be filtered out using /STATUS
 
 Parameters:
@@ -235,7 +317,7 @@ NSxfer::Query	/NOUNLOAD
 				/END
 
 Remarks:
-	Query information about a specific request.
+	Query information about a specific transfer request.
 
 Parameters:
 	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
