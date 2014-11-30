@@ -238,3 +238,30 @@ DWORD ReadVersionInfoString(
 	}
 	return err;
 }
+
+
+//++ BinaryToString
+ULONG BinaryToString(
+	__in LPVOID pData, __in ULONG iDataSize,
+	__out LPTSTR pszStr, __in ULONG iStrLen
+	)
+{
+	ULONG iLen = 0;
+	if (pszStr && iStrLen) {
+		pszStr[0] = _T( '\0' );
+		if (pData) {
+			ULONG i, n;
+			CHAR ch;
+			for (i = 0, n = (ULONG)__min( iDataSize, iStrLen - 1 ); i < n; i++) {
+				ch = ((PCH)pData)[i];
+				if ((ch >= 32 /*&& ch < 127*/) || ch == '\r' || ch == '\n') {
+					pszStr[i] = ch;
+				} else {
+					pszStr[i] = _T( '.' );
+				}
+			}
+			pszStr[i] = _T( '\0' );
+		}
+	}
+	return iLen;
+}

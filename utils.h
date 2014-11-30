@@ -90,3 +90,6 @@ ULONG MyTimeDiff( __in PFILETIME pEndTime, __in PFILETIME pStartTime );
 
 //+ ReadVersionInfoString
 DWORD ReadVersionInfoString( __in_opt LPCTSTR szFile, __in LPCTSTR szStringName, __out LPTSTR szStringValue, __in UINT iStringValueLen );
+
+//+ BinaryToString
+ULONG BinaryToString( __in LPVOID pData, __in ULONG iDataSize, __out LPTSTR pszStr, __in ULONG iStrLen );

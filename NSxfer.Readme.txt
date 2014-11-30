@@ -311,7 +311,7 @@ NSxfer::Query	/NOUNLOAD
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
 				[/SENTHEADERS] [/RECVHEADERS]
 				[/FILESIZE] [/RECVSIZE] [/PERCENT] [/SPEEDBYTES] [/SPEED]
-				[/CONTENT]
+				[/CONTENT] [/DATA]
 				[/TIMEWAITING] [/TIMEDOWNLOADING]
 				[/ERRORCODE] [/ERRORTEXT]
 				/END
@@ -338,6 +338,7 @@ Parameters:
 	/SPEED					| Transfer speed (nicely formatted, ex: "1,4 MB/s")
 	/SPEEDBYTES				| Transfer speed (bytes/second)
 	/CONTENT				| Retrieves the remote content (max NSIS_MAX_STRLEN) downloaded to memory. Non-printable characters will be replaced with '.'
+	/DATA					| Retrieves the data sent to the server (max NSIS_MAX_STRLEN). Non-printable characters will be replaced with '.'
 	/TIMEWAITING			| Amount of time (milliseconds) spent waiting in queue
 	/TIMEDOWNLOADING		| Amount of time (milliseconds) spent transferring
 	/ERRORCODE				| Win32 error code, or HTTP status code

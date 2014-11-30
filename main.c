@@ -505,6 +505,9 @@ void __cdecl Query(
 			} else if (lstrcmpi( pParam[i], _T( "/CONTENT" ) ) == 0) {
 				RequestMemoryToString( pReq, psz, string_size );
 				pushstring( psz );
+			} else if (lstrcmpi( pParam[i], _T( "/DATA" ) ) == 0) {
+				RequestDataToString( pReq, psz, string_size );
+				pushstring( psz );
 			} else if (lstrcmpi( pParam[i], _T( "/TIMEWAITING" ) ) == 0) {
 				switch (pReq->iStatus) {
 				case REQUEST_STATUS_WAITING:

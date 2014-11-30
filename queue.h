@@ -178,11 +178,8 @@ typedef struct _QUEUE_REQUEST {
 	(Prio == ANY_PRIORITY || Prio == pReq->iPriority) && \
 	(Status == ANY_STATUS || Status == pReq->iStatus)
 
-BOOL RequestMemoryToString(
-	_In_ PQUEUE_REQUEST pReq,
-	_Out_ LPTSTR pszString,
-	_In_ ULONG iStringLen
-	);
+BOOL RequestMemoryToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_ ULONG iStringLen );
+BOOL RequestDataToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_ ULONG iStringLen );
 
 
 //++ struct QUEUE

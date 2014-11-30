@@ -397,27 +397,28 @@ BOOL RequestMemoryToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _I
 {
 	BOOL bRet = FALSE;
 	if (pReq && pszString && iStringLen) {
-		pszString[0] = 0;
+		pszString[0] = _T( '\0' );
 		if (pReq->iLocalType == REQUEST_LOCAL_MEMORY) {
 			if (pReq->iStatus == REQUEST_STATUS_DONE) {
 				if (pReq->iWin32Error == ERROR_SUCCESS && (pReq->iHttpStatus >= 200 && pReq->iHttpStatus < 300)) {
 					if (pReq->iFileSize > 0 && pReq->iFileSize != INVALID_FILE_SIZE64) {
-						ULONG i, n;
-						CHAR ch;
-						for (i = 0, n = (ULONG)__min( iStringLen - 1, pReq->iFileSize ); i < n; i++) {
-							ch = pReq->Local.pMemory[i];
-							if ((ch >= 32 /*&& ch < 127*/) || ch == '\r' || ch == '\n') {
-								pszString[i] = pReq->Local.pMemory[i];
-							} else {
-								pszString[i] = _T( '.' );
-							}
-						}
-						pszString[i] = 0;	/// NULL terminator
+						BinaryToString( pReq->Local.pMemory, (ULONG)pReq->iFileSize, pszString, iStringLen );
 						bRet = TRUE;
 					}
 				}
 			}
 		}
+	}
+	return bRet;
+}
+
+
+BOOL RequestDataToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_ ULONG iStringLen )
+{
+	BOOL bRet = FALSE;
+	if (pReq && pszString && iStringLen) {
+		BinaryToString( pReq->pData, pReq->iDataSize, pszString, iStringLen );
+		bRet = TRUE;
 	}
 	return bRet;
 }
