@@ -271,12 +271,13 @@ void __cdecl QueryGlobal(
 {
 	LPTSTR psz;
 	LPTSTR pParam[30];
+	PQUEUE_REQUEST pReq;
 	int iParamCount = 0, iDropCount = 0, i;
 
 	ULONG iTotalThreads;
-	ULONG iTotalCount, iTotalCompleted, iTotalDownloading, iTotalWaiting;
-	ULONG64 iTotalRecvBytes;
-	ULONG iTotalSpeed;
+	ULONG iTotalCount = 0, iTotalCompleted = 0, iTotalDownloading = 0, iTotalWaiting = 0;
+	ULONG64 iTotalRecvBytes = 0;
+	ULONG iTotalSpeed = 0;
 
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
@@ -291,24 +292,32 @@ void __cdecl QueryGlobal(
 	QueueLock( &g_Queue );
 
 	/// Statistics
-	QueueStatistics(
-		&g_Queue,
-		&iTotalThreads,
-		&iTotalCount, &iTotalCompleted, &iTotalDownloading, &iTotalWaiting,
-		&iTotalRecvBytes, &iTotalSpeed
-		);
+	iTotalThreads = (ULONG)g_Queue.iThreadCount;
+	for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
+		iTotalCount++;
+		if (pReq->iStatus == REQUEST_STATUS_DONE)
+			iTotalCompleted++;
+		if (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
+			iTotalDownloading++;
+		if (pReq->iStatus == REQUEST_STATUS_WAITING)
+			iTotalWaiting++;
+		iTotalRecvBytes += pReq->iRecvSize;
+		if (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
+			iTotalSpeed += pReq->Speed.iSpeed;
+	}
 
-	/// Pop all parameters and remember them
+	/// Parameters
 	while (TRUE) {
 		if (popstring( psz ) != 0)
 			break;
 		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
 			break;
 		if (iParamCount < ARRAYSIZE( pParam )) {
+			/// Remember this parameter
 			MyStrDup( pParam[iParamCount], psz );
 			iParamCount++;
 		} else {
-			/// too many parameters
+			/// Too many parameters
 			iDropCount++;
 		}
 	}
@@ -397,27 +406,30 @@ void __cdecl Query(
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	assert( psz );
 
-	// Lock the queue
+	/// Lock
 	QueueLock( &g_Queue );
 
-	/// Look for the request ID
-	i = popint();
-	for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext)
-		if (pReq->iId == (ULONG)i)
-			break;
-
-	/// Pop all parameters and remember them
+	/// Parameters
 	while (TRUE) {
 		if (popstring( psz ) != 0)
 			break;
 		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
 			break;
-		if (iParamCount < ARRAYSIZE( pParam )) {
-			MyStrDup( pParam[iParamCount], psz );
-			iParamCount++;
+
+		if (lstrcmpi( psz, _T( "/ID" ) ) == 0) {
+			i = popint();
+			for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext)
+				if (pReq->iId == (ULONG)i)	/// Request found in queue
+					break;
 		} else {
-			/// too many parameters
-			iDropCount++;
+			if (iParamCount < ARRAYSIZE( pParam )) {
+				/// Remember this parameter
+				MyStrDup( pParam[iParamCount], psz );
+				iParamCount++;
+			} else {
+				/// Too many parameters
+				iDropCount++;
+			}
 		}
 	}
 
@@ -546,7 +558,7 @@ void __cdecl Query(
 		MyFree( pParam[i] );
 	}
 
-	// Unlock the queue
+	/// Unlock
 	QueueUnlock( &g_Queue );
 
 	MyFree( psz );

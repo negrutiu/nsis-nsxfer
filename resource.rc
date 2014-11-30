@@ -30,8 +30,8 @@ END
 //
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 VS_VERSION_INFO VERSIONINFO
-	FILEVERSION     1,2014,11,29
-    PRODUCTVERSION  1,2014,11,29
+	FILEVERSION     1,2014,11,30
+    PRODUCTVERSION  1,2014,11,30
     FILEOS          VOS_NT_WINDOWS32
     FILETYPE        VFT_DLL
     FILESUBTYPE     VFT2_UNKNOWN
@@ -44,12 +44,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Marius Negrutiu (marius.negrutiu@gmail.com)"
             VALUE "FileDescription", "NSIS WinINet Plugin"
-            VALUE "FileVersion", "1.2014.11.29"
+            VALUE "FileVersion", "1.2014.11.30"
             VALUE "InternalName", "NSxfer.dll"
             VALUE "LegalCopyright", "(C)2014, by Marius Negrutiu. All rights reserved."
             VALUE "OriginalFilename", "NSxfer.dll"
             VALUE "ProductName", "NSIS WinINet Plugin"
-            VALUE "ProductVersion", "1.2014.11.29"
+            VALUE "ProductVersion", "1.2014.11.30"
         END
     END
     BLOCK "VarFileInfo"

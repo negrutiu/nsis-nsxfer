@@ -393,60 +393,6 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue )
 }
 
 
-BOOL QueueStatistics(
-	_In_ PQUEUE pQueue,
-	_Out_opt_ PULONG piThreadCount,
-	_Out_opt_ PULONG piTotalCount,
-	_Out_opt_ PULONG piTotalDone,
-	_Out_opt_ PULONG piTotalDownloading,
-	_Out_opt_ PULONG piTotalWaiting,
-	_Out_opt_ PULONG64 piTotalRecvSize,
-	_Out_opt_ PULONG piTotalSpeed
-	)
-{
-	BOOL bRet = TRUE;
-	assert( pQueue );
-	if (pQueue) {
-		PQUEUE_REQUEST pReq;
-
-		if (piThreadCount)
-			*piThreadCount = (ULONG)pQueue->iThreadCount;
-
-		if (piTotalCount)
-			*piTotalCount = 0;
-		if (piTotalDone)
-			*piTotalDone = 0;
-		if (piTotalDownloading)
-			*piTotalDownloading = 0;
-		if (piTotalWaiting)
-			*piTotalWaiting = 0;
-		if (piTotalRecvSize)
-			*piTotalRecvSize = 0;
-		if (piTotalSpeed)
-			*piTotalSpeed = 0;
-
-		for (pReq = pQueue->pHead; pReq; pReq = pReq->pNext) {
-			if (piTotalCount)
-				(*piTotalCount)++;
-			if (piTotalDone && (pReq->iStatus == REQUEST_STATUS_DONE))
-				(*piTotalDone)++;
-			if (piTotalDownloading && (pReq->iStatus == REQUEST_STATUS_DOWNLOADING))
-				(*piTotalDownloading)++;
-			if (piTotalWaiting && (pReq->iStatus == REQUEST_STATUS_WAITING))
-				(*piTotalWaiting)++;
-			if (piTotalRecvSize)
-				*piTotalRecvSize += pReq->iRecvSize;
-			if (piTotalSpeed && (pReq->iStatus == REQUEST_STATUS_DOWNLOADING))
-				*piTotalSpeed += pReq->Speed.iSpeed;
-		}
-
-	} else {
-		bRet = FALSE;
-	}
-	return bRet;
-}
-
-
 BOOL RequestMemoryToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_ ULONG iStringLen )
 {
 	BOOL bRet = FALSE;

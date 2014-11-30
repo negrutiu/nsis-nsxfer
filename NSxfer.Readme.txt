@@ -37,15 +37,15 @@ Examples:
 	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
 
 	; Query status (1)
-	NSxfer::Query /NOUNLOAD $1 /ERRORCODE /END
+	NSxfer::Query /NOUNLOAD /ID $1 /ERRORCODE /END
 	Pop $0 ; Error code (HTTP status 200-299 for success)
 	DetailPrint "Status1: $0"
 	; Query status (2)
-	NSxfer::Query /NOUNLOAD $2 /ERRORCODE /END
+	NSxfer::Query /NOUNLOAD /ID $2 /ERRORCODE /END
 	Pop $0 ; Error code (HTTP status 200-299 for success)
 	DetailPrint "Status2: $0"
 	; Query status (3)
-	NSxfer::Query /NOUNLOAD $3 /ERRORCODE /END
+	NSxfer::Query /NOUNLOAD /ID $3 /ERRORCODE /END
 	Pop $0 ; Error code (HTTP status 200-299 for success)
 	DetailPrint "Status3: $0"
 
@@ -305,7 +305,7 @@ Example:
 _________________________________________________________________________________________________
 
 NSxfer::Query	/NOUNLOAD
-				ID
+				/ID id
 				[/PRIORITY]
 				[/STATUS] [/WININETSTATUS]
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
@@ -321,7 +321,7 @@ Remarks:
 
 Parameters:
 	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	ID						| The request ID returned by NSxfer::Request
+	/ID id					| The request ID returned by NSxfer::Request
 	/PRIORITY				| Request priority
 	/STATUS					| Request status (downloading|waiting|completed)
 	/WININETSTATUS			| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
@@ -352,7 +352,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSxfer::Query /NOUNLOAD $ID /STATUS /URL /PERCENT /SPEED /END
+	NSxfer::Query /NOUNLOAD /ID $varID /STATUS /URL /PERCENT /SPEED /END
 	Pop $0	;Status
 	Pop $1	;URL
 	Pop $2	;Percent

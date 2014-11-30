@@ -241,16 +241,3 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq );
 // Retrieve the queue size
 // The queue must be locked
 ULONG QueueSize( _Inout_ PQUEUE pQueue );
-
-// Retrieve queue statistics
-// The queue must be locked
-BOOL QueueStatistics(
-	_In_ PQUEUE pQueue,
-	_Out_opt_ PULONG piThreadCount,
-	_Out_opt_ PULONG piTotalCount,
-	_Out_opt_ PULONG piTotalDone,
-	_Out_opt_ PULONG piTotalDownloading,
-	_Out_opt_ PULONG piTotalWaiting,
-	_Out_opt_ PULONG64 piTotalRecvSize,
-	_Out_opt_ PULONG piTotalSpeed				/// Combined transfer speed in bytes/s
-	);
