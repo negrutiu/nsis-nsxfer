@@ -161,67 +161,100 @@ Function PrintStatus
 		Push "/RECVSIZE"
 		Push "/RECVHEADERS"
 		Push "/SENTHEADERS"
+		Push "/DATA"
 		Push "/LOCAL"
-		Push "/PROXY"
 		Push "/IP"
+		Push "/PROXY"
 		Push "/URL"
 		Push "/METHOD"
 		Push "/WININETSTATUS"
 		Push "/STATUS"
+		Push "/PRIORITY"
 		Push $2	; Request ID
 		Push "/ID"
 		CallInstDLL "${NSXFER}" "Query"
 !else
-		NSxfer::Query /NOUNLOAD /ID $2 /STATUS /WININETSTATUS /METHOD /URL /IP /PROXY /LOCAL /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
+		NSxfer::Query /NOUNLOAD /ID $2 /PRIORITY /STATUS /WININETSTATUS /METHOD /URL /PROXY /IP /LOCAL /DATA /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
 !endif
 
-		StrCpy $R0 "    ID:$2"
+		StrCpy $R0 "[>] ID:$2"
+		Pop $3 ;PRIORITY
+		StrCpy $R0 "$R0, Prio:$3"
 		Pop $3 ;STATUS
-		StrCpy $R0 "$R0 [$3]"
+		StrCpy $R0 "$R0, [$3]"
 		Pop $3 ;WININETSTATUS
-		;StrCpy $R0 "$R0 [$3]"
+		StrCpy $R0 "$R0, WinINet:$3"
+		DetailPrint $R0
+
+		StrCpy $R0 "  [Request]"
 		Pop $3 ;METHOD
 		StrCpy $R0 "$R0 $3"
 		Pop $3 ;URL
 		StrCpy $R0 "$R0 $3"
-		Pop $3 ;IP
-		StrCmp $3 "" +2 +1
-			StrCpy $R0 "$R0 [$3]"
+		DetailPrint $R0
+
 		Pop $3 ;PROXY
 		StrCmp $3 "" +2 +1
-			StrCpy $R0 "$R0 [Proxy:$3]"
+			DetailPrint "  [Proxy] $3"
+		Pop $3 ;IP
+		StrCmp $3 "" +2 +1
+			DetailPrint "  [Server] $3"
+
 		Pop $3 ;LOCAL
-		;StrCpy $R0 "$R0 -> $3"
+		DetailPrint "  [Local] $3"
+
+		Pop $3 ;DATA
+		${If} $3 != ""
+			${StrRep} $3 "$3" "$\r" "\r"
+			${StrRep} $3 "$3" "$\n" "\n"
+			DetailPrint "  [Sent Data] $3"
+		${EndIf}
 		Pop $3 ;SENTHEADERS
-		;StrCpy $R0 "$R0 [$3]"
+		${If} $3 != ""
+			${StrRep} $3 "$3" "$\r" "\r"
+			${StrRep} $3 "$3" "$\n" "\n"
+			DetailPrint "  [Sent Headers] $3"
+		${EndIf}
 		Pop $3 ;RECVHEADERS
-		;StrCpy $R0 "$R0 [$3]"
+		${If} $3 != ""
+			${StrRep} $3 "$3" "$\r" "\r"
+			${StrRep} $3 "$3" "$\n" "\n"
+			DetailPrint "  [Recv Headers] $3"
+		${EndIf}
+
+		StrCpy $R0 "  [Size]"
 		Pop $3 ;RECVSIZE
 		StrCpy $R0 "$R0 $3"
 		Pop $3 ;FILESIZE
 		StrCpy $R0 "$R0/$3"
 		Pop $3 ;PERCENT
-		StrCpy $R0 "$R0($3%)"
+		StrCpy $R0 "$R0 ($3%)"
 		Pop $3 ;SPEEDBYTES
-		;StrCpy $R0 "$R0 [$3]"
 		Pop $3 ;SPEED
-		StrCpy $R0 "$R0 @ $3"
+		StrCmp $3 "" +2 +1
+			StrCpy $R0 "$R0 @ $3"
+		DetailPrint "$R0"
+
+		StrCpy $R0 "  [Time]"
 		Pop $3 ;TIMEWAITING
-		StrCpy $R0 "$R0 (wait:$3ms"
+		StrCpy $R0 "$R0 Waiting $3ms"
 		Pop $3 ;TIMEDOWNLOADING
-		StrCpy $R0 "$R0, dnld:$3ms)"
+		StrCpy $R0 "$R0, Downloading $3ms"
+		DetailPrint "$R0"
+
+		StrCpy $R0 "  [Error]"
 		Pop $3 ;ERRORCODE
-		StrCpy $R0 "$R0 = $3"
+		StrCpy $R0 "$R0 $3"
 		Pop $3 ;ERRORTEXT
-		StrCpy $R0 '$R0 "$3"'
+		StrCpy $R0 "$R0, $3"
+		DetailPrint "$R0"
+
 		Pop $3 ;CONTENT
 		${If} $3 != ""
 			${StrRep} $3 "$3" "$\r" "\r"
 			${StrRep} $3 "$3" "$\n" "\n"
-			StrCpy $R0 '$R0 Content:$3'
+			DetailPrint "  [Content] $3"
 		${EndIf}
-
-		DetailPrint $R0
 	${Next}
 
 !ifdef ENABLE_DEBUGGING
