@@ -5,12 +5,14 @@
 !endif
 
 !include "MUI2.nsh"
-
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
+!include "Sections.nsh"
 
 !include "StrFunc.nsh"
 ${StrRep}			; Declare function in advance
+
+!define /ifndef NULL 0
 
 ; Enable debugging
 ; Call NSxfer functins with CallInstDLL
@@ -53,7 +55,9 @@ ${StrRep}			; Declare function in advance
 # Components page
 InstType "All"		; 1
 InstType "None"		; 2
+;!define MUI_COMPONENTSPAGE_CHECKBITMAP "${NSISDIR}\Contrib\Graphics\Checks\simple.bmp"
 !define MUI_COMPONENTSPAGE_NODESC
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW .onComponentsPage.Show
 !insertmacro MUI_PAGE_COMPONENTS
 
 # Installation page
@@ -117,6 +121,82 @@ Function .onInit
 	Push "/MODE"
 	CallInstDLL "${NSXFER}" "Wait"*/
 
+FunctionEnd
+
+
+# Input:
+#   [Param] (HWND) _hDlg
+#   [Param] (HWND) _hCtrl
+#   [Param] Output variable to receive the Left coordinate
+#   [Param] Output variable to receive the Top coordinate
+#   [Param] Output variable to receive the Right coordinate
+#   [Param] Output variable to receive the Bottom coordinate
+# Output:
+#   Output variables will receive the control rectangle (in dialog coordinates)
+!define GetDlgItemRect `!insertmacro GetDlgItemRect`
+!macro GetDlgItemRect _hDlg _hCtrl _OutLeft _OutTop _OutRight _OutBottom
+    Push $R2
+    System::Call "*(i, i, i, i) p.r12"		; $R2 = malloc( struct RECT)
+    System::Call 'User32::GetWindowRect( p ${_hCtrl}, p r12 ) i'
+    System::Call 'User32::ScreenToClient( p ${_hDlg}, p r12 ) i'
+    Push $R1
+		IntOp $R1 $R2 + 8 ;sizeof(POINT)*2 = 8
+		System::Call 'User32::ScreenToClient( p ${_hDlg}, p r11 ) i'
+	Pop $R1
+    System::Call '*$R2( i .s, i .s, i .s, i .s )'
+    System::Free $R2
+    Exch 4		; Exchange stack index 4 ($R2) with the top of the stack (rect.left)
+    Pop $R2
+    Pop ${_OutTop}
+    Pop ${_OutRight}
+    Pop ${_OutBottom}
+    Pop ${_OutLeft}
+!macroend
+
+
+Function .onComponentsPage.Show
+	; Hide all controls except for $mui.ComponentsPage.Components
+	ShowWindow $mui.ComponentsPage.Text ${SW_HIDE}
+	ShowWindow $mui.ComponentsPage.InstTypesText ${SW_HIDE}
+	ShowWindow $mui.ComponentsPage.ComponentsText ${SW_HIDE}
+
+	;ShowWindow $mui.ComponentsPage.Components ${SW_SHOW}
+
+	ShowWindow $mui.ComponentsPage.DescriptionTitle ${SW_HIDE}
+	ShowWindow $mui.ComponentsPage.DescriptionText.Info ${SW_HIDE}
+	ShowWindow $mui.ComponentsPage.DescriptionText ${SW_HIDE}
+
+	ShowWindow $mui.ComponentsPage.SpaceRequired ${SW_HIDE}
+
+	Push $1
+	Push $2
+	Push $3
+	Push $4
+	Push $5
+	Push $6
+
+	${GetDlgItemRect} $mui.ComponentsPage $mui.ComponentsPage.InstTypes $1  $2  $3  $4
+	IntOp $5 $4 - $2	; InstTypes combo box height
+	IntOp $6 $5 / 4		; InstTypes height / 4
+
+	; Reposition $mui.ComponentsPage.InstTypes
+	${GetDlgItemRect} $mui.ComponentsPage $mui.ComponentsPage $1  $2  $3  $4
+	System::Call 'user32::SetWindowPos( p $mui.ComponentsPage.InstTypes, p ${NULL}, i $1, i $2, i 150, i $4, i 0 ) i.r0'
+
+	; Resize $mui.ComponentsPage.Components to fill the entire page
+	${GetDlgItemRect} $mui.ComponentsPage $mui.ComponentsPage $1  $2  $3  $4
+	IntOp $2 $2 + $5
+	IntOp $2 $2 + $6
+	IntOp $4 $4 - $5
+	IntOp $4 $4 - $6
+	System::Call 'user32::SetWindowPos( p $mui.ComponentsPage.Components, p ${NULL}, i $1, i $2, i $3, i $4, i 0 ) i.r0'
+
+	Pop $6
+	Pop $5
+	Pop $4
+	Pop $3
+	Pop $2
+	Pop $1
 FunctionEnd
 
 
@@ -294,7 +374,7 @@ Function PrintStatus
 
 FunctionEnd
 
-
+/*
 Section Test
 	SectionIn 1	; All
 !ifdef ENABLE_DEBUGGING
@@ -303,9 +383,9 @@ Section Test
 	NSxfer::Test /NOUNLOAD
 !endif
 SectionEnd
+*/
 
-
-Section "Request: Nefertiti.html"
+Section "Request: Nefertiti.html (HTTPS)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://nefertiti`
@@ -377,7 +457,7 @@ Section "Request: CCleaner"
 SectionEnd
 
 
-Section "Transfer: SysinternalsSuite (nefertiti)"
+Section "Transfer: SysinternalsSuite (nefertiti, Popup mode)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
@@ -442,7 +522,7 @@ Section "Request: SysinternalsSuite (proxy)"
 SectionEnd
 
 
-Section "Request: SysinternalsSuite (direct)"
+Section "Request: SysinternalsSuite (live)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
@@ -476,6 +556,35 @@ Section "Request: SysinternalsSuite (nefertiti)"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
 	!define /redef FILE "$EXEDIR\_SysinternalsSuite (September 11, 2014).zip"
+	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	Push "GET"
+	Push "/METHOD"
+	Push 10
+	Push "/PRIORITY"
+	CallInstDLL "${NSXFER}" "Request"
+!else
+	NSxfer::Request /NOUNLOAD /PRIORITY 10 /METHOD GET /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /END
+!endif
+	Pop $0	; ItemID
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
+Section "Request: CuckooBox (https://github)"
+	SectionIn 1	; All
+	!insertmacro STACK_VERIFY_START
+	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
+	!define /redef FILE "$EXEDIR\CuckooBox_master.zip"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
@@ -537,7 +646,7 @@ Section "Request: httpbin.org/post"
 SectionEnd
 
 
-Section "Request: httpbin.org/post -> Memory"
+Section "Request: httpbin.org/get -> Memory"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/get?param1=value1&param2=value2`
@@ -564,7 +673,7 @@ Section "Request: httpbin.org/post -> Memory"
 	!insertmacro STACK_VERIFY_END
 SectionEnd
 
-
+/*
 Section /o "Request: Priest.mkv"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://nefertiti.homenet.org:8008/Priest.mkv`
@@ -587,10 +696,31 @@ Section /o "Request: Priest.mkv"
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
 SectionEnd
+*/
 
-
-Section Wait
+Section "Wait (Page mode)" SECTION_WAIT_PAGE
 	SectionIn 1	2 ; All & None
+SectionEnd
+
+Section /o "Wait (Popup mode)" SECTION_WAIT_POPUP
+SectionEnd
+
+Section /o "Wait (Silent mode)" SECTION_WAIT_SILENT
+SectionEnd
+
+Section -Wait
+
+	; Mode
+	${If} ${SectionIsSelected} ${SECTION_WAIT_PAGE}
+		StrCpy $R0 "Page"
+	${ElseIf} ${SectionIsSelected} ${SECTION_WAIT_POPUP}
+		StrCpy $R0 "Popup"
+	${ElseIf} ${SectionIsSelected} ${SECTION_WAIT_SILENT}
+		StrCpy $R0 "Silent"
+	${Else}
+		Return	; Don't wait
+	${EndIf}
+
 	!insertmacro STACK_VERIFY_START
 
 !ifdef ENABLE_DEBUGGING
@@ -600,11 +730,11 @@ Section Wait
 	Push "/ABORT"
 	;Push $HWNDPARENT
 	;Push "/TITLEHWND"
-	Push "PAGE"
+	Push $R0
 	Push "/MODE"
 	CallInstDLL "${NSXFER}" "Wait"
 !else
-	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /NOUNLOAD /MODE $R0 /ABORT "Abort" "Are you sure?" /END
 !endif
 	Pop $0
 
@@ -615,3 +745,22 @@ SectionEnd
 Section -Enum
 	Call PrintStatus
 SectionEnd
+
+
+Function .onSelChange
+	${If} $0 >= 0
+		${If} ${SectionIsSelected} $0
+			${If} $0 == ${SECTION_WAIT_PAGE}
+				!insertmacro UnselectSection ${SECTION_WAIT_POPUP}
+				!insertmacro UnselectSection ${SECTION_WAIT_SILENT}
+			${ElseIf} $0 == ${SECTION_WAIT_POPUP}
+				!insertmacro UnselectSection ${SECTION_WAIT_PAGE}
+				!insertmacro UnselectSection ${SECTION_WAIT_SILENT}
+			${ElseIf} $0 == ${SECTION_WAIT_SILENT}
+				!insertmacro UnselectSection ${SECTION_WAIT_PAGE}
+				!insertmacro UnselectSection ${SECTION_WAIT_POPUP}
+			${EndIf}
+		${Else}
+		${EndIf}
+	${EndIf}
+FunctionEnd
