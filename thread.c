@@ -884,11 +884,13 @@ void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bXferFi
 	if (bXferFinished) {
 
 		ULONG iTimeDiff = MyTimeDiff( &pReq->Xfer.tmEnd, &pReq->Xfer.tmStart );		/// Milliseconds
-		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
+		if (iTimeDiff == 0)
+			iTimeDiff = 1;	/// Prevent accidental division by zero
+///		if (iTimeDiff >= SPEED_MEASURE_INTERVAL) {
 			pReq->Speed.iSpeed = (ULONG)MyDoubleToUlonglong( MyUlonglongToDouble( pReq->Xfer.iXferSize ) / (MyUlonglongToDouble( iTimeDiff ) / 1000.0F) + 0.5F );
-		} else {
-			pReq->Speed.iSpeed = (ULONG)pReq->Xfer.iXferSize;
-		}
+///		} else {
+///			pReq->Speed.iSpeed = (ULONG)pReq->Xfer.iXferSize;
+///		}
 		bFormatString = TRUE;
 
 		pReq->Speed.iChunkTime = 0;
