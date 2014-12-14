@@ -369,6 +369,8 @@ void __cdecl QueryGlobal(
 			if (GetModuleFileName( g_hInst, szPath, ARRAYSIZE( szPath ) ) > 0)
 				ReadVersionInfoString( szPath, _T( "FileVersion" ), szVer, ARRAYSIZE( szVer ) );
 			pushstring( szVer );
+		} else if (lstrcmpi( pParam[i], _T( "/USERAGENT" ) ) == 0) {
+			pushstring( TEXT_USERAGENT );
 		} else {
 			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), pParam[i] );
 			pushstring( _T( "" ) );

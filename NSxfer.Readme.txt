@@ -380,6 +380,7 @@ NSxfer::QueryGlobal /NOUNLOAD
 					[/TOTALSPEED] [/TOTALSPEEDBYTES]
 					[/TOTALTHREADS]
 					[/PLUGINNAME] [/PLUGINVERSION]
+					[/USERAGENT]
 					/END
 
 Remarks:
@@ -398,6 +399,7 @@ Parameters:
 	/TOTALTHREADS			| Worker thread count
 	/PLUGINNAME				| "NSxfer"
 	/PLUGINVERSION			| Version string such as "1.2014.11.16"
+	/USERAGENT				| User agent (ex: "Mozilla/5.0 (Windows; WOW64) xfer/1.0")
 	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:

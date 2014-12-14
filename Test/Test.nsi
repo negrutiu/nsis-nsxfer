@@ -343,6 +343,7 @@ Function PrintStatus
 
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
+	Push "/USERAGENT"
 	Push "/PLUGINVERSION"
 	Push "/PLUGINNAME"
 	Push "/TOTALTHREADS"
@@ -352,7 +353,7 @@ Function PrintStatus
 	Push "/TOTALCOUNT"
 	CallInstDLL "${NSXFER}" "QueryGlobal"
 !else
-	NSxfer::QueryGlobal /NOUNLOAD /TOTALCOUNT /TOTALCOMPLETED /TOTALDOWNLOADING /TOTALSPEED /TOTALTHREADS /PLUGINNAME /PLUGINVERSION /END
+	NSxfer::QueryGlobal /NOUNLOAD /TOTALCOUNT /TOTALCOMPLETED /TOTALDOWNLOADING /TOTALSPEED /TOTALTHREADS /PLUGINNAME /PLUGINVERSION /USERAGENT /END
 !endif
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
@@ -361,9 +362,11 @@ Function PrintStatus
 	Pop $R4 ; Worker threads
 	Pop $1	; Plugin Name
 	Pop $2	; Plugin Version
+	Pop $3	; Useragent
 
 	DetailPrint "Transferring $R1+$R2/$R0 items at $R3 using $R4 worker threads"
-	DetailPrint "$1 $2"
+	DetailPrint "[>] $1 $2"
+	DetailPrint "[>] User agent: $3"
 	
 	Pop $R4
 	Pop $R3
