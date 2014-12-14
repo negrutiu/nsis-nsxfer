@@ -4,7 +4,6 @@
 #include "utils.h"
 
 
-#define USERAGENT					_T("Mozilla/5.0 (Windows; WOW64) xfer/1.0")
 #define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
@@ -313,7 +312,7 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 	assert( pReq );
 	assert( pReq->hSession == NULL );
 
-	pReq->hSession = InternetOpen( USERAGENT, pReq->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pReq->pszProxy, NULL, 0 );
+	pReq->hSession = InternetOpen( TEXT_USERAGENT, pReq->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pReq->pszProxy, NULL, 0 );
 	if (pReq->hSession) {
 
 		// Set callback function
@@ -616,18 +615,18 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 									ThreadSetWin32Error( pReq, GetLastError() );	/// HttpSendRequest error
 								}
 							} else {
-							ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
+								ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 								break;
 							}
 						} else {
-						ThreadSetWin32Error( pReq, GetLastError() );	/// HttpOpenRequest error
+							ThreadSetWin32Error( pReq, GetLastError() );	/// HttpOpenRequest error
 						}
 					} else {
-					ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
+						ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 						break;
 					}
 				} else {
-				ThreadSetWin32Error( pReq, GetLastError() );	/// InternetConnect error
+					ThreadSetWin32Error( pReq, GetLastError() );	/// InternetConnect error
 				}
 
 				TRACE(
@@ -640,10 +639,10 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 
 			}	/// for
 		} else {
-		ThreadSetWin32Error( pReq, GetLastError() );	/// InternetCrackUrl error
+			ThreadSetWin32Error( pReq, GetLastError() );	/// InternetCrackUrl error
 		}
 	} else {
-	ThreadSetWin32Error( pReq, ERROR_OUTOFMEMORY );	/// MyAllocStr
+		ThreadSetWin32Error( pReq, ERROR_OUTOFMEMORY );	/// MyAllocStr
 	}
 
 	MyFree( uc.lpszScheme );
@@ -916,7 +915,7 @@ void ThreadDownload_RefreshSpeed( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bXferFi
 #else
 		StrFormatByteSizeA( pReq->Speed.iSpeed, pReq->Speed.szSpeed, ARRAYSIZE( pReq->Speed.szSpeed ) );
 #endif
-		lstrcat( pReq->Speed.szSpeed, _T( "/s" ) );
+		lstrcat( pReq->Speed.szSpeed, TEXT_PER_SECOND );
 	}
 }
 

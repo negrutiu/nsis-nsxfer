@@ -10,12 +10,14 @@
 #define ANY_PRIORITY				0
 #define ANY_STATUS					(REQUEST_STATUS)-1
 
+#define TEXT_USERAGENT				_T( "Mozilla/5.0 (Windows; WOW64) xfer/1.0" )
 #define TEXT_STATUS_WAITING			_T( "Waiting" )
 #define TEXT_STATUS_DOWNLOADING		_T( "Downloading" )
 #define TEXT_STATUS_COMPLETED		_T( "Completed" )
 #define TEXT_LOCAL_NONE				_T( "None" )
 #define TEXT_LOCAL_FILE				_T( "File" )
 #define TEXT_LOCAL_MEMORY			_T( "Memory" )
+#define TEXT_PER_SECOND				_T( "/s" )
 
 /*
 	About queues:

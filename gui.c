@@ -286,7 +286,7 @@ void GuiExpandKeywords(
 #else
 							StrFormatByteSizeA( (ULONG)g_Gui.iTotalSpeed, szNewValue, ARRAYSIZE( szNewValue ) );
 #endif
-							lstrcat( szNewValue, _T( "/s" ) );
+							lstrcat( szNewValue, TEXT_PER_SECOND );
 						} else {
 							lstrcpyn( szNewValue, TEXT_NA, ARRAYSIZE( szNewValue ) );
 						}

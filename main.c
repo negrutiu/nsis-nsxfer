@@ -353,7 +353,7 @@ void __cdecl QueryGlobal(
 #else
 			StrFormatByteSizeA( iTotalSpeed, szSpeed, ARRAYSIZE( szSpeed ) );
 #endif
-			lstrcat( szSpeed, _T( "/s" ) );
+			lstrcat( szSpeed, TEXT_PER_SECOND );
 			pushstring( szSpeed );
 		} else if (lstrcmpi( pParam[i], _T( "/TOTALSPEEDBYTES" ) ) == 0) {
 			pushint( iTotalSpeed );
