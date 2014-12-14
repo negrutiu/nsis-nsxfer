@@ -67,7 +67,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 
 		// Dequeue the first waiting request
 		QueueLock( (PQUEUE)pThread->pQueue );
-		pReq = QueueFindFirstWaiting( (PQUEUE)pThread->pQueue );
+		pReq = QueueFindNextWaiting( (PQUEUE)pThread->pQueue );
 		if (pReq) {
 			pReq->pThread = pThread;
 			GetLocalFileTime( &pReq->tmConnect );
@@ -84,6 +84,10 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 			ThreadDownload( pReq );
 			GetLocalFileTime( &pReq->tmDisconnect );
 			pReq->iStatus = REQUEST_STATUS_DONE;
+
+			/// There may be transfer requests that are depending on this one
+			/// Wake up all threads to check out
+			QueueWakeThreads( (PQUEUE)pThread->pQueue, 0xffff );
 
 		} else {
 

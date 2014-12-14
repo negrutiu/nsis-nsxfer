@@ -43,6 +43,7 @@ typedef enum {
 //++ struct QUEUE_REQUEST_PARAM
 typedef struct _QUEUE_REQUEST_PARAM {
 	ULONG iPriority;				/// can be DEFAULT_VALUE
+	ULONG iDependId;				/// can be DEFAULT_VALUE
 	LPCTSTR pszURL;
 	REQUEST_LOCAL_TYPE iLocalType;
 	LPCTSTR pszLocalFile;
@@ -89,6 +90,7 @@ typedef struct _QUEUE_REQUEST {
 	ULONG iId;						/// Unique request ID
 	REQUEST_STATUS iStatus;
 	ULONG iPriority;				/// 0 (high prio) -> ULONG_MAX-1 (low prio)
+	ULONG iDependId;
 
 	// Related objects
 	struct _QUEUE *pQueue;
@@ -219,7 +221,7 @@ BOOL QueueReset( _Inout_ PQUEUE pQueue );
 // Find a request in the queue
 // The queue must be locked
 PQUEUE_REQUEST QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iReqID );	/// ...by ID
-PQUEUE_REQUEST QueueFindFirstWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
+PQUEUE_REQUEST QueueFindNextWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
 
 // Add a new request in the queue
 // The queue must be locked
@@ -240,3 +242,8 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq );
 // Retrieve the queue size
 // The queue must be locked
 ULONG QueueSize( _Inout_ PQUEUE pQueue );
+
+// Wake up one or more worker threads
+// Returns the number of threads woken up
+// The queue must be locked
+int QueueWakeThreads( _In_ PQUEUE pQueue, _In_ int iThreadsToWake );

@@ -53,7 +53,7 @@ Examples:
 _________________________________________________________________________________________________
 
 NSxfer::Transfer	/NOUNLOAD
-					[/PRIORITY prio]
+					[/PRIORITY prio] [/DEPEND id]
 					[/METHOD GET|POST]
 					/URL url
 					[/LOCAL file|MEMORY|NONE]
@@ -86,7 +86,7 @@ Return:
 _________________________________________________________________________________________________
 
 NSxfer::Request		/NOUNLOAD
-					[/PRIORITY prio]
+					[/PRIORITY prio] [/DEPEND id]
 					[/METHOD GET|POST]
 					/URL url
 					[/LOCAL file|MEMORY|NONE]
@@ -106,6 +106,7 @@ Remarks:
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/PRIORITY					| Priority in queue. Lower value means higher priority (default: 1000)
+	/DEPEND id					| Another request that the new one depends on. The new request will wait in queue until the other is completed (default: 0, no dependency)
 	/METHOD GET|POST|HEAD|...	| HTTP Method (default: GET)
 	/URL url					| HTTP or HTTPS...
 	/LOCAL file|MEMORY|NONE		| Local destination. Can be either a local file, a memory buffer, or none (default: NONE)
@@ -148,7 +149,7 @@ Examples:
 _________________________________________________________________________________________________
 
 NSxfer::Wait		/NOUNLOAD
-					[/ID id] [/PRIORITY prio]
+					[/ID id] [/PRIORITY prio]	; Selection parameters
 					[/MODE SILENT|POPUP|PAGE]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
@@ -156,7 +157,7 @@ NSxfer::Wait		/NOUNLOAD
 					/END
 
 Remarks:
-	Wait for one or multiple transfers to complete.
+	Wait for one or multiple transfers to complete (by ID or PRIORITY)
 
 	Waiting modes:
 	- SILENT					| No GUI is displayed, the call returns when transfer(s) complete(s)
@@ -240,45 +241,13 @@ Examples:
 	Pop $0
 _________________________________________________________________________________________________
 
-NSxfer::Abort		/NOUNLOAD
-					[/ID id]
-					[/PRIORITY prio]
-					/END
-Remarks:
-	Abort one or multiple transfers.
-	When aborting a file transfer the received content is not removed.
-	The caller is responsible for cleaning up unfinished downloads.
-
-Parameters:
-	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	/ID id						| Abort a specific transfer. If not specified, all transfers will be aborted
-	/PRIORITY prio				| Abort transfers with specific priority. If not specified, all transfers will be aborted
-	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
-
-Return value:
-	[Stack] Result code. Ignore it!
-
-Examples:
-	; Abort all transfers
-	NSxfer::Abort /NOUNLOAD /END
-	Pop $0
-
-	; Abort all transfers with priority 2000
-	NSxfer::Abort /NOUNLOAD /PRIORITY 2000 /END
-	Pop $0
-
-	; Abort specific transfer
-	NSxfer::Abort /NOUNLOAD /ID 5 /END
-	Pop $0
-_________________________________________________________________________________________________
-
 NSxfer::Enumerate	/NOUNLOAD
 					[/STATUS waiting|downloading|completed]
 					[/PRIORITY prio]
 					/END
 
 Remarks:
-	Enumerate transfer requests from the queue.
+	Enumerate transfer requests from the queue (by STATUS and/or PRIORITY).
 	Be aware that completed requests remain in queue. They can be filtered out using /STATUS
 
 Parameters:
@@ -306,7 +275,7 @@ ________________________________________________________________________________
 
 NSxfer::Query	/NOUNLOAD
 				/ID id
-				[/PRIORITY]
+				[/PRIORITY] [/DEPEND]
 				[/STATUS] [/WININETSTATUS]
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
 				[/SENTHEADERS] [/RECVHEADERS]
@@ -323,6 +292,7 @@ Parameters:
 	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/ID id					| The request ID returned by NSxfer::Request
 	/PRIORITY				| Request priority
+	/DEPEND					| Dependency ID
 	/STATUS					| Request status (downloading|waiting|completed)
 	/WININETSTATUS			| The last status reported by the InternetCallback (http://msdn.microsoft.com/EN-US/library/windows/desktop/aa385121(v=vs.85).aspx)
 	/METHOD					| The HTTP method in use (GET, POST, HEAD, etc.)
@@ -359,6 +329,50 @@ Example:
 	Pop $2	;Percent
 	Pop $3	;Speed
 	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
+_________________________________________________________________________________________________
+
+NSxfer::Set			/NOUNLOAD
+					[/ID id] [/PRIORITY prio]	; Selection parameters
+					[/SETPRIORITY prio]
+					[/SETDEPEND id]
+					[/ABORT]
+					/END
+
+Remarks:
+	Modify one or more transfer requests (by ID or PRIORITY)
+	When aborting a file transfer the received content is not removed.
+	The caller is responsible for cleaning up unfinished/aborted downloads.
+
+Parameters:
+	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
+	/ID id					| Modify specific request. If not specified, all requests will be modified
+	/PRIORITY prio			| Modify requests with specific priority. If not specified, all requests will be modified
+	/SETPRIORITY prio		| New priority
+	/SETDEPEND id			| New dependency
+	/ABORT					| Abort specified transfers
+	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
+
+Return:
+	[Stack] Result code. Ignore it!
+
+Examples:
+	; Abort all transfers
+	NSxfer::Set /NOUNLOAD /ABORT /END
+
+	; Abort all transfer with priority 3000
+	NSxfer::Set /NOUNLOAD /PRIORITY 3000 /ABORT /END
+
+	; Abort a specific transfer
+	NSxfer::Set /NOUNLOAD /ID 666 /ABORT /END
+
+	; Change priority 3000 to 5000
+	NSxfer::Set /NOUNLOAD /PRIORITY 3000 /SETPRIORITY 5000 /END
+
+	; Modify one request's dependency
+	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 1 /END
+
+	; Remove one request's dependency (by setting dependency ID to 0)
+	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 0 /END
 _________________________________________________________________________________________________
 
 NSxfer::QueryGlobal /NOUNLOAD

@@ -249,17 +249,21 @@ Function PrintStatus
 		Push "/METHOD"
 		Push "/WININETSTATUS"
 		Push "/STATUS"
+		Push "/DEPEND"
 		Push "/PRIORITY"
 		Push $2	; Request ID
 		Push "/ID"
 		CallInstDLL "${NSXFER}" "Query"
 !else
-		NSxfer::Query /NOUNLOAD /ID $2 /PRIORITY /STATUS /WININETSTATUS /METHOD /URL /PROXY /IP /LOCAL /DATA /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
+		NSxfer::Query /NOUNLOAD /ID $2 /PRIORITY /DEPEND /STATUS /WININETSTATUS /METHOD /URL /PROXY /IP /LOCAL /DATA /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONTENT /END
 !endif
 
 		StrCpy $R0 "[>] ID:$2"
 		Pop $3 ;PRIORITY
 		StrCpy $R0 "$R0, Prio:$3"
+		Pop $3 ;DEPEND
+		IntCmp $3 0 +2 +1 +1
+			StrCpy $R0 "$R0, DependsOn:$3"
 		Pop $3 ;STATUS
 		StrCpy $R0 "$R0, [$3]"
 		Pop $3 ;WININETSTATUS
@@ -584,7 +588,7 @@ Section "Request: CuckooBox (https://github)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
-	!define /redef FILE "$EXEDIR\CuckooBox_master.zip"
+	!define /redef FILE "$EXEDIR\_CuckooBox_master.zip"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
@@ -672,6 +676,118 @@ Section "Request: httpbin.org/get -> Memory"
 	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
 SectionEnd
+
+
+!macro TEST_DEPENDENCY_REQUEST _Filename _DependsOn
+	!define /redef LINK `http://httpbin.org/post`
+	DetailPrint 'NSxfer::Request "${LINK}" "${_Filename}.txt"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	Push "${LINK}"
+	Push "/REFERER"
+	Push "60000"
+	Push "/TIMEOUTRECONNECT"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "user=My+User+Name&pass=My+Password"
+	Push "/DATA"
+	;Push "$EXEDIR\buildW.bat"
+	;Push "/DATAFILE"
+	Push "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST"
+	Push "/HEADERS"
+	Push "$EXEDIR\${_Filename}.txt"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	Push "POST"
+	Push "/METHOD"
+	Push "${_DependsOn}"
+	Push "/DEPEND"
+	Push 2000
+	Push "/PRIORITY"
+	CallInstDLL "${NSXFER}" "Request"
+!else
+	NSxfer::Request /NOUNLOAD /PRIORITY 2000 /DEPEND ${_DependsOn} /METHOD POST /URL "${LINK}" /LOCAL "$EXEDIR\${_Filename}.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
+!endif
+	Pop $0	; Request ID
+!macroend
+
+
+Section /o "Dependencies (depend on first request)"
+	;SectionIn 1	; All
+	!insertmacro STACK_VERIFY_START
+
+	StrCpy $R0 0	; First request ID
+	StrCpy $R1 0	; Last request ID
+
+	; First request
+	!insertmacro TEST_DEPENDENCY_REQUEST "_DependOnFirst1" -1
+	StrCpy $R0 $0	; Remember the first ID
+	StrCpy $R1 $0	; Remember the last request ID
+
+	; Subsequent requests
+	${For} $1 2 20
+		!insertmacro TEST_DEPENDENCY_REQUEST "_DependOnFirst$1" $R0
+		StrCpy $R1 $0	; Remember the last request ID
+	${Next}
+
+	; Sleep
+	;Sleep 2000
+
+	; Unlock the first request, and consequently all the others...
+!ifdef ENABLE_DEBUGGING	
+	Push "/END"
+	Push 0			; No dependency
+	Push "/SETDEPEND"
+	Push $R0		; First request ID
+	Push "/ID"
+	CallInstDLL "${NSXFER}" "Set"
+!else
+	NSxfer::Set /NOUNLOAD /ID $R0 /SETDEPEND 0 /END
+!endif
+	Pop $0	; Error code. Ignored
+
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
+Section /o "Dependencies (depend on previous request)"
+	;SectionIn 1	; All
+	!insertmacro STACK_VERIFY_START
+
+	StrCpy $R0 0	; First request ID
+	StrCpy $R1 0	; Last request ID
+
+	; First request
+	!insertmacro TEST_DEPENDENCY_REQUEST "_DependOnPrevious1" -1
+	StrCpy $R0 $0	; Remember the first ID
+	StrCpy $R1 $0	; Remember the last request ID
+
+	; Subsequent requests
+	${For} $1 2 20
+		!insertmacro TEST_DEPENDENCY_REQUEST "_DependOnPrevious$1" $R1
+		StrCpy $R1 $0	; Remember the last request ID
+	${Next}
+
+	; Sleep
+	;Sleep 2000
+
+	; Unlock the first request, and consequently all the others...
+!ifdef ENABLE_DEBUGGING	
+	Push "/END"
+	Push 0			; No dependency
+	Push "/SETDEPEND"
+	Push $R0		; First request ID
+	Push "/ID"
+	CallInstDLL "${NSXFER}" "Set"
+!else
+	NSxfer::Set /NOUNLOAD /ID $R0 /SETDEPEND 0 /END
+!endif
+	Pop $0	; Error code. Ignored
+
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
 
 /*
 Section /o "Request: Priest.mkv"

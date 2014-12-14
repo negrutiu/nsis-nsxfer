@@ -87,6 +87,8 @@ BOOL ParseRequestParameter(
 
 	if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
 		pParam->iPriority = popint();
+	} else if (lstrcmpi( psz, _T( "/DEPEND" ) ) == 0) {
+		pParam->iDependId = popint();
 	} else if (lstrcmpi( psz, _T( "/METHOD" ) ) == 0) {
 		if (popstring( psz ) == 0) {
 			assert(
@@ -442,6 +444,8 @@ void __cdecl Query(
 		if (pReq) {
 			if (lstrcmpi( pParam[i], _T( "/PRIORITY" ) ) == 0) {
 				pushint( pReq->iPriority );
+			} else if (lstrcmpi( pParam[i], _T( "/DEPEND" ) ) == 0) {
+				pushint( pReq->iDependId );
 			} else if (lstrcmpi( pParam[i], _T( "/STATUS" ) ) == 0) {
 				switch (pReq->iStatus) {
 				case REQUEST_STATUS_WAITING:
@@ -565,6 +569,89 @@ void __cdecl Query(
 	QueueUnlock( &g_Queue );
 
 	MyFree( psz );
+}
+
+
+//++ Set
+EXTERN_C __declspec(dllexport)
+void __cdecl Set(
+	HWND   parent,
+	int    string_size,
+	TCHAR   *variables,
+	stack_t **stacktop,
+	extra_parameters *extra
+	)
+{
+	DWORD err = ERROR_SUCCESS;
+	LPTSTR psz;
+
+	ULONG iId = ANY_REQUEST_ID;		/// Selection parameter
+	ULONG iPrio = ANY_PRIORITY;		/// Selection parameter
+
+	ULONG iNewDependId = DEFAULT_VALUE;
+	ULONG iNewPrio = DEFAULT_VALUE;
+	BOOLEAN bAbort = FALSE;
+
+	EXDLL_INIT();
+	EXDLL_VALIDATE();
+
+	TRACE( _T( "NSxfer!Set\n" ) );
+
+	// Decide what requests to enumerate
+	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
+	while (TRUE) {
+		if (popstring( psz ) != 0)
+			break;
+		if (lstrcmpi( psz, _T( "/END" ) ) == 0) {
+			break;
+		} else if (lstrcmpi( psz, _T( "/ID" ) ) == 0) {
+			iId = popint();
+		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
+			iPrio = popint();
+		} else if (lstrcmpi( psz, _T( "/SETPRIORITY" ) ) == 0) {
+			iNewPrio = popint();
+		} else if (lstrcmpi( psz, _T( "/SETDEPEND" ) ) == 0) {
+			iNewDependId = popint();
+		} else if (lstrcmpi( psz, _T( "/ABORT" ) ) == 0) {
+			bAbort = TRUE;
+		} else {
+			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
+		}
+	}
+	MyFree( psz );
+
+	// Set
+	if (TRUE) {
+
+		int iThreadsToWake = 0;
+		PQUEUE_REQUEST pReq;
+
+		QueueLock( &g_Queue );
+		for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
+			if (RequestMatched( pReq, iId, iPrio, ANY_STATUS )) {
+				if (bAbort) {
+					// Abort
+					if (QueueAbort( &g_Queue, pReq )) {
+						///iRet++;
+					}
+				} else {
+					// Modify
+					if (iNewPrio != DEFAULT_VALUE)
+						pReq->iPriority = iNewPrio;
+					if (iNewDependId != DEFAULT_VALUE) {
+						pReq->iDependId = iNewDependId;
+						iThreadsToWake++;
+					}
+				}
+			}
+		}
+		QueueUnlock( &g_Queue );
+
+		if (iThreadsToWake > 0)
+			QueueWakeThreads( &g_Queue, iThreadsToWake );
+	}
+
+	pushint( err );
 }
 
 
@@ -742,65 +829,6 @@ void __cdecl Wait(
 	iRet = GuiWait( &Param );
 
 	GuiWaitParamDestroy( Param );
-	MyFree( psz );
-	pushintptr( iRet );
-}
-
-
-//++ Abort
-EXTERN_C __declspec(dllexport)
-void __cdecl Abort(
-	HWND   parent,
-	int    string_size,
-	TCHAR   *variables,
-	stack_t **stacktop,
-	extra_parameters *extra
-	)
-{
-	INT_PTR iRet = 0;
-	LPTSTR psz;
-	UINT iId = ANY_REQUEST_ID;
-	ULONG iPrio = ANY_PRIORITY;
-
-	EXDLL_INIT();
-	EXDLL_VALIDATE();
-
-	TRACE( _T( "NSxfer!Abort\n" ) );
-
-	/// Working buffer
-	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
-	assert( psz );
-
-	/// Parameters
-	for (;;) {
-		if (popstring( psz ) != 0)
-			break;
-		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
-			break;
-
-		if (lstrcmpi( psz, _T( "/ID" ) ) == 0) {
-			iId = popint();
-		} else if (lstrcmpi( psz, _T( "/PRIORITY" ) ) == 0) {
-			iPrio = popint();
-		} else {
-			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
-		}
-	}
-
-	// Abort
-	if (TRUE) {
-		PQUEUE_REQUEST pReq;
-		QueueLock( &g_Queue );
-		for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
-			if (RequestMatched( pReq, iId, iPrio, ANY_STATUS )) {
-				if (QueueAbort( &g_Queue, pReq )) {
-					iRet++;
-				}
-			}
-		}
-		QueueUnlock( &g_Queue );
-	}
-
 	MyFree( psz );
 	pushintptr( iRet );
 }

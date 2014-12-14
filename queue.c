@@ -158,7 +158,7 @@ PQUEUE_REQUEST QueueFind( _Inout_ PQUEUE pQueue, _In_ ULONG iReqID )
 	return pReq;
 }
 
-PQUEUE_REQUEST QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
+PQUEUE_REQUEST QueueFindNextWaiting( _Inout_ PQUEUE pQueue )
 {
 	// NOTES:
 	// New requests are always added to the front of the queue. The first (chronologically) waiting request is the last one
@@ -167,10 +167,18 @@ PQUEUE_REQUEST QueueFindFirstWaiting( _Inout_ PQUEUE pQueue )
 	PQUEUE_REQUEST pReq, pSelectedReq = NULL;
 	ULONG iSelectedPrio = ULONG_MAX - 1;
 	assert( pQueue );
-	for (pReq = pQueue->pHead; pReq; pReq = pReq->pNext)
-		if (pReq->iStatus == REQUEST_STATUS_WAITING && !pReq->bAbort && pReq->iPriority <= iSelectedPrio)
-			pSelectedReq = pReq, iSelectedPrio = pReq->iPriority;
-	TRACE2( _T( "  QueueFindFirstWaiting(%s) == ID:%u, Prio:%u, Ptr:0x%p\n" ), pQueue->szName, pSelectedReq ? pSelectedReq->iId : 0, pSelectedReq ? pSelectedReq->iPriority : 0, pSelectedReq );
+	for (pReq = pQueue->pHead; pReq; pReq = pReq->pNext) {
+		if (pReq->iStatus == REQUEST_STATUS_WAITING && !pReq->bAbort && pReq->iPriority <= iSelectedPrio) {
+			if (pReq->iDependId > 0) {
+				PQUEUE_REQUEST pReqDepend = QueueFind( pQueue, pReq->iDependId );
+				if (!pReqDepend || pReqDepend->iStatus != REQUEST_STATUS_DONE)
+					continue;	/// This request depends on another that's not finished
+			}
+			pSelectedReq = pReq;
+			iSelectedPrio = pReq->iPriority;
+		}
+	}
+	TRACE2( _T( "  QueueFindNextWaiting(%s) == ID:%u, Prio:%u, Ptr:0x%p\n" ), pQueue->szName, pSelectedReq ? pSelectedReq->iId : 0, pSelectedReq ? pSelectedReq->iPriority : 0, pSelectedReq );
 	return pSelectedReq;
 }
 
@@ -191,6 +199,7 @@ BOOL QueueAdd(
 			MyZeroMemory( pReq, sizeof( *pReq ) );
 			pReq->iId = ++pQueue->iLastId;
 			pReq->iPriority = (pParam->iPriority == DEFAULT_VALUE) ? DEFAULT_PRIORITY : pParam->iPriority;
+			pReq->iDependId = pParam->iDependId;
 			pReq->iStatus = REQUEST_STATUS_WAITING;
 			pReq->pQueue = pQueue;
 
@@ -255,13 +264,13 @@ BOOL QueueAdd(
 			SetEvent( pQueue->hThreadWakeEvent );
 
 			TRACE(
-				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s, Prio:%u)\n" ),
+				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s, Prio:%u, DependsOn:%d)\n" ),
 				pQueue->szName,
 				pReq->iId,
 				pReq->szMethod,
 				pReq->pszURL,
 				pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY),
-				pReq->iPriority
+				pReq->iPriority, pReq->iDependId
 				);
 
 		} else {
@@ -421,4 +430,34 @@ BOOL RequestDataToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_
 		bRet = TRUE;
 	}
 	return bRet;
+}
+
+
+int QueueWakeThreads( _In_ PQUEUE pQueue, _In_ int iThreadsToWake )
+{
+	int iCount = 0;
+
+	assert( pQueue );
+	if (iThreadsToWake > 0) {
+
+		int i, n;
+
+		/// Number of threads
+		n = __min( iThreadsToWake, pQueue->iThreadCount );
+
+		/// Determine whether we're already running in a worker thread
+		for (i = 0; i < pQueue->iThreadCount; i++) {
+			if (pQueue->pThreads[i].iTID == GetCurrentThreadId()) {
+				n--;	/// One less thread to wake up
+				break;
+			}
+		}
+
+		/// Wake
+		for (i = 0; i < n; i++)
+			SetEvent( pQueue->hThreadWakeEvent );
+		iCount += n;
+	}
+
+	return iCount;
 }
