@@ -27,7 +27,7 @@ x Download to temporary file => Easily done by the caller
 * Save the raw headers and make them available for querying
 * Queue priorities
 * Enumerate requests in queue
-- Pause/Resume transfer. Create paused
+x Pause/Resume transfer. Create paused => Can be emulated with dependencies
 * Abort transfer
 - Attach the "Zone.Identifier" stream (optional)
 * Support for the NSIS script to retrieve memory content
