@@ -283,6 +283,7 @@ NSxfer::Query	/NOUNLOAD
 				[/FILESIZE] [/RECVSIZE] [/PERCENT] [/SPEEDBYTES] [/SPEED]
 				[/CONTENT] [/DATA]
 				[/TIMEWAITING] [/TIMEDOWNLOADING]
+				[/CONNECTIONDROPS]
 				[/ERRORCODE] [/ERRORTEXT]
 				/END
 
@@ -312,6 +313,7 @@ Parameters:
 	/DATA					| Retrieves the data sent to the server (max NSIS_MAX_STRLEN). Non-printable characters will be replaced with '.'
 	/TIMEWAITING			| Amount of time (milliseconds) spent waiting in queue
 	/TIMEDOWNLOADING		| Amount of time (milliseconds) spent transferring
+	/CONNECTIONDROPS		| Number of times the connection dropped out during the transfer
 	/ERRORCODE				| Win32 error code, or HTTP status code
 	/ERRORTEXT				| The error explained
 	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...

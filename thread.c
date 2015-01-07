@@ -1017,6 +1017,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 							}
 						} else {
 							err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetReadFile
+							pReq->iConnectionDrops++;
 						}
 					} else {
 						err = ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
@@ -1075,12 +1076,13 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 						}
 					} else {
 						err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetReadFile
+						pReq->iConnectionDrops++;
 					}
 				} else {
 					err = ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
 				}
-			}
-			break;
+			}			/// while
+			break;		/// switch
 		}
 	}
 

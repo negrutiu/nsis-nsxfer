@@ -150,6 +150,8 @@ typedef struct _QUEUE_REQUEST {
 		ULONG iChunkSize;			/// Bytes
 	} Speed;
 
+	ULONG iConnectionDrops;			/// Number of connections dropped out
+
 	// Runtime variables
 	BOOLEAN bAbort;					/// Aborted by user
 	HINTERNET hSession;				/// InternetOpen

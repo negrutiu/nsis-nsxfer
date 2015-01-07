@@ -554,6 +554,8 @@ void __cdecl Query(
 				default:
 					pushstring( _T( "" ) );
 				}
+			} else if (lstrcmpi( pParam[i], _T( "/CONNECTIONDROPS" ) ) == 0) {
+				pushint( pReq->iConnectionDrops );
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORCODE" ) ) == 0) {
 				pushint( pReq->iWin32Error == ERROR_SUCCESS ? pReq->iHttpStatus : pReq->iWin32Error );
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORTEXT" ) ) == 0) {

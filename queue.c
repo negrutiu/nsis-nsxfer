@@ -291,7 +291,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 	if (pReq) {
 
 		TRACE(
-			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, Speed:%s, Time:%ums, %s %s -> %s)\n" ),
+			_T( "  QueueRemove(%s, ID:%u, Err:%u \"%s\", St:%s, Speed:%s, Time:%ums, Drops:%u, %s %s -> %s)\n" ),
 			pQueue->szName,
 			pReq->iId,
 			pReq->iWin32Error != ERROR_SUCCESS ? pReq->iWin32Error : pReq->iHttpStatus,
@@ -299,6 +299,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 			pReq->iStatus == REQUEST_STATUS_WAITING ? TEXT_STATUS_WAITING : (pReq->iStatus == REQUEST_STATUS_DOWNLOADING ? TEXT_STATUS_DOWNLOADING : TEXT_STATUS_COMPLETED),
 			pReq->Speed.szSpeed,
 			MyTimeDiff( &pReq->tmDisconnect, &pReq->tmConnect ),
+			pReq->iConnectionDrops,
 			pReq->szMethod,
 			pReq->pszURL,
 			pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY)
