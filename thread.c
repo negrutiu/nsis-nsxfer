@@ -335,8 +335,6 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 			verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_CONNECT_RETRIES, &pReq->iOptConnectRetries, sizeof( pReq->iOptConnectRetries ) ) );
 		if (pReq->iOptConnectTimeout != DEFAULT_VALUE)
 			verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_CONNECT_TIMEOUT, &pReq->iOptConnectTimeout, sizeof( pReq->iOptConnectTimeout ) ) );
-		if (pReq->iOptReceiveTimeout != DEFAULT_VALUE)
-			verify( InternetSetOption( pReq->hSession, INTERNET_OPTION_RECEIVE_TIMEOUT, &pReq->iOptReceiveTimeout, sizeof( pReq->iOptReceiveTimeout ) ) );
 
 		/// Reconnect if disconnected by user
 		if ( TRUE ) {
@@ -501,6 +499,12 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 
 							// Set callback function
 							InternetSetStatusCallback( pReq->hRequest, ThreadDownload_StatusCallback );
+
+							/// Options
+							if (pReq->iOptReceiveTimeout != DEFAULT_VALUE)
+								verify( InternetSetOption( pReq->hRequest, INTERNET_OPTION_RECEIVE_TIMEOUT, &pReq->iOptReceiveTimeout, sizeof( pReq->iOptReceiveTimeout ) ) );
+							if (pReq->iOptSendTimeout != DEFAULT_VALUE)
+								verify( InternetSetOption( pReq->hRequest, INTERNET_OPTION_SEND_TIMEOUT, &pReq->iOptSendTimeout, sizeof( pReq->iOptSendTimeout ) ) );
 
 							// On some Vistas (Home edition), HttpSendRequest returns ERROR_INTERNET_SEC_CERT_REV_FAILED if authenticated proxy is used
 							// By default, we ignore the revocation information

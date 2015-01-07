@@ -59,6 +59,7 @@ typedef struct _QUEUE_REQUEST_PARAM {
 	ULONG iOptConnectRetries;		/// can be DEFAULT_VALUE
 	ULONG iOptConnectTimeout;		/// can be DEFAULT_VALUE
 	ULONG iOptReceiveTimeout;		/// can be DEFAULT_VALUE
+	ULONG iOptSendTimeout;			/// can be DEFAULT_VALUE
 	LPCTSTR pszReferrer;			/// can be NULL
 	ULONG iHttpInternetFlags;		/// can be DEFAULT_VALUE
 	ULONG iHttpSecurityFlags;		/// can be DEFAULT_VALUE
@@ -68,7 +69,7 @@ typedef struct _QUEUE_REQUEST_PARAM {
 	MyZeroMemory( &Param, sizeof( Param ) ); \
 	Param.iPriority = DEFAULT_VALUE; \
 	Param.iTimeoutConnect = Param.iTimeoutReconnect = DEFAULT_VALUE; \
-	Param.iOptConnectRetries = Param.iOptConnectTimeout = Param.iOptReceiveTimeout = DEFAULT_VALUE; \
+	Param.iOptConnectRetries = Param.iOptConnectTimeout = Param.iOptReceiveTimeout = Param.iOptSendTimeout= DEFAULT_VALUE; \
 	Param.iHttpInternetFlags = Param.iHttpSecurityFlags = DEFAULT_VALUE;
 
 #define RequestParamDestroy(Param) \
@@ -123,6 +124,7 @@ typedef struct _QUEUE_REQUEST {
 	ULONG iOptConnectRetries;		/// InternetSetOption( INTERNET_OPTION_CONNECT_RETRIES ). Relevant only for hosts with multiple IPs!
 	ULONG iOptConnectTimeout;		/// InternetSetOption( INTERNET_OPTION_CONNECT_TIMEOUT )
 	ULONG iOptReceiveTimeout;		/// InternetSetOption( INTERNET_OPTION_RECEIVE_TIMEOUT )
+	ULONG iOptSendTimeout;			/// InternetSetOption( INTERNET_OPTION_SEND_TIMEOUT )
 	LPTSTR pszReferer;				/// Sent to HttpOpenRequest. Default is NULL
 	ULONG iHttpInternetFlags;		/// INTERNET_FLAG_XXX. Default is INTERNET_FLAG_NO_CACHE_WRITE|INTERNET_FLAG_IGNORE_CERT_DATE_INVALID|INTERNET_FLAG_NO_COOKIES|INTERNET_FLAG_NO_UI|INTERNET_FLAG_RELOAD
 	ULONG iHttpSecurityFlags;		/// SECURITY_FLAG_XXX. Default is SECURITY_FLAG_IGNORE_REVOCATION|SECURITY_FLAG_IGNORE_CERT_DATE_INVALID

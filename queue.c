@@ -236,6 +236,7 @@ BOOL QueueAdd(
 			pReq->iOptConnectRetries = pParam->iOptConnectRetries;
 			pReq->iOptConnectTimeout = pParam->iOptConnectTimeout;
 			pReq->iOptReceiveTimeout = pParam->iOptReceiveTimeout;
+			pReq->iOptSendTimeout = pParam->iOptSendTimeout;
 			if (pParam->pszReferrer && *pParam->pszReferrer) {
 				MyStrDup( pReq->pszReferer, pParam->pszReferrer );
 			}

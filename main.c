@@ -174,6 +174,8 @@ BOOL ParseRequestParameter(
 		pParam->iOptConnectTimeout = popint();
 	} else if (lstrcmpi( psz, _T( "/OPTRECEIVETIMEOUT" ) ) == 0) {
 		pParam->iOptReceiveTimeout = popint();
+	} else if (lstrcmpi( psz, _T( "/OPTSENDTIMEOUT" ) ) == 0) {
+		pParam->iOptSendTimeout = popint();
 	} else if (lstrcmpi( psz, _T( "/PROXY" ) ) == 0) {
 		if (popstring( psz ) == 0) {
 			MyFree( pParam->pszProxy );
