@@ -266,3 +266,48 @@ ULONG BinaryToString(
 	}
 	return iLen;
 }
+
+
+//++ RegReadDWORD
+DWORD RegReadDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue, __out LPDWORD pdwValue )
+{
+	DWORD err = ERROR_SUCCESS;
+	if (hRoot && pszKey && *pszKey && pszValue && pdwValue) {
+		HKEY hKey;
+		*pdwValue = 0;	/// Init
+		err = RegOpenKeyEx( hRoot, pszKey, 0, KEY_READ | KEY_WOW64_64KEY, &hKey );
+		if (err == ERROR_SUCCESS) {
+			DWORD dwType, dwSize = sizeof( *pdwValue );
+			err = RegQueryValueEx( hKey, pszValue, NULL, &dwType, (LPBYTE)pdwValue, &dwSize );
+			if (err == ERROR_SUCCESS) {
+				if (dwType == REG_DWORD) {
+					/// Done
+				} else {
+					err = ERROR_INVALID_DATATYPE;
+				}
+			}
+			RegCloseKey( hKey );
+		}
+	} else {
+		err = ERROR_INVALID_PARAMETER;
+	}
+	return err;
+}
+
+
+//++ RegWriteDWORD
+DWORD RegWriteDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue, __in DWORD dwValue )
+{
+	DWORD err = ERROR_SUCCESS;
+	if (hRoot && pszKey && *pszKey && pszValue) {
+		HKEY hKey;
+		err = RegOpenKeyEx( hRoot, pszKey, 0, KEY_WRITE | KEY_WOW64_64KEY, &hKey );
+		if (err == ERROR_SUCCESS) {
+			err = RegSetValueEx( hKey, pszValue, 0, REG_DWORD, (LPBYTE)&dwValue, sizeof( dwValue ) );
+			RegCloseKey( hKey );
+		}
+	} else {
+		err = ERROR_INVALID_PARAMETER;
+	}
+	return err;
+}

@@ -313,9 +313,27 @@ VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_REQUEST pReq )
 BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 {
 	DWORD err = ERROR_SUCCESS;
+	DWORD dwSecureProtocols;
 	assert( pReq );
 	assert( pReq->hSession == NULL );
 
+	// Secure connections require at least TLS 1.0 being enabled (might be disabled in Control Panel\Internet Options)
+	// Enable TLS 1.0 secure protocol, if disabled...
+#define PROTO_SSL2   0x0008
+#define PROTO_SSL3   0x0020
+#define PROTO_TLS1   0x0080		/// from WinHttp.h
+#define PROTO_TLS1_1 0x0200
+#define PROTO_TLS1_2 0x0800
+
+#define SECURE_PROTOCOLS_KEY _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings")
+#define SECURE_PROTOCOLS_VAL _T("SecureProtocols")
+
+	if (pReq->pszURL && CompareString( 0, NORM_IGNORECASE, pReq->pszURL, 8, _T( "https://" ), -1 ) == CSTR_EQUAL)
+		RegReadDWORD( HKEY_CURRENT_USER, SECURE_PROTOCOLS_KEY, SECURE_PROTOCOLS_VAL, &dwSecureProtocols );
+		if (!(dwSecureProtocols & PROTO_TLS1))
+			RegWriteDWORD( HKEY_CURRENT_USER, SECURE_PROTOCOLS_KEY, SECURE_PROTOCOLS_VAL, dwSecureProtocols | PROTO_TLS1 );
+
+	// Create a WinINet session
 	pReq->hSession = InternetOpen( TEXT_USERAGENT, pReq->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pReq->pszProxy, NULL, 0 );
 	if (pReq->hSession) {
 
@@ -351,6 +369,11 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 	} else {
 		err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetOpen
 	}
+
+	// Restore TLS 1.0 original value
+	if (pReq->pszURL && CompareString( 0, NORM_IGNORECASE, pReq->pszURL, 8, _T( "https://" ), -1 ) == CSTR_EQUAL)
+		if (!(dwSecureProtocols & PROTO_TLS1))
+			RegWriteDWORD( HKEY_CURRENT_USER, SECURE_PROTOCOLS_KEY, SECURE_PROTOCOLS_VAL, dwSecureProtocols );
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
 }

@@ -97,3 +97,7 @@ DWORD ReadVersionInfoString( __in_opt LPCTSTR szFile, __in LPCTSTR szStringName,
 // Returns number of TCHAR-s written, not including the NULL terminator
 ULONG BinaryToString( __in LPVOID pData, __in ULONG iDataSize, __out LPTSTR pszStr, __in ULONG iStrLen );
 
+//+ RegXxxDWORD
+// Returns Win32 error
+DWORD RegReadDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue, __out LPDWORD pdwValue );
+DWORD RegWriteDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue, __in DWORD dwValue );
