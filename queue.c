@@ -413,6 +413,40 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue )
 }
 
 
+ULONG RequestOptimalBufferSize( _In_ PQUEUE_REQUEST pReq )
+{
+	assert( pReq );
+	ULONG iSize;
+
+	if (pReq->Speed.iSpeed > 0) {
+		/// Use already computed speed (bps)
+		iSize = pReq->Speed.iSpeed;
+	} else {
+		/// Estimate speed based on what's been received so far
+		ULONG iMS = GetTickCount() - pReq->Speed.iChunkTime;
+		if (iMS > 10) {
+			iSize = (pReq->Speed.iChunkSize / iMS) * 1000;
+		} else {
+			iSize = MIN_BUFFER_SIZE;
+		}
+	}
+
+	iSize -= iSize % 1024;				/// Align to kilobyte
+	iSize *= 2;							/// Allow the speed to grow. Accomodate more seconds' data...
+	iSize = __max( iSize, MIN_BUFFER_SIZE );
+	iSize = __min( iSize, MAX_BUFFER_SIZE );
+
+/*	TRACE(
+		_T( "[BufSize = %.4u KB] Speed = %u bps, ChunkTime = %u (%u ms), ChunkSize = %u\n" ),
+		iSize / 1024,
+		pReq->Speed.iSpeed,
+		pReq->Speed.iChunkTime, GetTickCount() - pReq->Speed.iChunkTime,
+		pReq->Speed.iChunkSize
+		);*/
+	return iSize;
+}
+
+
 BOOL RequestMemoryToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_ ULONG iStringLen )
 {
 	BOOL bRet = FALSE;

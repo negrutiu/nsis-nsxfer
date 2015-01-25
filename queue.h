@@ -6,6 +6,8 @@
 #define INVALID_FILE_SIZE64			(ULONG64)-1
 #define DEFAULT_VALUE				((ULONG)-1)
 #define DEFAULT_PRIORITY			1000
+#define MIN_BUFFER_SIZE				2 * 1024		/// 2KB
+#define MAX_BUFFER_SIZE				512 * 1024		/// 512KB
 #define ANY_REQUEST_ID				0
 #define ANY_PRIORITY				0
 #define ANY_STATUS					(REQUEST_STATUS)-1
@@ -180,6 +182,9 @@ typedef struct _QUEUE_REQUEST {
 
 #define RequestRecvPercent(pReq) \
 	(int)(((pReq)->iFileSize == 0 || (pReq)->iFileSize == INVALID_FILE_SIZE64) ? 0 : MyMulDiv64((pReq)->iRecvSize, 100, (pReq)->iFileSize))
+
+ULONG RequestOptimalBufferSize( _In_ PQUEUE_REQUEST pReq );
+	
 
 #define RequestMatched(pReq, ID, Prio, Status) \
 	(ID == ANY_REQUEST_ID || ID == pReq->iId) && \

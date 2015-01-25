@@ -4,7 +4,6 @@
 #include "utils.h"
 
 
-#define TRANSFER_CHUNK_SIZE			256			/// 256 KiB
 #define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
 #define SPEED_MEASURE_INTERVAL		1000		/// milliseconds
@@ -990,8 +989,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 		case REQUEST_LOCAL_FILE:
 		{
 			/// Allocate a transfer buffer
-			CONST ULONG iBufSize = 1024 * TRANSFER_CHUNK_SIZE;
-			LPBYTE pBuf = MyAlloc( iBufSize );
+			LPBYTE pBuf = MyAlloc( MAX_BUFFER_SIZE );
 			if ( pBuf ) {
 
 				/// Transfer loop
@@ -1005,7 +1003,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 					}
 #endif ///DEBUG_XFER_MAX_BYTES
 					if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
-						if (InternetReadFile( pReq->hRequest, pBuf, iBufSize, &iBytesRecv )) {
+						if (InternetReadFile( pReq->hRequest, pBuf, RequestOptimalBufferSize( pReq ), &iBytesRecv )) {
 							if ( iBytesRecv > 0 ) {
 								if (WriteFile( pReq->Local.hFile, pBuf, iBytesRecv, &iBytesWritten, NULL )) {
 									/// Update fields
@@ -1068,7 +1066,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 				}
 #endif ///DEBUG_XFER_MAX_BYTES
 				if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
-					if (InternetReadFile( pReq->hRequest, pReq->Local.pMemory + pReq->iRecvSize, 1024 * TRANSFER_CHUNK_SIZE, &iBytesRecv )) {
+					if (InternetReadFile( pReq->hRequest, pReq->Local.pMemory + pReq->iRecvSize, RequestOptimalBufferSize( pReq ), &iBytesRecv )) {
 						if ( iBytesRecv > 0 ) {
 							/// Update fields
 							pReq->iRecvSize += iBytesRecv;
