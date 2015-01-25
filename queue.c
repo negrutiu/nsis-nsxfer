@@ -351,7 +351,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 }
 
 
-BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq, _In_opt_ DWORD dwWaitMS )
 {
 	BOOL bRet = TRUE;
 	assert( pQueue );
@@ -379,9 +379,15 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 		case REQUEST_STATUS_DOWNLOADING:
 			pReq->bAbort = TRUE;
 			/// The worker thread will do the rest...
-			/// Wait until it'll finish the job
-			while (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
-				Sleep( 50 );
+			if (dwWaitMS) {
+				/// Wait until it'll finish the job
+				const DWORD dwAbortWait = 100;
+				DWORD dwAbortElapsed = 0;
+				while ((pReq->iStatus == REQUEST_STATUS_DOWNLOADING) && (dwAbortElapsed < dwWaitMS)) {
+					Sleep( dwAbortWait );
+					dwAbortElapsed += dwAbortWait;
+				}
+			}
 			break;
 		case REQUEST_STATUS_DONE:
 			/// Nothing to do

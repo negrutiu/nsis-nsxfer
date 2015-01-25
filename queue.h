@@ -241,7 +241,9 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq );
 
 // Abort a request
 // The queue must be locked
-BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq );
+// This routine will only schedule the request for abortion. It'll be aborted asynchronously by its worker thread.
+// By specifying a wait period, the routine will wait until the request is actually aborted...
+BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq, _In_opt_ DWORD dwWaitMS );
 
 // Retrieve the queue size
 // The queue must be locked

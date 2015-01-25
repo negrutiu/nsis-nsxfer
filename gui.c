@@ -458,7 +458,7 @@ VOID GuiWaitAbort()
 	QueueLock( &g_Queue );
 	for (p = g_Queue.pHead; p; p = p->pNext) {
 		if (RequestMatched( p, g_Gui.iID, g_Gui.iPriority, ANY_STATUS )) {
-			QueueAbort( &g_Queue, p );
+			QueueAbort( &g_Queue, p, 10000 );
 		}
 	}
 	QueueUnlock( &g_Queue );

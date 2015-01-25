@@ -637,7 +637,7 @@ void __cdecl Set(
 			if (RequestMatched( pReq, iId, iPrio, ANY_STATUS )) {
 				if (bAbort) {
 					// Abort
-					if (QueueAbort( &g_Queue, pReq )) {
+					if (QueueAbort( &g_Queue, pReq, 10000 )) {
 						///iRet++;
 					}
 				} else {
