@@ -13,6 +13,7 @@
 ${StrRep}			; Declare function in advance
 
 !define /ifndef NULL 0
+!define SYSINTERNALS_NAME "SysinternalsSuite (January 19, 2015)"
 
 ; Enable debugging
 ; Call NSxfer functins with CallInstDLL
@@ -471,8 +472,8 @@ SectionEnd
 Section "Transfer: SysinternalsSuite (nefertiti, Popup mode)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
-	!define /redef FILE "$EXEDIR\_SysinternalsSuite (September 11, 2014)_Transfer.zip"
+	!define /redef LINK `http://nefertiti.homenet.org:8008/${SYSINTERNALS_NAME}.zip`
+	!define /redef FILE "$EXEDIR\_${SYSINTERNALS_NAME}_Transfer.zip"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
@@ -571,8 +572,8 @@ SectionEnd
 Section "Request: SysinternalsSuite (nefertiti)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://nefertiti.homenet.org:8008/SysinternalsSuite (September 11, 2014).zip`
-	!define /redef FILE "$EXEDIR\_SysinternalsSuite (September 11, 2014).zip"
+	!define /redef LINK `http://nefertiti.homenet.org:8008/${SYSINTERNALS_NAME}.zip`
+	!define /redef FILE "$EXEDIR\_${SYSINTERNALS_NAME}.zip"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"

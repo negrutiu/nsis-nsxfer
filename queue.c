@@ -379,6 +379,9 @@ BOOL QueueAbort( _In_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 		case REQUEST_STATUS_DOWNLOADING:
 			pReq->bAbort = TRUE;
 			/// The worker thread will do the rest...
+			/// Wait until it'll finish the job
+			while (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
+				Sleep( 50 );
 			break;
 		case REQUEST_STATUS_DONE:
 			/// Nothing to do
