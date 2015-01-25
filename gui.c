@@ -31,7 +31,7 @@ struct {
 	HWND hStatusWnd;
 	HWND hProgressWnd;
 
-	BOOLEAN bAbort;
+	BOOLEAN bAbort;			/// Abortion is supported
 	LPCTSTR pszAbortTitle;
 	LPCTSTR pszAbortMsg;
 
@@ -626,7 +626,7 @@ LRESULT CALLBACK GuiWaitPageWindowProc( _In_ HWND hwnd, _In_ UINT uMsg, _In_ WPA
 	case WM_COMMAND:
 		if (LOWORD( wParam ) == IDCANCEL) {
 			/// Abort button
-			if (g_Gui.bAbort && (!g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( g_hwndparent, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES))
+			if (g_Gui.bAbort && !g_Gui.bNsisAborted && ( !g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( g_hwndparent, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES ))
 				g_Gui.bNsisAborted = TRUE;
 			return 0;
 		}
