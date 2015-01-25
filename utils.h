@@ -85,11 +85,15 @@ ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator );
 //+ MyMulDiv64
 ULONGLONG MyMulDiv64( __in ULONGLONG iNumber, __in ULONGLONG iNumerator, __in ULONGLONG iDenominator );
 
-//+ MyTimeDiff (returns milliseconds)
+//+ MyTimeDiff
+// Returns milliseconds
 ULONG MyTimeDiff( __in PFILETIME pEndTime, __in PFILETIME pStartTime );
 
 //+ ReadVersionInfoString
+// Returns Win32 error
 DWORD ReadVersionInfoString( __in_opt LPCTSTR szFile, __in LPCTSTR szStringName, __out LPTSTR szStringValue, __in UINT iStringValueLen );
 
 //+ BinaryToString
+// Returns number of TCHAR-s written, not including the NULL terminator
 ULONG BinaryToString( __in LPVOID pData, __in ULONG iDataSize, __out LPTSTR pszStr, __in ULONG iStrLen );
+

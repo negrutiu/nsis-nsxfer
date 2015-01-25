@@ -261,6 +261,7 @@ ULONG BinaryToString(
 				}
 			}
 			pszStr[i] = _T( '\0' );
+			iLen += i;		/// Not including NULL terminator
 		}
 	}
 	return iLen;
