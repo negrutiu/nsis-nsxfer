@@ -415,8 +415,8 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue )
 
 ULONG RequestOptimalBufferSize( _In_ PQUEUE_REQUEST pReq )
 {
-	assert( pReq );
 	ULONG iSize;
+	assert( pReq );
 
 	if (pReq->Speed.iSpeed > 0) {
 		/// Use already computed speed (bps)
