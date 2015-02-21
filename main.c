@@ -229,7 +229,7 @@ void __cdecl Request(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T("NSxfer!Request\n"));
+	TRACE_CALL( stacktop, _T( "NSxfer!Request" ) );
 
 	/// Receive unloading notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
@@ -286,29 +286,11 @@ void __cdecl QueryGlobal(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!QueryGlobal\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!QueryGlobal" ) );
 
 	/// Allocate the working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	assert( psz );
-
-	// Lock the queue
-	QueueLock( &g_Queue );
-
-	/// Statistics
-	iTotalThreads = (ULONG)g_Queue.iThreadCount;
-	for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
-		iTotalCount++;
-		if (pReq->iStatus == REQUEST_STATUS_DONE)
-			iTotalCompleted++;
-		if (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
-			iTotalDownloading++;
-		if (pReq->iStatus == REQUEST_STATUS_WAITING)
-			iTotalWaiting++;
-		iTotalRecvBytes += pReq->iRecvSize;
-		if (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
-			iTotalSpeed += pReq->Speed.iSpeed;
-	}
 
 	/// Parameters
 	while (TRUE) {
@@ -326,7 +308,24 @@ void __cdecl QueryGlobal(
 		}
 	}
 
-	/// Return empty strings for dropped parameters
+	/// Statistics
+	QueueLock( &g_Queue );
+	iTotalThreads = (ULONG)g_Queue.iThreadCount;
+	for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
+		iTotalCount++;
+		if (pReq->iStatus == REQUEST_STATUS_DONE)
+			iTotalCompleted++;
+		if (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
+			iTotalDownloading++;
+		if (pReq->iStatus == REQUEST_STATUS_WAITING)
+			iTotalWaiting++;
+		iTotalRecvBytes += pReq->iRecvSize;
+		if (pReq->iStatus == REQUEST_STATUS_DOWNLOADING)
+			iTotalSpeed += pReq->Speed.iSpeed;
+	}
+	QueueUnlock( &g_Queue );
+
+	/// Return empty strings for each dropped parameter
 	for (i = 0; i < iDropCount; i++)
 		pushstring( _T( "" ) );
 
@@ -380,9 +379,6 @@ void __cdecl QueryGlobal(
 		MyFree( pParam[i] );
 	}
 
-	// Unlock the queue
-	QueueUnlock( &g_Queue );
-
 	MyFree( psz );
 }
 
@@ -398,6 +394,7 @@ void __cdecl Query(
 	)
 {
 	LPTSTR psz;
+	ULONG iReqID = 0;
 	PQUEUE_REQUEST pReq = NULL;
 
 	LPTSTR pParam[30];
@@ -406,14 +403,11 @@ void __cdecl Query(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!Query\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!Query" ) );
 
 	/// Allocate the working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	assert( psz );
-
-	/// Lock
-	QueueLock( &g_Queue );
 
 	/// Parameters
 	while (TRUE) {
@@ -423,10 +417,7 @@ void __cdecl Query(
 			break;
 
 		if (lstrcmpi( psz, _T( "/ID" ) ) == 0) {
-			i = popint();
-			for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext)
-				if (pReq->iId == (ULONG)i)	/// Request found in queue
-					break;
+			iReqID = (ULONG)popint();
 		} else {
 			if (iParamCount < ARRAYSIZE( pParam )) {
 				/// Remember this parameter
@@ -438,6 +429,12 @@ void __cdecl Query(
 			}
 		}
 	}
+
+	/// Lock
+	QueueLock( &g_Queue );
+
+	/// Find the request ID
+	pReq = QueueFind( &g_Queue, iReqID );
 
 	/// Return empty strings for dropped parameters
 	for (i = 0; i < iDropCount; i++)
@@ -565,7 +562,7 @@ void __cdecl Query(
 				pushstring( _T( "" ) );
 			}
 		} else {
-			TRACE( _T( "  [!] Transfer request not found\n" ) );
+			TRACE( _T( "  [!] Transfer ID not found\n" ) );
 			pushstring( _T( "" ) );
 		}
 		MyFree( pParam[i] );
@@ -601,7 +598,7 @@ void __cdecl Set(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!Set\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!Set" ) );
 
 	// Decide what requests to enumerate
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -678,7 +675,7 @@ void __cdecl Enumerate(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!Enumerate\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!Enumerate" ) );
 
 	// Decide what requests to enumerate
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -811,7 +808,7 @@ void __cdecl Wait(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!Wait\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!Wait" ) );
 
 	/// Working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -858,7 +855,7 @@ void __cdecl Transfer(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!Transfer\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!Transfer" ) );
 
 	/// Receive unloading notification
 	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
@@ -930,7 +927,7 @@ void __cdecl Test(
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
-	TRACE( _T( "NSxfer!Test\n" ) );
+	TRACE_CALL( stacktop, _T( "NSxfer!Test" ) );
 
 	/*{
 		ULONGLONG ull, ull2;

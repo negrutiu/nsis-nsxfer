@@ -21,7 +21,7 @@ VOID UtilsDestroy()
 }
 
 //++ TraceImpl
-#if DBG || _DEBUG
+#if defined (TRACE_ENABLED)
 VOID TraceImpl( __in LPCTSTR pszFormat, ... )
 {
 	DWORD err = ERROR_SUCCESS;
@@ -43,6 +43,42 @@ VOID TraceImpl( __in LPCTSTR pszFormat, ... )
 		}
 		OutputDebugString( szStr );
 		va_end( args );
+	}
+}
+#endif
+
+//++ TraceCallImpl
+#if defined (TRACE_ENABLED)
+VOID TraceCallImpl( __in stack_t **ppStackTop, __in_opt LPCTSTR pszPrefix )
+{
+	int iStrLen = 4096;
+	LPTSTR pszStr = MyAllocStr( iStrLen );
+	assert( pszStr );
+	if (pszStr) {
+
+		stack_t *p;
+		LPTSTR psz = pszStr;
+		int i;
+
+		pszStr[0] = _T( '\0' );
+
+		if (pszPrefix && *pszPrefix)
+			i = wnsprintf( psz, iStrLen, _T( "%s" ), pszPrefix ), psz += i, iStrLen -= i;
+
+		if (ppStackTop) {
+			for (p = *ppStackTop; p; p = p->next) {
+				i = wnsprintf( psz, iStrLen, _T( " %s" ), p->text ), psz += i, iStrLen -= i;
+				if (CompareString( 0, NORM_IGNORECASE, p->text, -1, _T( "/END" ), -1 ) == CSTR_EQUAL)
+					break;
+			}
+		}
+
+		if (pszStr[0] != _T( '\0' )) {
+			i = wnsprintf( psz, iStrLen, _T( "\n" ) ), psz += i, iStrLen -= i;
+			OutputDebugString( pszStr );
+		}
+
+		MyFree( pszStr );
 	}
 }
 #endif

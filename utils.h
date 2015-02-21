@@ -7,10 +7,18 @@ VOID UtilsDestroy();
 
 //+ TRACE
 #if DBG || _DEBUG
+	#define TRACE_ENABLED
+#endif
+
+#if defined (TRACE_ENABLED)
 	#define TRACE TraceImpl
 	#define TRACE2(...)			/// More verbose tracing
 	VOID TraceImpl( __in LPCTSTR pszFormat, ... );
+
+	#define TRACE_CALL TraceCallImpl
+	VOID TraceCallImpl( __in stack_t **ppStackTop, __in LPCTSTR pszPrefix );
 #else
+	#define TRACE_CALL(...)
 	#define TRACE(...)
 	#define TRACE2(...)
 #endif
