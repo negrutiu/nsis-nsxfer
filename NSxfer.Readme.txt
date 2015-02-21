@@ -77,8 +77,8 @@ Remarks:
 	
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	...							| See below for "Request" parameters
-	...							| See below for "Wait" parameters
+	...							| "Request" parameters
+	...							| "Wait" parameters
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
@@ -109,7 +109,7 @@ Parameters:
 	/DEPEND id					| Another request that the new one depends on. The new request will wait in queue until the other is completed (default: 0, no dependency)
 	/METHOD GET|POST|HEAD|...	| HTTP Method (default: GET)
 	/URL url					| HTTP or HTTPS...
-	/LOCAL file|MEMORY|NONE		| Local destination. Can be either a local file, a memory buffer, or none (default: NONE)
+	/LOCAL file|MEMORY|NONE		| Local destination. Can be either a local file, a memory buffer, or none (none: make the HTTP request, but don't transfer the content) (default: NONE)
 	/HEADERS hdr				| Additional HTTP headers, delimited by CRLF (\r\n)
 	/DATA data					| Additional data to be sent as part of the HTTP request
 	/DATAFILE file				| Additional data to be sent as part of the HTTP request (read from the specified file)
@@ -169,7 +169,7 @@ Remarks:
 	PAGE mode requires that the installer is visible, and a page is currently active. In silent installers, PAGE mode is automatically converted to SILENT mode.
 
 	All displayed texts can be customized.
-	The plugin will display either "Text" or "MultiText", based on whether waiting for one or multiple transfers
+	The plugin will choose between "Text" and "MultiText", based on whether waiting for one or multiple transfers
 	All texts may contain keywords that are automatically replaced at runtime.
 
 	Transfer-specific keywords:
@@ -293,6 +293,7 @@ Remarks:
 Parameters:
 	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/ID id					| The request ID returned by NSxfer::Request
+	-----------             | ------------------
 	/PRIORITY				| Request priority
 	/DEPEND					| Dependency ID
 	/STATUS					| Request status (downloading|waiting|completed)
@@ -342,8 +343,8 @@ NSxfer::Set			/NOUNLOAD
 					/END
 
 Remarks:
-	Modify one or more transfer requests (by ID or PRIORITY)
-	When aborting a file transfer the received content is not removed.
+	Modify one or multiple transfer requests (by ID or PRIORITY)
+	When aborting a file transfer the received content is not removed (from disk). It's possible to resume the transfer later.
 	The caller is responsible for cleaning up unfinished/aborted downloads.
 
 Parameters:
@@ -374,7 +375,7 @@ Examples:
 	; Modify one request's dependency
 	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 1 /END
 
-	; Remove one request's dependency (by setting dependency ID to 0)
+	; Remove one request's dependency (by setting it to 0)
 	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 0 /END
 _________________________________________________________________________________________________
 

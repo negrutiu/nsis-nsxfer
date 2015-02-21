@@ -36,7 +36,7 @@ x Pause/Resume transfer. Create paused => Can be emulated with dependencies
 * NSxfer::QueryGlobal converted to receive variable number of arguments + /END
 - Configurable: worker threads, NSXFER_USERAGENT, TRANSFER_CHUNK_SIZE, MAX_MEMORY_CONTENT_LENGTH, CONNECT_RETRY_DELAY, SPEED_MEASURE_INTERVAL
 * Transfer GUI
-- Test with silent installers
+* Test with silent installers
 - Reuse connection to the same server
 * Dynamic transfer buffer, based on speed (1KB - 256KB)
 - Incorrect ETA when resuming. Data already downloaded must be excluded
