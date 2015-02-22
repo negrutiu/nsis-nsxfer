@@ -593,6 +593,7 @@ void __cdecl Set(
 
 	ULONG iNewDependId = DEFAULT_VALUE;
 	ULONG iNewPrio = DEFAULT_VALUE;
+	BOOLEAN bRemove = FALSE;
 	BOOLEAN bAbort = FALSE;
 
 	EXDLL_INIT();
@@ -600,7 +601,7 @@ void __cdecl Set(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Set" ) );
 
-	// Decide what requests to enumerate
+	// Parameters
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	while (TRUE) {
 		if (popstring( psz ) != 0)
@@ -617,6 +618,8 @@ void __cdecl Set(
 			iNewDependId = popint();
 		} else if (lstrcmpi( psz, _T( "/ABORT" ) ) == 0) {
 			bAbort = TRUE;
+		} else if (lstrcmpi( psz, _T( "/REMOVE" ) ) == 0) {
+			bRemove = TRUE;
 		} else {
 			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
 		}
@@ -632,7 +635,14 @@ void __cdecl Set(
 		QueueLock( &g_Queue );
 		for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
 			if (RequestMatched( pReq, iId, iPrio, ANY_STATUS )) {
-				if (bAbort) {
+				if (bRemove) {
+					// Abort + Remove
+					if (QueueAbort( &g_Queue, pReq, 10000 )) {
+						if (QueueRemove( &g_Queue, pReq )) {
+							///iRet++;
+						}
+					}
+				} else if (bAbort) {
 					// Abort
 					if (QueueAbort( &g_Queue, pReq, 10000 )) {
 						///iRet++;

@@ -340,6 +340,7 @@ NSxfer::Set			/NOUNLOAD
 					[/SETPRIORITY prio]
 					[/SETDEPEND id]
 					[/ABORT]
+					[/REMOVE]
 					/END
 
 Remarks:
@@ -354,6 +355,7 @@ Parameters:
 	/SETPRIORITY prio		| New priority
 	/SETDEPEND id			| New dependency
 	/ABORT					| Abort specified transfers
+	/REMOVE					| Remove specified transfers from queue
 	/END					| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
@@ -377,6 +379,9 @@ Examples:
 
 	; Remove one request's dependency (by setting it to 0)
 	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 0 /END
+
+	; Abort all and clear the queue
+	NSxfer::Set /NOUNLOAD /REMOVE /END
 _________________________________________________________________________________________________
 
 NSxfer::QueryGlobal /NOUNLOAD
