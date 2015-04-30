@@ -31,7 +31,7 @@ BOOL ThreadIsTerminating( _In_ PTHREAD pThread )
 
 
 //++ ThreadSleep
-// Returns TRUE if the sleep was uninterrupted, FALSE if the thread is shutting down
+// Returns TRUE if the sleep is uninterrupted, FALSE if the thread is shutting down
 BOOL ThreadSleep(_In_ PTHREAD pThread, _In_ ULONG iMilliseconds)
 {
 	assert( pThread );
@@ -84,7 +84,7 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 			GetLocalFileTime( &pReq->tmDisconnect );
 			pReq->iStatus = REQUEST_STATUS_DONE;
 
-			/// There may be transfer requests that are depending on this one
+			/// There may be transfer requests waiting for this one (dependency)
 			/// Wake up all threads to check out
 			QueueWakeThreads( (PQUEUE)pThread->pQueue, 0xffff );
 
@@ -316,8 +316,8 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 	assert( pReq );
 	assert( pReq->hSession == NULL );
 
-	// Secure connections require at least TLS 1.0 being enabled (might be disabled in Control Panel\Internet Options)
-	// Enable TLS 1.0 secure protocol, if disabled...
+	// HTTPS requires at least TLS 1.0 (users might disable it from Control Panel\Internet Options)
+	// Make sure TLS 1.0 is enabled
 #define PROTO_SSL2   0x0008
 #define PROTO_SSL3   0x0020
 #define PROTO_TLS1   0x0080		/// from WinHttp.h
@@ -445,10 +445,10 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 				/// Timed out?
 				if ( i > 0 ) {
 					if ( GetTickCount() - dwStartTime < iTimeout ) {
-						/// Delay between attempts. Keep monitoring TERM event
+						/// Pause between attempts. Keep monitoring TERM event
 						if (!ThreadSleep( pReq->pThread, CONNECT_RETRY_DELAY )) {
 							ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
-							break;	/// Canceled
+							break;	/// Cancelled
 						}
 					} else {
 						break;	/// Timeout
@@ -539,13 +539,13 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 							}
 							InternetSetOption( pReq->hRequest, INTERNET_OPTION_SECURITY_FLAGS, &pReq->iHttpSecurityFlags, sizeof( DWORD ) );
 
-							// The stupid 'Work offline' setting from IE
+							// Ignore 'Work offline' setting
 							InternetSetOption( pReq->hRequest, INTERNET_OPTION_IGNORE_OFFLINE, 0, 0 );
 
 							// Check TERM event, Check ABORT flag
 							if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
 
-								/// Add the Range header if local content is present (resume)
+								/// Add the Range header to resume the transfer
 								/// NOTE: If the file is already downloaded, the server will return HTTP status 416 (see below!)
 								pReq->bRangeSent = FALSE;
 								if (pReq->iRecvSize > 0) {
@@ -554,8 +554,9 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 									pReq->bRangeSent = HttpAddRequestHeaders( pReq->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
 								}
 
+							_send_request:
+
 								// Send the HTTP request
-								_send_request:
 								if (HttpSendRequest( pReq->hRequest, pReq->pszHeaders, -1, pReq->pData, pReq->iDataSize )) {
 
 									ULONG iHttpStatus;
@@ -696,8 +697,8 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_REQUEST pReq )
 	///
 	/// NOTE:
 	/// This function is called *before* sending the HTTP request
-	/// The remote content length (pReq->iFileSize) is unknown at this point
-	/// We'll simply open the local file and get its size
+	/// The remote content length (pReq->iFileSize) is unknown
+	/// We'll open the local file and get its size
 	///
 	ULONG err = ERROR_SUCCESS;
 
@@ -752,7 +753,6 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_REQUEST pReq )
 
 		case REQUEST_LOCAL_MEMORY:
 		{
-			/// Nothing to do without the remote content length
 			assert( pReq->Local.pMemory == NULL );
 			break;
 		}
@@ -772,8 +772,7 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 	/// NOTE:
 	/// This function is called *after* sending the HTTP request
 	/// At this point, the remote content length is usually known, unless the server fails to report it
-	/// If it's known we'll attempt resuming the download
-	/// Otherwise, we'll start over
+	/// Resume the transfer if possible, otherwise start all over
 	///
 	ULONG err = ERROR_SUCCESS;
 
@@ -1011,7 +1010,7 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 									pReq->Xfer.iXferSize += iBytesRecv;
 									pReq->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
-									/// Simulate transfer slow download
+									/// Simulate transfer slow-download
 									Sleep( DEBUG_XFER_SLOWDOWN );
 #endif ///DEBUG_XFER_SLOWDOWN
 									/// Speed measurement
@@ -1073,8 +1072,8 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 							pReq->Xfer.iXferSize += iBytesRecv;
 							pReq->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
-							/// Simulate transfer slow download
-							Sleep( DEBUG_XFER_SLOWDOWN );	/// Emulate slow download
+							/// Simulate transfer slow-download
+							Sleep( DEBUG_XFER_SLOWDOWN );
 #endif ///DEBUG_XFER_SLOWDOWN
 							/// Speed measurement
 							ThreadDownload_RefreshSpeed( pReq, FALSE );
