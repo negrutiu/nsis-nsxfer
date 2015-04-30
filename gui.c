@@ -8,6 +8,7 @@
 #define GUI_TIMER_REFRESH_TIME	500
 #define GUI_OUTPUT_STRING_LEN	1024
 #define TEXT_NA					_T( "n/a" )
+#define WM_ABORT_CLOSED			WM_USER + 0x266
 
 #define DEFAULT_TITLE_SINGLE	_T("{PERCENT}% - Downloading...")
 #define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
@@ -20,6 +21,10 @@
 #define LTWH(rc)				(rc).left, (rc).top, (rc).right - (rc).left, (rc).bottom - (rc).top
 
 extern QUEUE g_Queue;		/// main.c
+
+/// Prototypes
+void GuiAbortShow( __in HWND hParent, __in HWND hCallbackWnd, __in UINT iCallbackMsg );
+
 
 struct {
 
@@ -59,13 +64,15 @@ struct {
 	LPCTSTR pszOriginalTitleText;
 	LPCTSTR pszOriginalStatusText;
 
-	BOOL bRestoreProgressParams;
+	BOOL bRestoreProgressStyle;
 	LONG_PTR iOriginalProgressStyle;
 	LONG_PTR iOriginalProgressStyleEx;
+	BOOL bRestoreProgressPos;
 	PBRANGE OriginalProgressRange;
 	int iOriginalProgressPos;
 
-	BOOLEAN bNsisAborted;
+	BOOLEAN bAborted;		/// The transfer was aborted. Abortion is in progress...
+	HWND hAbortWnd;
 	BOOL bOriginalAbortEnabled;
 	WNDPROC fnOriginalAbortParentWndProc;
 
@@ -598,11 +605,19 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 	case WM_SYSCOMMAND:
 		if (wParam == SC_CLOSE) {
 			/// [X] button
-			if (g_Gui.bAbort && (!g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( hDlg, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES)) {
-				GuiWaitAbort();
-				EndDialog( hDlg, IDCANCEL );
-			}
+			/// Display confirmation dialog, if necessary
+			/// Later, we'll receive a message with the user's decision
+			GuiAbortShow( hDlg, hDlg, WM_ABORT_CLOSED );
 			return 0;
+		}
+		break;
+
+	case WM_ABORT_CLOSED:
+		/// The abort was closed
+		/// Apply user's decision
+		if (wParam != FALSE) {
+			GuiWaitAbort();
+			EndDialog( hDlg, IDCANCEL );
 		}
 		break;
 	}
@@ -625,11 +640,18 @@ LRESULT CALLBACK GuiWaitPageWindowProc( _In_ HWND hwnd, _In_ UINT uMsg, _In_ WPA
 	switch (uMsg) {
 	case WM_COMMAND:
 		if (LOWORD( wParam ) == IDCANCEL) {
-			/// Abort button
-			if (g_Gui.bAbort && !g_Gui.bNsisAborted && ( !g_Gui.pszAbortMsg || !*g_Gui.pszAbortMsg || MessageBox( g_hwndparent, g_Gui.pszAbortMsg, g_Gui.pszAbortTitle, MB_YESNO | MB_ICONQUESTION ) == IDYES ))
-				g_Gui.bNsisAborted = TRUE;
+			/// Display confirmation dialog, if necessary
+			/// Later, we'll receive a message with the user's decision
+			GuiAbortShow( g_hwndparent, g_hwndparent, WM_ABORT_CLOSED );
 			return 0;
 		}
+		break;
+
+	case WM_ABORT_CLOSED:
+		/// The abort was closed
+		/// Apply user's decision
+		if (wParam != FALSE)
+			g_Gui.bAborted = TRUE;
 		break;
 	}
 	return CallWindowProc( g_Gui.fnOriginalAbortParentWndProc, hwnd, uMsg, wParam, lParam );
@@ -694,19 +716,6 @@ ULONG GuiWaitPage()
 					ScreenToClient( hInstFilesPage, (LPPOINT)&rcDetailsList.right );
 				}
 
-				/// Abort button
-				hAbortBtn = GetDlgItem( g_hwndparent, IDCANCEL );
-				if (hAbortBtn) {
-					g_Gui.bOriginalAbortEnabled = IsWindowEnabled( hAbortBtn );
-					if (g_Gui.bAbort) {
-						EnableWindow( hAbortBtn, TRUE );
-						/// Hook Abort's parent (main NSIS window) to receive click notification
-						g_Gui.fnOriginalAbortParentWndProc = (WNDPROC)SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)GuiWaitPageWindowProc );
-					} else {
-						EnableWindow( hAbortBtn, FALSE );
-					}
-				}
-
 				/// New status control
 				CopyRect( &rcNewStatus, &rcStatus );
 				OffsetRect( &rcNewStatus, 0, rcProgress.bottom + rcProgress.top - rcNewStatus.top );
@@ -744,13 +753,32 @@ ULONG GuiWaitPage()
 			/// Page not found
 			err = ERROR_NOT_SUPPORTED;
 		}
+	} else {
+		/// Custom page
+		g_Gui.bRestoreProgressStyle = TRUE;
+		g_Gui.bRestoreProgressPos = FALSE;
+	}
+
+	/// Abort button
+	if (err == ERROR_SUCCESS) {
+		hAbortBtn = GetDlgItem( g_hwndparent, IDCANCEL );
+		if (hAbortBtn) {
+			g_Gui.bOriginalAbortEnabled = IsWindowEnabled( hAbortBtn );
+			if (g_Gui.bAbort) {
+				EnableWindow( hAbortBtn, TRUE );
+				/// Hook Abort's parent (main NSIS window) to receive click notification
+				g_Gui.fnOriginalAbortParentWndProc = (WNDPROC)SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)GuiWaitPageWindowProc );
+			} else {
+				EnableWindow( hAbortBtn, FALSE );
+			}
+		}
 	}
 
 	// Wait
 	if (err == ERROR_SUCCESS) {
-		while (!g_Gui.bNsisAborted && (GuiRefreshData() == ERROR_SUCCESS) && !g_Gui.bFinished)
+		while (!g_Gui.bAborted && (GuiRefreshData() == ERROR_SUCCESS) && !g_Gui.bFinished)
 			GuiSleep( GUI_TIMER_REFRESH_TIME );
-		if (g_Gui.bNsisAborted)
+		if (g_Gui.bAborted)
 			GuiWaitAbort();
 	}
 
@@ -770,16 +798,17 @@ ULONG GuiWaitPage()
 				SetWindowPos( hDetailsList, NULL, LTWH( rcDetailsList ), SWP_NOZORDER | SWP_NOACTIVATE | SWP_DRAWFRAME );
 			}
 		}
-		if (hAbortBtn) {
-			EnableWindow( hAbortBtn, g_Gui.bOriginalAbortEnabled );
-			if (g_Gui.fnOriginalAbortParentWndProc) {
-				/// Destroy child dialogs (such as the aborting confirmation message box)
-				EnumThreadWindows( GetWindowThreadProcessId( g_hwndparent, NULL ), GuiEndChildDialogCallback, (LPARAM)g_hwndparent );
-				/// Process pending messages
-				///GuiSleep( 0 );
-				/// Unhook NSIS main window
-				SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)g_Gui.fnOriginalAbortParentWndProc );
-			}
+	}
+
+	if (hAbortBtn) {
+		EnableWindow( hAbortBtn, g_Gui.bOriginalAbortEnabled );
+		if (g_Gui.fnOriginalAbortParentWndProc) {
+			/// Destroy child dialogs (such as the aborting confirmation message box)
+			EnumThreadWindows( GetWindowThreadProcessId( g_hwndparent, NULL ), GuiEndChildDialogCallback, (LPARAM)g_hwndparent );
+			/// Process pending messages
+			///GuiSleep( 0 );
+			/// Unhook NSIS main window
+			SetWindowLongPtr( g_hwndparent, GWLP_WNDPROC, (LONG_PTR)g_Gui.fnOriginalAbortParentWndProc );
 		}
 	}
 
@@ -825,7 +854,8 @@ ULONG GuiWait( __in PGUI_WAIT_PARAM pParam )
 		g_Gui.iOriginalProgressStyleEx = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE );
 		SendMessage( g_Gui.hProgressWnd, PBM_GETRANGE, 0, (WPARAM)&g_Gui.OriginalProgressRange );
 		g_Gui.iOriginalProgressPos = SendMessage( g_Gui.hProgressWnd, PBM_GETPOS, 0, 0 );
-		g_Gui.bRestoreProgressParams = TRUE;
+		g_Gui.bRestoreProgressStyle = TRUE;
+		g_Gui.bRestoreProgressPos = TRUE;
 	}
 
 	// Start
@@ -850,9 +880,13 @@ ULONG GuiWait( __in PGUI_WAIT_PARAM pParam )
 		SetWindowText( g_Gui.hTitleWnd, g_Gui.pszOriginalTitleText );
 	if (g_Gui.hTitleWnd && g_Gui.pszOriginalStatusText)
 		SetWindowText( g_Gui.hStatusWnd, g_Gui.pszOriginalStatusText );
-	if (g_Gui.hProgressWnd && g_Gui.bRestoreProgressParams) {
-		SetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE, g_Gui.iOriginalProgressStyle );
-		SetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE, g_Gui.iOriginalProgressStyleEx );
+	if (g_Gui.hProgressWnd && g_Gui.bRestoreProgressStyle) {
+		if (GetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE ) != g_Gui.iOriginalProgressStyle)		/// Don't set identical style, because it'll reset the position
+			SetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE, g_Gui.iOriginalProgressStyle );
+		if (GetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE ) != g_Gui.iOriginalProgressStyleEx)
+			SetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE, g_Gui.iOriginalProgressStyleEx );
+	}
+	if (g_Gui.hProgressWnd && g_Gui.bRestoreProgressPos) {
 		SendMessage( g_Gui.hProgressWnd, PBM_SETRANGE32, g_Gui.OriginalProgressRange.iLow, g_Gui.OriginalProgressRange.iHigh );
 		SendMessage( g_Gui.hProgressWnd, PBM_SETPOS, g_Gui.iOriginalProgressPos, 0 );
 	}
@@ -860,4 +894,107 @@ ULONG GuiWait( __in PGUI_WAIT_PARAM pParam )
 	MyFree( g_Gui.pszOriginalTitleText );
 	MyFree( g_Gui.pszOriginalStatusText );
 	return err;
+}
+
+
+INT_PTR CALLBACK GuiAbortDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam )
+{
+	switch (uMsg)
+	{
+	case WM_INITDIALOG:
+	{
+		TCHAR szText[128];
+		HMODULE hUser32 = GetModuleHandle( _T( "user32" ) );
+
+		/// Icon
+		HICON hIco = LoadImage( hUser32, MAKEINTRESOURCE( 102 ), IMAGE_ICON, 32, 32, 0 );
+		assert( hIco );
+		if (hIco) {
+			SendDlgItemMessage( hDlg, IDC_POPUP_ICON, STM_SETICON, (WPARAM)hIco, 0 );
+			SetProp( hDlg, _T( "MyIcon" ), hIco );
+		}
+
+		/// Text
+		if (g_Gui.pszAbortTitle)
+			SetWindowText( hDlg, g_Gui.pszAbortTitle );
+		if (g_Gui.pszAbortMsg)
+			SetDlgItemText( hDlg, IDC_STATIC_TEXT, g_Gui.pszAbortMsg );
+
+		if (LoadString( hUser32, 805, szText, ARRAYSIZE( szText ) ) > 0)
+			SetDlgItemText( hDlg, IDYES, szText );
+		if (LoadString( hUser32, 806, szText, ARRAYSIZE( szText ) ) > 0)
+			SetDlgItemText( hDlg, IDNO, szText );
+		break;
+	}
+
+	case WM_DESTROY:
+	{
+		HICON hIco = (HICON)GetProp( hDlg, _T( "MyIcon" ) );
+		if (hIco) {
+			RemoveProp( hDlg, _T( "MyIcon" ) );
+			DestroyIcon( hIco );
+		}
+		if (TRUE) {
+			HWND hCallbackWnd = (HWND)GetProp( hDlg, _T( "CallbackWnd" ) );
+			UINT iCallbackMsg = (UINT)GetProp( hDlg, _T( "CallbackMsg" ) );
+			BOOL bAnswerYes = (BOOL)GetProp( hDlg, _T( "AnswerYes" ) );
+			RemoveProp( hDlg, _T( "CallbackWnd" ) );
+			RemoveProp( hDlg, _T( "CallbackMsg" ) );
+			RemoveProp( hDlg, _T( "AnswerYes" ) );
+			if (hCallbackWnd)
+				PostMessage( hCallbackWnd, iCallbackMsg, (WPARAM)bAnswerYes, 0 );
+		}
+		g_Gui.hAbortWnd = NULL;
+		break;
+	}
+
+	case WM_COMMAND:
+	{
+		switch (LOWORD( wParam ))
+		{
+		case IDYES:
+			SetProp( hDlg, _T( "AnswerYes" ), (HANDLE)TRUE );
+			DestroyWindow( hDlg );
+			break;
+
+		case IDNO:
+		case IDCANCEL:
+			DestroyWindow( hDlg );
+			break;
+		}
+		break;
+	}
+
+	case WM_SYSCOMMAND:
+	{
+		if (wParam == SC_CLOSE)
+			DestroyWindow( hDlg );
+		break;
+	}
+	}
+
+	return FALSE;		/// Default dialog procedure
+}
+
+
+void GuiAbortShow( __in HWND hParent, __in HWND hCallbackWnd, __in UINT iCallbackMsg )
+{
+	if (g_Gui.bAbort) {		/// Abortion permitted?
+		if (!g_Gui.bAborted) {	/// Already aborted?
+			if (g_Gui.pszAbortMsg && *g_Gui.pszAbortMsg) {	/// Abortion message available?
+				if (!g_Gui.hAbortWnd) {		/// Confirmation dialog already visible?
+					g_Gui.hAbortWnd = CreateDialogParam( g_hInst, MAKEINTRESOURCE( IDD_CONFIRMATION ), hParent, GuiAbortDialogProc, 0 );
+					if (g_Gui.hAbortWnd) {
+						SetProp( g_Gui.hAbortWnd, _T( "CallbackWnd" ), (HANDLE)hCallbackWnd );
+						SetProp( g_Gui.hAbortWnd, _T( "CallbackMsg" ), (HANDLE)iCallbackMsg );
+						ShowWindow( g_Gui.hAbortWnd, SW_SHOW );
+					}
+				}
+			} else {
+				/// No message is available. Abort without warning
+				if (hCallbackWnd)
+					PostMessage( hCallbackWnd, iCallbackMsg, (WPARAM)TRUE, 0 );
+			}
+		}
+	}
 }
