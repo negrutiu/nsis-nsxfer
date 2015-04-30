@@ -828,10 +828,10 @@ ULONG GuiWait( __in PGUI_WAIT_PARAM pParam )
 	g_Gui.hTitleWnd = pParam->hTitleWnd;
 	g_Gui.hStatusWnd = pParam->hStatusWnd;
 	g_Gui.hProgressWnd = pParam->hProgressWnd;
-	g_Gui.pszTitleText = pParam->pszTitleText ? pParam->pszTitleText : DEFAULT_TITLE_SINGLE;
-	g_Gui.pszTitleMultiText = pParam->pszTitleMultiText ? pParam->pszTitleMultiText : DEFAULT_TITLE_MULTI;
-	g_Gui.pszStatusText = pParam->pszStatusText ? pParam->pszStatusText : DEFAULT_STATUS_SINGLE;
-	g_Gui.pszStatusMultiText = pParam->pszStatusMultiText ? pParam->pszStatusMultiText : DEFAULT_STATUS_MULTI;
+	g_Gui.pszTitleText = pParam->pszTitleText && *pParam->pszTitleText ? pParam->pszTitleText : DEFAULT_TITLE_SINGLE;
+	g_Gui.pszTitleMultiText = pParam->pszTitleMultiText && *pParam->pszTitleMultiText ? pParam->pszTitleMultiText : DEFAULT_TITLE_MULTI;
+	g_Gui.pszStatusText = pParam->pszStatusText && *pParam->pszStatusText ? pParam->pszStatusText : DEFAULT_STATUS_SINGLE;
+	g_Gui.pszStatusMultiText = pParam->pszStatusMultiText && *pParam->pszStatusMultiText ? pParam->pszStatusMultiText : DEFAULT_STATUS_MULTI;
 	g_Gui.bAbort = pParam->bAbort;
 	g_Gui.pszAbortTitle = pParam->pszAbortTitle && *pParam->pszAbortTitle ? pParam->pszAbortTitle : PLUGINNAME;
 	g_Gui.pszAbortMsg = pParam->pszAbortMsg;
