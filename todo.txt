@@ -3,12 +3,12 @@ ________________________________________________________________________________
 TODO:
 _________________________________________________________________________________________________
 
-* Parameterized InternetOpenUrl flags
-* Parameterized HttpSendRequest flags
+* Parametrized InternetOpenUrl flags
+* Parametrized HttpSendRequest flags
 * Proxy
 * reconnect during dld
-* Connect timeout parameter
-* Reconnect timeout parameter
+* Connect time-out parameter
+* Reconnect time-out parameter
 * Resume
 * Resume memory downloads as well
 * query file size
@@ -19,7 +19,7 @@ ________________________________________________________________________________
 * POST headers
 - Multiple download sources
 * Support files > 4GB
-x Support destination folder only. Use the filename from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads) => Easily done by the caller *after* transfer completes
+x Support destination folder only. Use the file name from HTTP_QUERY_CONTENT_DISPOSITION (ex: piriform downloads) => Easily done by the caller *after* transfer completes
 * Use InternetSetStatusCallback (remember last status, remember server IP)
 * Retry opening local file if ERROR_LOCK_VIOLATION
 x Download to temporary file => Easily done by the caller
@@ -40,3 +40,4 @@ x Pause/Resume transfer. Create paused => Can be emulated with dependencies
 - Reuse connection to the same server
 * Dynamic transfer buffer, based on speed (1KB - 256KB)
 - Incorrect ETA when resuming. Data already downloaded must be excluded
+- Add {FILELIST} keyword
