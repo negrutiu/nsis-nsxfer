@@ -298,11 +298,13 @@ void CALLBACK ThreadDownload_StatusCallback(
 //++ ThreadDownload_CloseSession
 VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_REQUEST pReq )
 {
+	DWORD err;
 	assert( pReq );
 	assert( pReq->hSession );
 
 	if (pReq->hSession) {
-		InternetCloseHandle( pReq->hSession );
+		err = InternetCloseHandle( pReq->hSession ) ? ERROR_SUCCESS : GetLastError();
+		TRACE2( _T( "  Th:%s Id:%u InternetCloseHandle( 0x%p, InternetOpen ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hSession, err, err );
 		pReq->hSession = NULL;
 	}
 }
@@ -334,6 +336,8 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 
 	// Create a WinINet session
 	pReq->hSession = InternetOpen( TEXT_USERAGENT, pReq->pszProxy ? INTERNET_OPEN_TYPE_PROXY : INTERNET_OPEN_TYPE_PRECONFIG, pReq->pszProxy, NULL, 0 );
+	err = pReq->hSession ? ERROR_SUCCESS : GetLastError();
+	TRACE2( _T( "  Th:%s Id:%u InternetOpen( 0x%p, Agent:%s, Proxy:%s ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hSession, TEXT_USERAGENT, pReq->pszProxy, err, err );
 	if (pReq->hSession) {
 
 		// Set callback function
@@ -381,14 +385,17 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 //++ ThreadDownload_RemoteDisconnect
 VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_REQUEST pReq )
 {
+	DWORD err;
 	assert( pReq );
 
 	if (pReq->hRequest) {
-		InternetCloseHandle( pReq->hRequest );
+		err = InternetCloseHandle( pReq->hRequest ) ? ERROR_SUCCESS : GetLastError();
+		TRACE2( _T( "  Th:%s Id:%u InternetCloseHandle( 0x%p, HttpOpenRequest ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hRequest, err, err );
 		pReq->hRequest = NULL;
 	}
 	if (pReq->hConnect) {
-		InternetCloseHandle( pReq->hConnect );
+		err = InternetCloseHandle( pReq->hConnect ) ? ERROR_SUCCESS : GetLastError();
+		TRACE2( _T( "  Th:%s Id:%u InternetCloseHandle( 0x%p, InternetConnect ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hConnect, err, err );
 		pReq->hConnect = NULL;
 	}
 }
@@ -398,7 +405,7 @@ VOID ThreadDownload_RemoteDisconnect( _Inout_ PQUEUE_REQUEST pReq )
 BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bReconnecting )
 {
 	BOOL bRet = FALSE;
-	DWORD dwStartTime;
+	DWORD err, dwStartTime;
 	ULONG i, iTimeout;
 	URL_COMPONENTS uc;
 
@@ -431,7 +438,9 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 	uc.lpszExtraInfo = MyAllocStr( uc.dwExtraInfoLength );
 
 	if ( uc.lpszScheme && uc.lpszHostName && uc.lpszUserName && uc.lpszPassword && uc.lpszUrlPath && uc.lpszExtraInfo ) {
-		if (InternetCrackUrl( pReq->pszURL, 0, 0, &uc )) {
+		err = InternetCrackUrl( pReq->pszURL, 0, 0, &uc ) ? ERROR_SUCCESS : GetLastError();
+		TRACE2( _T( "  Th:%s Id:%u InternetCrackUrl( %s ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->pszURL, err, err );
+		if (err == ERROR_SUCCESS) {
 
 			/// Multiple attempts to connect
 			for (dwStartTime = GetTickCount(), i = 0; TRUE; i++) {
@@ -472,6 +481,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 					*uc.lpszPassword ? uc.lpszPassword : NULL,
 					INTERNET_SERVICE_HTTP, 0, (DWORD_PTR)pReq
 					);
+				err = pReq->hConnect ? ERROR_SUCCESS : GetLastError();
+				TRACE2( _T( "  Th:%s Id:%u InternetConnect( 0x%p, %ws, %hu ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hSession, uc.lpszHostName, uc.nPort, err, err );
 
 				if (pReq->hConnect) {
 
@@ -513,8 +524,13 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 								pReq->iHttpInternetFlags,
 								(DWORD_PTR)pReq		/// Context
 								);
+							err = pReq->hRequest ? ERROR_SUCCESS : GetLastError();
+							TRACE2( _T( "  Th:%s Id:%u HttpOpenRequest( 0x%p, %s, %s ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hConnect, pReq->szMethod, pszObjectName, err, err );
 
 							MyFree( pszObjectName );
+
+						} else {
+							err = ERROR_OUTOFMEMORY;	/// MyAllocStr
 						}
 
 						if (pReq->hRequest) {
@@ -557,14 +573,15 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 							_send_request:
 
 								// Send the HTTP request
-								if (HttpSendRequest( pReq->hRequest, pReq->pszHeaders, -1, pReq->pData, pReq->iDataSize )) {
+								err = HttpSendRequest( pReq->hRequest, pReq->pszHeaders, -1, pReq->pData, pReq->iDataSize ) ? ERROR_SUCCESS : GetLastError();
+								TRACE2( _T( "  Th:%s Id:%u HttpSendRequest( 0x%p, Headers:%s, Data:%hs ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hRequest, pReq->pszHeaders, (LPSTR)pReq->pData, err, err );
+								if (err == ERROR_SUCCESS) {
 
 									ULONG iHttpStatus;
 
 									/// HTTP headers
 									if ( TRUE ) {
 
-										DWORD err = ERROR_SUCCESS;
 										TCHAR szHeaders[512];
 										ULONG iHeadersSize = sizeof(szHeaders);
 
@@ -585,7 +602,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 												if (*psz == _T( '\n' ))
 													*psz = _T( 'n' );
 											}
-											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo(HTTP_QUERY_RAW_HEADERS_CRLF) == 0x%x, \"%s\"\n" ), pReq->pThread->szName, pReq->iId, err, szHeaders );
+											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo( HTTP_QUERY_RAW_HEADERS_CRLF ) == 0x%x, \"%s\"\n" ), pReq->pThread->szName, pReq->iId, err, szHeaders );
 										}
 									}
 
@@ -643,21 +660,21 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 									}
 
 								} else {
-									ThreadSetWin32Error( pReq, GetLastError() );	/// HttpSendRequest error
+									ThreadSetWin32Error( pReq, err );	/// HttpSendRequest error
 								}
 							} else {
 								ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 								break;
 							}
 						} else {
-							ThreadSetWin32Error( pReq, GetLastError() );	/// HttpOpenRequest error
+							ThreadSetWin32Error( pReq, err );	/// HttpOpenRequest error
 						}
 					} else {
 						ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );	/// ThreadIsTerminating || bAbort
 						break;
 					}
 				} else {
-					ThreadSetWin32Error( pReq, GetLastError() );	/// InternetConnect error
+					ThreadSetWin32Error( pReq, err );	/// InternetConnect error
 				}
 
 				TRACE(
@@ -670,7 +687,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 
 			}	/// for
 		} else {
-			ThreadSetWin32Error( pReq, GetLastError() );	/// InternetCrackUrl error
+			ThreadSetWin32Error( pReq, err );	/// InternetCrackUrl error
 		}
 	} else {
 		ThreadSetWin32Error( pReq, ERROR_OUTOFMEMORY );	/// MyAllocStr
