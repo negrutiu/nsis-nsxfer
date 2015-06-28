@@ -688,6 +688,19 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 					pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error
 					);
 
+				/// Break if critical WinINet error (such as ERROR_INTERNET_INVALID_URL, ERROR_INTERNET_NAME_NOT_RESOLVED, etc.)
+				if (err > INTERNET_ERROR_BASE &&
+					err < INTERNET_ERROR_BASE + 100 &&
+					err != ERROR_INTERNET_TIMEOUT &&
+					err != ERROR_INTERNET_REQUEST_PENDING &&	/// ?
+					err != ERROR_INTERNET_CANNOT_CONNECT &&
+					err != ERROR_INTERNET_FORCE_RETRY			/// ?
+					)
+				{
+					TRACE2( _T( "  Th:%s Id:%u Critical WinINet error. Abort\n" ), pReq->pThread->szName, pReq->iId );
+					break;
+				}
+
 			}	/// for
 		} else {
 			ThreadSetWin32Error( pReq, err );	/// InternetCrackUrl error
