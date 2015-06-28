@@ -445,6 +445,9 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 			/// Multiple attempts to connect
 			for (dwStartTime = GetTickCount(), i = 0; TRUE; i++) {
 
+				/// Cleanup
+				ThreadDownload_RemoteDisconnect( pReq );
+
 				/// Check TERM event, Check ABORT flag
 				if (ThreadIsTerminating( pReq->pThread ) || pReq->bAbort) {
 					ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );
