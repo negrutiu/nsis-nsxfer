@@ -693,7 +693,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 					err < INTERNET_ERROR_BASE + 100 &&
 					err != ERROR_INTERNET_TIMEOUT &&
 					err != ERROR_INTERNET_REQUEST_PENDING &&	/// ?
-					err != ERROR_INTERNET_CANNOT_CONNECT &&
+					///err != ERROR_INTERNET_CANNOT_CONNECT &&	/// Wrong port, for instance...
 					err != ERROR_INTERNET_FORCE_RETRY			/// ?
 					)
 				{
