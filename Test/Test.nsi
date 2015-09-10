@@ -397,11 +397,11 @@ Section Test
 SectionEnd
 */
 
-Section "Request: Nefertiti.html (HTTPS)"
+Section "Request: negrutiu.com (HTTPS)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `https://nefertiti`
-	!define /redef FILE "$EXEDIR\_Nefertiti.html"
+	!define /redef LINK `http://negrutiu.com`
+	!define /redef FILE "$EXEDIR\_negrutiu.com.html"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
@@ -426,8 +426,8 @@ SectionEnd
 Section "Request: Notepad++"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://download.tuxfamily.org/notepadplus/6.6.7/npp.6.6.7.Installer.exe`
-	!define /redef FILE "$EXEDIR\_npp.6.6.7.Installer.exe"
+	!define /redef LINK `https://notepad-plus-plus.org/repository/6.x/6.8.3/npp.6.8.3.Installer.exe`
+	!define /redef FILE "$EXEDIR\_npp.6.8.3.Installer.exe"
 	;!define /redef FILE "NONE"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
