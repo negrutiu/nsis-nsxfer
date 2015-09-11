@@ -7,6 +7,7 @@ rem  >>> Delete everything twice! <<<
 call :CLEANUP
 call :CLEANUP
 del "%~dp0\Test\*.exe"
+del "%~dp0\Test2\*.exe"
 goto :EOF
 
 

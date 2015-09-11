@@ -3,7 +3,7 @@
  * 
  * This file is a part of NSIS.
  * 
- * Copyright (C) 1999-2014 Nullsoft and Contributors
+ * Copyright (C) 1999-2015 Nullsoft and Contributors
  * 
  * Licensed under the zlib/libpng license (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,11 +60,14 @@ typedef struct
 #ifndef NSISCALL
 #  define NSISCALL __stdcall
 #endif
+#if !defined(_WIN32) && !defined(LPTSTR)
+#  define LPTSTR TCHAR*
+#endif
 
 typedef struct {
   exec_flags_t *exec_flags;
   int (NSISCALL *ExecuteCodeSegment)(int, HWND);
-  void (NSISCALL *validate_filename)(TCHAR *);
+  void (NSISCALL *validate_filename)(LPTSTR);
   int (NSISCALL *RegisterPluginCallback)(HMODULE, NSISPLUGINCALLBACK); // returns 0 on success, 1 if already registered and < 0 on errors
 } extra_parameters;
 
