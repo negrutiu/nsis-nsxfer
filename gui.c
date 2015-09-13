@@ -12,7 +12,7 @@
 
 #define DEFAULT_TITLE_SINGLE	_T("{PERCENT}% - Downloading...")
 #define DEFAULT_TITLE_MULTI		_T("Downloading {TOTALCOUNT} files...")
-#define DEFAULT_STATUS_SINGLE	_T("Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}")
+#define DEFAULT_STATUS_SINGLE	_T("Downloading {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}")
 #define DEFAULT_STATUS_MULTI	_T("Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}")
 
 #define MY_PBS_MARQUEE			0x08
@@ -20,7 +20,7 @@
 
 #define LTWH(rc)				(rc).left, (rc).top, (rc).right - (rc).left, (rc).bottom - (rc).top
 
-extern QUEUE g_Queue;		/// main.c
+extern QUEUE g_Queue;			/// main.c
 
 /// Prototypes
 void GuiAbortShow( __in HWND hParent, __in HWND hCallbackWnd, __in UINT iCallbackMsg );
@@ -129,7 +129,9 @@ void GuiExpandKeywords(
 
 			if (*pszKeywordStart) {
 
-				szNewValue[0] = 255;	/// Special character
+				#define MARKER_CHAR (TCHAR)255
+
+				szNewValue[0] = MARKER_CHAR;	/// Special character
 				szNewValue[1] = 0;
 
 				// Keywords
@@ -267,7 +269,7 @@ void GuiExpandKeywords(
 				}
 
 				// General keywords
-				if (szNewValue[0] == 255) {
+				if (szNewValue[0] == MARKER_CHAR) {
 					if (IS_KEYWORD( pszKeywordStart, _T( "TotalCount" ))) {
 						wnsprintf( szNewValue, ARRAYSIZE( szNewValue ), _T( "%u" ), g_Gui.iTotalCount );
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "TotalWaiting" ))) {
@@ -335,7 +337,7 @@ void GuiExpandKeywords(
 					}
 				}
 				
-				if (szNewValue[0] == 255)
+				if (szNewValue[0] == MARKER_CHAR)
 					szNewValue[0] = 0;
 
 				///StringCchCopyEx( pszTextOut, iTextOutLen, szNewValue, &pszTextOut, &iTextOutLen, 0 );
