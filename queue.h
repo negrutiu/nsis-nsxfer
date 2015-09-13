@@ -159,7 +159,7 @@ typedef struct _QUEUE_REQUEST {
 	HINTERNET hSession;				/// InternetOpen
 	HINTERNET hConnect;				/// InternetConnect
 	HINTERNET hRequest;				/// HttpOpenRequest
-	BOOLEAN bRangeSent;				/// The Range HTTP header has been sent
+	BOOLEAN bUsingRanges;			/// The HTTP "Range" header is in use (supported by server)
 	ULONG iLastCallbackStatus;		/// Last status received in InternetStatusCallback
 	LPCTSTR pszSrvIP;				/// Servers resolved IP address (as string)
 	LPCTSTR pszSrvHeaders;			/// HTTP headers received from server

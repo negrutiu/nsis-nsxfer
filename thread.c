@@ -566,11 +566,11 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 
 								/// Add the Range header to resume the transfer
 								/// NOTE: If the file is already downloaded, the server will return HTTP status 416 (see below!)
-								pReq->bRangeSent = FALSE;
+								pReq->bUsingRanges = FALSE;
 								if (pReq->iRecvSize > 0) {
 									TCHAR szRangeHeader[255];
 									wnsprintf( szRangeHeader, ARRAYSIZE( szRangeHeader ), _T( "Range: bytes=%I64u-" ), pReq->iRecvSize );
-									pReq->bRangeSent = HttpAddRequestHeaders( pReq->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
+									pReq->bUsingRanges = HttpAddRequestHeaders( pReq->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
 								}
 
 							_send_request:
@@ -620,10 +620,16 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 
 										// Extract the remote content length
 										if (ThreadDownload_QueryContentLength64( pReq->hRequest, &pReq->iFileSize ) == ERROR_SUCCESS) {
-											if (pReq->bRangeSent) {
-												/// If the Range header was used, the remote content length represents the amount not yet downloaded,
-												/// rather the full file size
-												pReq->iFileSize += pReq->iRecvSize;
+											if (pReq->bUsingRanges) {
+												if (iHttpStatus == HTTP_STATUS_PARTIAL || iHttpStatus == HTTP_STATUS_PARTIAL_CONTENT) {
+													/// If the Range header is accepted, the remote content length will represent
+													/// the amount of data left to transfer, instead of the whole file size
+													pReq->iFileSize += pReq->iRecvSize;
+												} else {
+													/// Our Range header seemd to have been ignored by the server
+													/// We'll have to download the whole file...
+													pReq->bUsingRanges = FALSE;
+												}
 											}
 										}
 
@@ -638,7 +644,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 										/// 5xx Server Error
 
 										if ( iHttpStatus == 416 ) {								/// 416 Requested Range Not Satisfiable
-											if (pReq->bRangeSent) {
+											if (pReq->bUsingRanges) {
 												/// Download all remote content before making another HTTP request
 												if ( TRUE ) {
 													CHAR szBufA[255];
@@ -646,7 +652,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 													while ((InternetReadFile( pReq->hRequest, szBufA, ARRAYSIZE( szBufA ), &iBytesRecv )) && (iBytesRecv > 0));
 												}
 												/// Retry without the Range header
-												pReq->bRangeSent = FALSE;
+												pReq->bUsingRanges = FALSE;
 												HttpAddRequestHeaders( pReq->hRequest, _T( "Range:" ), -1, HTTP_ADDREQ_FLAG_REPLACE );
 												goto _send_request;
 											}
@@ -824,21 +830,25 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 		{
 			assert( VALID_FILE_HANDLE( pReq->Local.hFile ) );		/// The file must already be opened
 
-			// Determine if resuming is possible
+			// Determine if resuming is needed/supported
 			if (pReq->iFileSize != INVALID_FILE_SIZE64) {
-				if (!pReq->bRangeSent || (pReq->iHttpStatus == HTTP_STATUS_PARTIAL_CONTENT)) {	/// Server supports the Range header
-					if (pReq->iRecvSize <= pReq->iFileSize) {
-						ULONG iZero = 0;
-						if ((SetFilePointer( pReq->Local.hFile, 0, &iZero, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS)) {
-							/// SUCCESS (resume)
+				if (pReq->iRecvSize == pReq->iFileSize) {
+					/// SUCCESS (completed)
+				} else {
+					if (pReq->iRecvSize < pReq->iFileSize) {
+						if (pReq->bUsingRanges) {
+							ULONG iZero = 0;
+							if ((SetFilePointer( pReq->Local.hFile, 0, &iZero, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS)) {
+								/// SUCCESS (resume)
+							} else {
+								err = GetLastError();		/// SetFilePointer
+							}
 						} else {
-							err = GetLastError();		/// SetFilePointer
+							err = ERROR_UNSUPPORTED_TYPE;/// The server doesn't support Range header
 						}
 					} else {
-						err = ERROR_FILE_TOO_LARGE;	/// Local file larger than the remote file
+						err = ERROR_FILE_TOO_LARGE;	/// Local file is larger than the remote file
 					}
-				} else {
-					err = ERROR_UNSUPPORTED_TYPE;/// The server doesn't support Range header
 				}
 			} else {
 				err = ERROR_INVALID_DATA;	/// The remote content length is still unknown
@@ -885,7 +895,7 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 						/// iRecvSize already set
 					}
 				} else {
-					err = ERROR_FILE_TOO_LARGE;	/// The remote content length exceeds the limit
+					err = ERROR_FILE_TOO_LARGE;	/// The remote content length exceeds our size limit
 				}
 			} else {
 				err = ERROR_INVALID_DATA;	/// The remote content length is still unknown
