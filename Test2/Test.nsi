@@ -52,8 +52,8 @@
 !define MUI_WELCOMEPAGE_TITLE_3LINES
 !insertmacro MUI_PAGE_WELCOME
 
-# CustomWait page
-Page Custom .onCustomWait.Create .onCustomWait.Leave
+# Download page
+Page Custom .onDownloadPage.Create .onDownloadPage.Leave
 
 # Language
 !insertmacro MUI_LANGUAGE "English"
@@ -150,35 +150,41 @@ SectionEnd
 !macroend
 
 
-Function .onCustomWait.Create
+
+Function .onDownloadPage.Create
 
 	; NOTE: This function is never called by silent installers
 
 	;!define PAGE_FULLWINDOW
 
-	; Initialize variables
-	Var /Global mui.CustomWait.Page
-	Var /Global mui.CustomWait.Image
-	Var /Global mui.CustomWait.Image.Icon
-	Var /Global mui.CustomWait.Title
-	Var /Global mui.CustomWait.Title.Font
-	Var /Global mui.CustomWait.Title.String
-	Var /Global mui.CustomWait.Progress
-	Var /Global mui.CustomWait.Text
-	Var /Global mui.CustomWait.Text.String
+	!define /redef PageName		DownloadPage
+	!define /redef PageTitle	"Page Title"
+	!define /redef PageSubtitle	"Page Subtitle"
+	!define /redef PageText		"Page Text"
 
-	StrCpy $mui.CustomWait.Page 0
-	StrCpy $mui.CustomWait.Image 0
-	StrCpy $mui.CustomWait.Image.Icon 0
-	StrCpy $mui.CustomWait.Title 0
-	StrCpy $mui.CustomWait.Title.Font 0
-	StrCpy $mui.CustomWait.Title.String "MyTitle"
-	StrCpy $mui.CustomWait.Text 0
-	StrCpy $mui.CustomWait.Text.String "MyText"
+	; Initialize variables
+	Var /Global mui.${PageName}.Page
+	Var /Global mui.${PageName}.Image
+	Var /Global mui.${PageName}.Image.Icon
+	Var /Global mui.${PageName}.Title
+	Var /Global mui.${PageName}.Title.Font
+	Var /Global mui.${PageName}.Title.String
+	Var /Global mui.${PageName}.Progress
+	Var /Global mui.${PageName}.Text
+	Var /Global mui.${PageName}.Text.String
+
+	StrCpy $mui.${PageName}.Page 0
+	StrCpy $mui.${PageName}.Image 0
+	StrCpy $mui.${PageName}.Image.Icon 0
+	StrCpy $mui.${PageName}.Title 0
+	StrCpy $mui.${PageName}.Title.Font 0
+	StrCpy $mui.${PageName}.Title.String "${PageTitle}"
+	StrCpy $mui.${PageName}.Text 0
+	StrCpy $mui.${PageName}.Text.String "${PageText}"
 
 	; Page header
 	!ifndef PAGE_FULLWINDOW
-		!insertmacro MUI_HEADER_TEXT_PAGE "MyTitle" "MySubtitle"
+		!insertmacro MUI_HEADER_TEXT_PAGE "${PageTitle}" "${PageSubtitle}"
 	!endif
 
 	; Create the page
@@ -187,47 +193,47 @@ Function .onCustomWait.Create
 	!else
 		nsDialogs::Create /NOUNLOAD 1018		; Use regular page dialog resource
 	!endif
-	Pop $mui.CustomWait.Page
+	Pop $mui.${PageName}.Page
 	nsDialogs::SetRTL /NOUNLOAD $(^RTL)
-	;SetCtlColors $mui.CustomWait.Page "" "0xF00000"
+	;SetCtlColors $mui.${PageName}.Page "" "0xF00000"
 
 	; The image control
 	${NSD_CreateIcon} 10u 10u 48 48 ""
-	Pop $mui.CustomWait.Image
+	Pop $mui.${PageName}.Image
 	System::Call 'kernel32::GetModuleHandle( p ${NULL} ) p.r1' 
 	System::Call 'user32::LoadImage( p r1, p 103, i ${IMAGE_ICON}, i 48, i 48, i 0 ) p.s'
-	Pop $mui.CustomWait.Image.Icon
-	SendMessage $mui.CustomWait.Image ${STM_SETIMAGE} ${IMAGE_ICON} $mui.CustomWait.Image.Icon
+	Pop $mui.${PageName}.Image.Icon
+	SendMessage $mui.${PageName}.Image ${STM_SETIMAGE} ${IMAGE_ICON} $mui.${PageName}.Image.Icon
 
 	; Title
-	!define MUI_CUSTOMWAIT_TITLE_HEIGHT 14
-	;!ifndef MUI_CUSTOMWAIT_TITLE_3LINES
-	;	!define MUI_CUSTOMWAIT_TITLE_HEIGHT 28
+	!define PAGE_TITLE_HEIGHT 14
+	;!ifndef MUI_DOWNLOADPAGE_TITLE_3LINES
+	;	!define PAGE_TITLE_HEIGHT 28
 	;!else
-	;	!define MUI_CUSTOMWAIT_TITLE_HEIGHT 38
+	;	!define PAGE_TITLE_HEIGHT 38
 	;!endif
 
-	${NSD_CreateLabel} 60u 10u -70u ${MUI_CUSTOMWAIT_TITLE_HEIGHT}u `$mui.CustomWait.Title.String`
-	Pop $mui.CustomWait.Title
-	CreateFont $mui.CustomWait.Title.Font "$(^Font)" "12" "700"
-	SendMessage $mui.CustomWait.Title ${WM_SETFONT} $mui.CustomWait.Title.Font 0
-	;SetCtlColors $mui.CustomWait.Title "" "0xF00000"
+	${NSD_CreateLabel} 60u 10u -70u ${PAGE_TITLE_HEIGHT}u `$mui.${PageName}.Title.String`
+	Pop $mui.${PageName}.Title
+	CreateFont $mui.${PageName}.Title.Font "$(^Font)" "12" "700"
+	SendMessage $mui.${PageName}.Title ${WM_SETFONT} $mui.${PageName}.Title.Font 0
+	;SetCtlColors $mui.${PageName}.Title "" "0xF00000"
 
 	; Progress
-	${GetDlgItemRect} $mui.CustomWait.Page $mui.CustomWait.Title $0 $0 $0 $1	; $1 == bottom coordinate	
+	${GetDlgItemRect} $mui.${PageName}.Page $mui.${PageName}.Title $0 $0 $0 $1	; $1 == bottom coordinate	
 	IntOp $1 $1 + 20
 	${NSD_CreateProgressBar} 60u $1 -70u 12u ""
-	Pop $mui.CustomWait.Progress
+	Pop $mui.${PageName}.Progress
 
 	; Text
-	${GetDlgItemRect} $mui.CustomWait.Page $mui.CustomWait.Progress $0 $0 $0 $1	; $1 == bottom coordinate	
+	${GetDlgItemRect} $mui.${PageName}.Page $mui.${PageName}.Progress $0 $0 $0 $1	; $1 == bottom coordinate	
 	IntOp $1 $1 + 5
-	${NSD_CreateLabel} 61u $1 -70u 65u `$mui.CustomWait.Text.String`
-	Pop $mui.CustomWait.Text
-	;SetCtlColors $mui.CustomWait.Text "" "0xF00000"
+	${NSD_CreateLabel} 61u $1 -70u 65u `$mui.${PageName}.Text.String`
+	Pop $mui.${PageName}.Text
+	;SetCtlColors $mui.${PageName}.Text "" "0xF00000"
 
 	; Timer
-	GetFunctionAddress $0 .onCustomWait.Execute
+	GetFunctionAddress $0 .on${PageName}.Execute
 	nsDialogs::CreateTimer $0 50
 
 	; Display the page
@@ -240,22 +246,20 @@ Function .onCustomWait.Create
 	!endif
 
 	; Delete the image from memory
-	${NSD_FreeIcon} $mui.CustomWait.Image.Icon
+	${NSD_FreeIcon} $mui.${PageName}.Image.Icon
 
-	!insertmacro MUI_UNSET MUI_CUSTOMWAIT_TITLE
-	!insertmacro MUI_UNSET MUI_CUSTOMWAIT_TEXT
-	!insertmacro MUI_UNSET MUI_CUSTOMWAIT_TITLE_HEIGHT
-	!insertmacro MUI_UNSET MUI_CUSTOMWAIT_TEXT_TOP
-
+	!insertmacro MUI_UNSET PAGE_TITLE_HEIGHT
 	!insertmacro MUI_UNSET PAGE_FULLWINDOW
 
 FunctionEnd
 
 
-Function .onCustomWait.Execute
+Function .onDownloadPage.Execute
+	!define /redef PageName "DownloadPage"
+
 	;System::Call 'user32::MessageBeep( i -1 ) i'
 
-	GetFunctionAddress $0 .onCustomWait.Execute
+	GetFunctionAddress $0 .on${PageName}.Execute
 	nsDialogs::KillTimer $0
 
 	; NSIS buttons
@@ -264,11 +268,11 @@ Function .onCustomWait.Execute
 	;EnableWindow $mui.Button.Cancel ${FALSE}
 
 	; Download files
-	Call CustomWait.Request
-	Call CustomWait.Wait
+	Call Download.Request
+	Call Download.Wait
 
 	; Cleanup (optional, in case the user hits Back and the download starts again...)
-	Call CustomWait.Clear
+	Call Download.Clear
 
 	; NSIS buttons
 	EnableWindow $mui.Button.Back ${TRUE}
@@ -277,7 +281,8 @@ Function .onCustomWait.Execute
 FunctionEnd
 
 
-Function .onCustomWait.Leave
+Function .onDownloadPage.Leave
+	!define /redef PageName "DownloadPage"
 FunctionEnd
 
 
@@ -285,9 +290,9 @@ FunctionEnd
 #   None
 # Output:
 #   None
-Function CustomWait.Request
+Function Download.Request
 
-	; SysinternalsSuite (live)
+	; SysinternalsSuite (microsoft.com)
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE "$EXEDIR\_SysinternalsSuite_Live.zip"
@@ -320,9 +325,9 @@ Function CustomWait.Request
 	!insertmacro STACK_VERIFY_END
 
 
-	; SysinternalsSuite (nefertiti)
+	; SysinternalsSuite (negrutiu.com)
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://nefertiti.homenet.org:8008/${SYSINTERNALS_NAME}.zip`
+	!define /redef LINK `https://negrutiu.com/${SYSINTERNALS_NAME}.zip`
 	!define /redef FILE "$EXEDIR\_${SYSINTERNALS_NAME}.zip"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
@@ -348,6 +353,7 @@ Function CustomWait.Request
 
 
 	; CuckooBox
+	; NOTE: github.com doesn't support Range headers
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
 	!define /redef FILE "$EXEDIR\_CuckooBox_master.zip"
@@ -380,7 +386,7 @@ FunctionEnd
 #   None
 # Output:
 #   None
-Function CustomWait.Wait
+Function Download.Wait
 	!insertmacro STACK_VERIFY_START
 
 !ifdef ENABLE_DEBUGGING
@@ -390,15 +396,15 @@ Function CustomWait.Wait
 	Push "/ABORT"
 	;Push $HWNDPARENT
 	;Push "/TITLEHWND"
-	Push $mui.CustomWait.Progress
+	Push $mui.${PageName}.Progress
 	Push "/PROGRESSHWND"
-	Push $mui.CustomWait.Text
+	Push $mui.${PageName}.Text
 	Push "/STATUSHWND"
 	Push Page
 	Push "/MODE"
 	CallInstDLL "${NSXFER}" "Wait"
 !else
-	NSxfer::Wait /NOUNLOAD /MODE Page /STATUSHWND $mui.CustomWait.Text /PROGRESSHWND $mui.CustomWait.Progress /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /NOUNLOAD /MODE Page /STATUSHWND $mui.${PageName}.Text /PROGRESSHWND $mui.${PageName}.Progress /ABORT "Abort" "Are you sure?" /END
 !endif
 	Pop $0
 
@@ -410,7 +416,7 @@ FunctionEnd
 #   None
 # Output:
 #   None
-Function CustomWait.Clear
+Function Download.Clear
 	!insertmacro STACK_VERIFY_START
 
 !ifdef ENABLE_DEBUGGING

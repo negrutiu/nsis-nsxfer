@@ -397,11 +397,12 @@ Section Test
 SectionEnd
 */
 
-Section "Request: negrutiu.com (HTTPS)"
+Section /o "Request: Test webpages"
 	SectionIn 1	; All
+
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://negrutiu.com`
-	!define /redef FILE "$EXEDIR\_negrutiu.com.html"
+	!define /redef FILE "$EXEDIR\_webpage_negrutiu.com.html"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
@@ -418,12 +419,55 @@ Section "Request: negrutiu.com (HTTPS)"
 	NSxfer::Request /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /SECURITYFLAGS 0x2080|0x100 /END
 !endif
 	Pop $0	; ItemID
+	!insertmacro STACK_VERIFY_END
 
+
+	!insertmacro STACK_VERIFY_START
+	!define /redef LINK `https://nefertiti`
+	!define /redef FILE "$EXEDIR\_webpage_nefertiti.html"
+	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	Push "0x2080|0x100"
+	Push "/SECURITYFLAGS"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	CallInstDLL "${NSXFER}" "Request"
+!else
+	NSxfer::Request /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /SECURITYFLAGS 0x2080|0x100 /END
+!endif
+	Pop $0	; ItemID
+	!insertmacro STACK_VERIFY_END
+
+
+	!insertmacro STACK_VERIFY_START
+	!define /redef LINK `https://patrunjel`
+	!define /redef FILE "$EXEDIR\_webpage_patrunjel.html"
+	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	Push "0x2080|0x100"
+	Push "/SECURITYFLAGS"
+	Push "15000"
+	Push "/TIMEOUTCONNECT"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	CallInstDLL "${NSXFER}" "Request"
+!else
+	NSxfer::Request /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /SECURITYFLAGS 0x2080|0x100 /END
+!endif
+	Pop $0	; ItemID
 	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
-Section "Request: Notepad++"
+Section /o "Request: Notepad++"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://notepad-plus-plus.org/repository/6.x/6.8.3/npp.6.8.3.Installer.exe`
@@ -447,7 +491,7 @@ Section "Request: Notepad++"
 SectionEnd
 
 
-Section "Request: CCleaner"
+Section /o "Request: CCleaner"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://www.piriform.com/ccleaner/download/slim/downloadfile`
@@ -469,10 +513,10 @@ Section "Request: CCleaner"
 SectionEnd
 
 
-Section "Transfer: SysinternalsSuite (nefertiti, Popup mode)"
+Section /o "Transfer: SysinternalsSuite (negrutiu.com, Popup mode)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://nefertiti.homenet.org:8008/${SYSINTERNALS_NAME}.zip`
+	!define /redef LINK `https://negrutiu.com/${SYSINTERNALS_NAME}.zip`
 	!define /redef FILE "$EXEDIR\_${SYSINTERNALS_NAME}_Transfer.zip"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
@@ -504,12 +548,13 @@ Section "Transfer: SysinternalsSuite (nefertiti, Popup mode)"
 SectionEnd
 
 
-Section "Request: SysinternalsSuite (proxy)"
+Section /o "Request: SysinternalsSuite (proxy)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK  "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
-	!define /redef PROXY "http=http://95.213.128.2:80"
+	;!define /redef PROXY "http=http://47.88.15.198:80"	; Ottawa, Canada
+	!define /redef PROXY "https=https://212.47.235.81:3129"	; France
 	DetailPrint 'NSxfer::Request /proxy ${PROXY} "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"
@@ -534,7 +579,7 @@ Section "Request: SysinternalsSuite (proxy)"
 SectionEnd
 
 
-Section "Request: SysinternalsSuite (live)"
+Section /o "Request: SysinternalsSuite (live)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
@@ -569,10 +614,10 @@ Section "Request: SysinternalsSuite (live)"
 SectionEnd
 
 
-Section "Request: SysinternalsSuite (nefertiti)"
+Section /o "Request: SysinternalsSuite (negrutiu.com)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK `http://nefertiti.homenet.org:8008/${SYSINTERNALS_NAME}.zip`
+	!define /redef LINK `https://negrutiu.com/${SYSINTERNALS_NAME}.zip`
 	!define /redef FILE "$EXEDIR\_${SYSINTERNALS_NAME}.zip"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
@@ -598,9 +643,10 @@ Section "Request: SysinternalsSuite (nefertiti)"
 SectionEnd
 
 
-Section "Request: CuckooBox (https://github)"
+Section /o "Request: CuckooBox (https://github)"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
+	; NOTE: github.com doesn't support Range headers
 	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
 	!define /redef FILE "$EXEDIR\_CuckooBox_master.zip"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
@@ -627,7 +673,7 @@ Section "Request: CuckooBox (https://github)"
 SectionEnd
 
 
-Section "Request: httpbin.org/post"
+Section /o "Request: httpbin.org/post"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/post`
@@ -664,7 +710,7 @@ Section "Request: httpbin.org/post"
 SectionEnd
 
 
-Section "Request: httpbin.org/get -> Memory"
+Section /o "Request: httpbin.org/get -> Memory"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://httpbin.org/get?param1=value1&param2=value2`
@@ -839,6 +885,8 @@ Section /o "Wait (Silent mode)" SECTION_WAIT_SILENT
 SectionEnd
 
 Section -Wait
+
+	DetailPrint "Waiting..."
 
 	; Mode
 	${If} ${SectionIsSelected} ${SECTION_WAIT_PAGE}
