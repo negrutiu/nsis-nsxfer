@@ -16,6 +16,17 @@ VOID ThreadDownload( _Inout_ PQUEUE_REQUEST pReq );
 ULONG ThreadSetWin32Error( _Inout_ PQUEUE_REQUEST pReq, _In_ ULONG iError );
 ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_REQUEST pReq );
 
+// WinINet error codes: https://support.microsoft.com/en-us/kb/193625
+#define CRITICAL_WININET_ERROR(err) ( \
+	err > INTERNET_ERROR_BASE && err < INTERNET_ERROR_BASE + 100 \
+	&& err != ERROR_INTERNET_TIMEOUT \
+	&& err != ERROR_INTERNET_REQUEST_PENDING \
+	&& err != ERROR_INTERNET_CANNOT_CONNECT 	/* Bad port, server down, etc. */ \
+	&& err != ERROR_INTERNET_CONNECTION_ABORTED \
+	&& err != ERROR_INTERNET_CONNECTION_RESET \
+	&& err != ERROR_INTERNET_FORCE_RETRY \
+	)
+
 
 //++ ThreadIsTerminating
 BOOL ThreadIsTerminating( _In_ PTHREAD pThread )
@@ -695,14 +706,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 					);
 
 				/// Break if critical WinINet error (such as ERROR_INTERNET_INVALID_URL, ERROR_INTERNET_NAME_NOT_RESOLVED, etc.)
-				if (err > INTERNET_ERROR_BASE &&
-					err < INTERNET_ERROR_BASE + 100 &&
-					err != ERROR_INTERNET_TIMEOUT &&
-					err != ERROR_INTERNET_REQUEST_PENDING &&	/// ?
-					///err != ERROR_INTERNET_CANNOT_CONNECT &&	/// Wrong port, for instance...
-					err != ERROR_INTERNET_FORCE_RETRY			/// ?
-					)
-				{
+				if (CRITICAL_WININET_ERROR( err )) {
 					TRACE2( _T( "  Th:%s Id:%u Critical WinINet error. Abort\n" ), pReq->pThread->szName, pReq->iId );
 					break;
 				}
@@ -1175,12 +1179,13 @@ VOID ThreadDownload( _Inout_ PQUEUE_REQUEST pReq )
 		if (ThreadDownload_LocalCreate1( pReq )) {
 			if (ThreadDownload_OpenSession( pReq )) {
 
-				BOOL bReconnectAllowed = TRUE;
+				BOOL bRetry = TRUE;
 				int i;
-				for (i = 0; (i < 1000) && bReconnectAllowed; i++) {
+				for (i = 0; bRetry && (i < 1000); i++) {
 
-					bReconnectAllowed = FALSE;
+					bRetry = FALSE;
 					if (ThreadDownload_RemoteConnect( pReq, (BOOL)(i > 0) )) {
+
 						if (ThreadDownload_LocalCreate2( pReq )) {
 
 							if (ThreadDownload_Transfer( pReq )) {
@@ -1189,12 +1194,10 @@ VOID ThreadDownload( _Inout_ PQUEUE_REQUEST pReq )
 
 							ThreadDownload_RemoteDisconnect( pReq );
 
-							/// Reconnect and resume?
-							bReconnectAllowed =
-								pReq->iWin32Error != ERROR_SUCCESS &&
-								pReq->iWin32Error != ERROR_INTERNET_OPERATION_CANCELLED &&
-								pReq->Xfer.iXferSize > 0 &&			/// We already received something...
-								RequestReconnectionAllowed( pReq );
+							/// Continue?
+							bRetry = (pReq->iWin32Error != ERROR_SUCCESS) && (!CRITICAL_WININET_ERROR( pReq->iWin32Error ));
+							if (bRetry && (pReq->Xfer.iXferSize > 0))			/// We already received something...
+								bRetry = RequestReconnectionAllowed( pReq );	/// Reconnection (after dropped connection) is allowed
 						}
 					}
 				}

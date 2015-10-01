@@ -673,6 +673,38 @@ Section /o "Request: CuckooBox (https://github)"
 SectionEnd
 
 
+Section /o "Request: OSMC installer (http://osmc.tv)"
+	SectionIn 1	; All
+	!insertmacro STACK_VERIFY_START
+	; NOTE: github.com doesn't support Range headers
+	!define /redef LINK `http://download.osmc.tv/installers/osmc-installer.exe`
+	!define /redef FILE "$EXEDIR\_osmc_installer.exe"
+	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
+!ifdef ENABLE_DEBUGGING
+	Push "/END"
+	;Push 10000
+	;Push "/OPTCONNECTTIMEOUT"
+	Push 60000
+	Push "/TIMEOUTRECONNECT"
+	Push 10800000
+	Push "/TIMEOUTCONNECT"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	Push "GET"
+	Push "/METHOD"
+	Push 10
+	Push "/PRIORITY"
+	CallInstDLL "${NSXFER}" "Request"
+!else
+	NSxfer::Request /NOUNLOAD /PRIORITY 10 /METHOD GET /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 300000 /TIMEOUTRECONNECT 60000 /END
+!endif
+	Pop $0	; ItemID
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
 Section /o "Request: httpbin.org/post"
 	SectionIn 1	; All
 	!insertmacro STACK_VERIFY_START
