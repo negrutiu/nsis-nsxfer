@@ -77,8 +77,8 @@ Remarks:
 	
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	...							| "Request" parameters
-	...							| "Wait" parameters
+	...							| Check out "Request" parameters!
+	...							| Check out "Wait" parameters!
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
