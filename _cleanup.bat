@@ -1,25 +1,26 @@
 @echo off
 
-%~d0
-cd "\%~p0"
+cd /d "%~dp0"
 
-rem  >>> Delete everything twice! <<<
+del "%CD%\Test\*.exe"
+del "%CD%\Test2\*.exe"
 call :CLEANUP
 call :CLEANUP
-del "%~dp0\Test\*.exe"
-del "%~dp0\Test2\*.exe"
+call :CLEANUP
 goto :EOF
 
 
 :CLEANUP
-for /D %%a in (Debug*) do rd /S /Q "%%a"
-for /D %%a in (Release*) do rd /S /Q "%%a"
+rd /S /Q .vs
 rd /S /Q ipch
 
-attrib -H *.suo /S /D
-del *.suo
-attrib -R *.ncb /S /D
-del *.ncb
-del *.bak
-del *.sdf
+for /D %%a in (Debug*) do rd /S /Q "%%a"
+for /D %%a in (Release*) do rd /S /Q "%%a"
+
 del *.aps
+del *.bak
+::del *.user
+del *.ncb
+del /AH *.suo
+del *.sdf
+del *.VC.db
