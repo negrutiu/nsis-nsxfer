@@ -1,18 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugW|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseW-nocrt|Win32'">
     <LocalDebuggerCommand>$(SolutionDir)\Test\NSxferW.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseW|Win32'">
-    <LocalDebuggerCommand>$(SolutionDir)\Test\NSxferW.exe</LocalDebuggerCommand>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugA|Win32'">
-    <LocalDebuggerCommand>$(SolutionDir)\Test\NSxferA.exe</LocalDebuggerCommand>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseA|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseA-nocrt|Win32'">
     <LocalDebuggerCommand>$(SolutionDir)\Test\NSxferA.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>

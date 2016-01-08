@@ -237,7 +237,7 @@ PQUEUE_REQUEST QueueFindNextWaiting( _Inout_ PQUEUE pQueue );			/// ...by status
 BOOL QueueAdd(
 	_Inout_ PQUEUE pQueue,
 	_In_ PQUEUE_REQUEST_PARAM pParam,
-	_Outptr_opt_ PQUEUE_REQUEST *ppReq
+	_Out_opt_ PQUEUE_REQUEST *ppReq
 	);
 
 // Remove a request from the queue and destroy it

@@ -961,9 +961,9 @@ void __cdecl Test(
 }
 
 
-//++ _DllMainCRTStartup
+//++ DllMain
 EXTERN_C
-BOOL WINAPI _DllMainCRTStartup(
+BOOL WINAPI DllMain(
 	HMODULE hInst,
 	UINT iReason,
 	LPVOID lpReserved

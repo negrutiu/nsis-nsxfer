@@ -1,11 +1,15 @@
-mkdir "%~dp0\..\LadaCuScule\NSIS.extra\NSxfer"
-copy "%~dp0\ReleaseA\NSxfer.dll" "%~dp0\..\LadaCuScule\NSIS.extra\NSxfer"
-copy "%~dp0\ReleaseA\NSxfer.pdb" "%~dp0\..\LadaCuScule\NSIS.extra\NSxfer"
-copy "%~dp0\NSxfer.Readme.txt"   "%~dp0\..\LadaCuScule\NSIS.extra\NSxfer"
+set SRC=%~dp0\ReleaseA-nocrt
+set DST=%~dp0\..\LadaCuScule\NSIS.extra\NSxfer
+mkdir "%DST%"
+copy "%SRC%\NSxfer.dll" "%DST%"
+copy "%SRC%\NSxfer.pdb" "%DST%"
+copy "%~dp0\NSxfer.Readme.txt" "%DST%"
 
-mkdir "%~dp0\..\LadaCuScule\NSISw.extra\NSxfer"
-copy "%~dp0\ReleaseW\NSxfer.dll" "%~dp0\..\LadaCuScule\NSISw.extra\NSxfer"
-copy "%~dp0\ReleaseW\NSxfer.pdb" "%~dp0\..\LadaCuScule\NSISw.extra\NSxfer"
-copy "%~dp0\NSxfer.Readme.txt"   "%~dp0\..\LadaCuScule\NSISw.extra\NSxfer"
+set SRC=%~dp0\ReleaseW-nocrt
+set DST=%~dp0\..\LadaCuScule\NSISw.extra\NSxfer
+mkdir "%DST%"
+copy "%SRC%\NSxfer.dll" "%DST%"
+copy "%SRC%\NSxfer.pdb" "%DST%"
+copy "%~dp0\NSxfer.Readme.txt" "%DST%"
 
 pause

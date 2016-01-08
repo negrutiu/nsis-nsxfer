@@ -3,6 +3,7 @@
 #include "queue.h"
 #include "utils.h"
 #include "resource.h"
+#include "ITaskbarList.h"
 
 #define GUI_TIMER_REFRESH_ID	1
 #define GUI_TIMER_REFRESH_TIME	500
@@ -327,7 +328,8 @@ void GuiExpandKeywords(
 					} else if (IS_KEYWORD( pszKeywordStart, _T( "AnimDots" ))) {
 						int i, n;
 						for (i = 0, n = iAnimationStep % 4; i < n; i++)
-							szNewValue[i] = _T( '.' );
+							if (i < n)	/// Trick: We'll add this (useless) condition inside the 'for' loop, to prevent the compiler from replacing the entire loop with a _memset call (happens when building directly with cl.exe, using ANSI code page)
+								szNewValue[i] = _T( '.' );
 						szNewValue[i] = _T( '\0' );
 					} else {
 						/// Unrecognized keyword

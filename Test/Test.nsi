@@ -31,14 +31,14 @@ ${StrRep}			; Declare function in advance
 !else
 	; Release
 	!ifdef NSIS_UNICODE
-		!if /FileExists "..\ReleaseW\NSxfer.dll"
-			!AddPluginDir "..\ReleaseW"
+		!if /FileExists "..\ReleaseW-nocrt\NSxfer.dll"
+			!AddPluginDir "..\ReleaseW-nocrt"
 		!else
 			!error "NSxfer.dll (Unicode) not found. Have you built it?"
 		!endif
 	!else
-		!if /FileExists "..\ReleaseA\NSxfer.dll"
-			!AddPluginDir "..\ReleaseA"
+		!if /FileExists "..\ReleaseA-nocrt\NSxfer.dll"
+			!AddPluginDir "..\ReleaseA-nocrt"
 		!else
 			!error "NSxfer.dll (ANSI) not found. Have you built it?"
 		!endif
