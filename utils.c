@@ -2,6 +2,7 @@
 #include "main.h"
 #include "utils.h"
 
+
 int _fltused = 0;
 MEMORY_STATS g_MemStats = { 0 };
 
@@ -121,7 +122,7 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText )
 }
 
 
-#ifndef _INC_STDLIB
+#ifndef WDK
 	/// ULONLONG <-> double conversion groups
 	///	ULLONG_MAX == 18446744073709551615
 	ULONGLONG ULONGLONG_groups[19] = { 1000000000000000000, 100000000000000000, 10000000000000000, 1000000000000000, 100000000000000, 10000000000000, 1000000000000, 100000000000, 10000000000, 1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1 };
@@ -132,7 +133,7 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText )
 //++ MyUlonglongToDouble
 double MyUlonglongToDouble( __in ULONGLONG ull )
 {
-#ifdef _INC_STDLIB
+#ifdef WDK
 	return (double)ull;
 #else
 	/// Building without the CRT. We'll do manual conversion
@@ -152,7 +153,7 @@ double MyUlonglongToDouble( __in ULONGLONG ull )
 //++ MyDoubleToUlonglong
 ULONGLONG MyDoubleToUlonglong( __in double d )
 {
-#ifdef _INC_STDLIB
+#ifdef WDK
 	return (ULONGLONG)d;
 #else
 	/// Building without the CRT. We'll do manual conversion
@@ -171,7 +172,7 @@ ULONGLONG MyDoubleToUlonglong( __in double d )
 //++ MyDiv64
 ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator )
 {
-#ifdef _INC_STDLIB
+#ifdef WDK
 	return iNumerator / iDenominator;
 #else
 	/// Building without the CRT
