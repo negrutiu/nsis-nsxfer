@@ -137,12 +137,23 @@ ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 
 	assert( piContentLength );
 
 	if ( HttpQueryInfo( hFile, HTTP_QUERY_CONTENT_LENGTH, szContentLength, &iDataSize, NULL ) ) {
+#ifdef StrToInt64Ex
 		if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
 			/// SUCCESS
 		} else {
 			err = ERROR_DATATYPE_MISMATCH;
 			*piContentLength = INVALID_FILE_SIZE64;
 		}
+#else
+		/// WDK6 + W2K
+		__try {
+			*piContentLength = (ULONG64)_tstoi64( szContentLength );
+			/// SUCCESS
+		} __except (EXCEPTION_EXECUTE_HANDLER) {
+			err = ERROR_DATATYPE_MISMATCH;
+			*piContentLength = INVALID_FILE_SIZE64;
+		}
+#endif
 	} else {
 		err = GetLastError();
 		*piContentLength = INVALID_FILE_SIZE64;
@@ -581,7 +592,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 								if (pReq->iRecvSize > 0) {
 									TCHAR szRangeHeader[255];
 									wnsprintf( szRangeHeader, ARRAYSIZE( szRangeHeader ), _T( "Range: bytes=%I64u-" ), pReq->iRecvSize );
-									pReq->bUsingRanges = HttpAddRequestHeaders( pReq->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
+									pReq->bUsingRanges = (BOOLEAN)HttpAddRequestHeaders( pReq->hRequest, szRangeHeader, -1, HTTP_ADDREQ_FLAG_ADD_IF_NEW );
 								}
 
 							_send_request:

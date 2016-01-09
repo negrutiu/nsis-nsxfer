@@ -121,15 +121,21 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText )
 }
 
 
-/// ULONLONG <-> double conversion groups
-///	ULLONG_MAX == 18446744073709551615
-ULONGLONG ULONGLONG_groups[19] = { 1000000000000000000, 100000000000000000, 10000000000000000, 1000000000000000, 100000000000000, 10000000000000, 1000000000000, 100000000000, 10000000000, 1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1 };
-double double_groups[19] = { 1000000000000000000.0F, 100000000000000000.0F, 10000000000000000.0F, 1000000000000000.0F, 100000000000000.0F, 10000000000000.0F, 1000000000000.0F, 100000000000.0F, 10000000000.0F, 1000000000.0F, 100000000.0F, 10000000.0F, 1000000.0F, 100000.0F, 10000.0F, 1000.0F, 100.0F, 10.0F, 1.0F };
+#ifndef _INC_STDLIB
+	/// ULONLONG <-> double conversion groups
+	///	ULLONG_MAX == 18446744073709551615
+	ULONGLONG ULONGLONG_groups[19] = { 1000000000000000000, 100000000000000000, 10000000000000000, 1000000000000000, 100000000000000, 10000000000000, 1000000000000, 100000000000, 10000000000, 1000000000, 100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1 };
+	double double_groups[19] = { 1000000000000000000.0F, 100000000000000000.0F, 10000000000000000.0F, 1000000000000000.0F, 100000000000000.0F, 10000000000000.0F, 1000000000000.0F, 100000000000.0F, 10000000000.0F, 1000000000.0F, 100000000.0F, 10000000.0F, 1000000.0F, 100000.0F, 10000.0F, 1000.0F, 100.0F, 10.0F, 1.0F };
+#endif
 
 
 //++ MyUlonglongToDouble
 double MyUlonglongToDouble( __in ULONGLONG ull )
 {
+#ifdef _INC_STDLIB
+	return (double)ull;
+#else
+	/// Building without the CRT. We'll do manual conversion
 	double d = 0.0F;
 	int i;
 	for (i = 0; i < 19; i++) {
@@ -139,12 +145,17 @@ double MyUlonglongToDouble( __in ULONGLONG ull )
 		}
 	}
 	return d;
+#endif
 }
 
 
 //++ MyDoubleToUlonglong
 ULONGLONG MyDoubleToUlonglong( __in double d )
 {
+#ifdef _INC_STDLIB
+	return (ULONGLONG)d;
+#else
+	/// Building without the CRT. We'll do manual conversion
 	ULONGLONG ull = 0;
 	int i;
 	for (i = 0; i < 19; i++) {
@@ -154,12 +165,21 @@ ULONGLONG MyDoubleToUlonglong( __in double d )
 		}
 	}
 	return ull;
+#endif
 }
 
 //++ MyDiv64
 ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator )
 {
-/*	ULONGLONG iQuotient = 0;
+#ifdef _INC_STDLIB
+	return iNumerator / iDenominator;
+#else
+	/// Building without the CRT
+	if (iDenominator == 0)
+		iDenominator = 1;
+	return MyDoubleToUlonglong( MyUlonglongToDouble( iNumerator ) / MyUlonglongToDouble( iDenominator ) );
+
+	/*	ULONGLONG iQuotient = 0;
 	if (iDenominator != 0) {
 		while (iNumerator >= iDenominator) {
 			iNumerator -= iDenominator;
@@ -167,10 +187,7 @@ ULONGLONG MyDiv64( __in ULONGLONG iNumerator, __in ULONGLONG iDenominator )
 		}
 	}
 	return iQuotient;*/
-
-	if (iDenominator == 0)
-		iDenominator = 1;
-	return MyDoubleToUlonglong( MyUlonglongToDouble( iNumerator ) / MyUlonglongToDouble( iDenominator ) );
+#endif
 }
 
 

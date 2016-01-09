@@ -3,7 +3,12 @@
 #include "queue.h"
 #include "utils.h"
 #include "resource.h"
-#include "ITaskbarList.h"
+
+#if _MSC_VER < 1600
+	/// ...prior to Visual Studio 2010 (including WDK compilers)
+	/// http://stackoverflow.com/questions/70013/how-to-detect-if-im-compiling-code-with-visual-studio-2008
+	#include "Tools\ITaskbarList.h"
+#endif
 
 #define GUI_TIMER_REFRESH_ID	1
 #define GUI_TIMER_REFRESH_TIME	500

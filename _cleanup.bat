@@ -16,6 +16,13 @@ rd /S /Q ipch
 
 for /D %%a in (Debug*) do rd /S /Q "%%a"
 for /D %%a in (Release*) do rd /S /Q "%%a"
+for /D %%a in (objchk*) do rd /S /Q "%%a"
+for /D %%a in (objfre*) do rd /S /Q "%%a"
+
+del build*.err
+del build*.log
+del build*.wrn
+del temp.c
 
 del *.aps
 del *.bak
