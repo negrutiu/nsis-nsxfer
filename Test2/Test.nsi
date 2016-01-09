@@ -71,6 +71,7 @@ Page Custom .onDownloadPage.Create .onDownloadPage.Leave
 XPStyle on
 RequestExecutionLevel user ; don't require UAC elevation
 ShowInstDetails show
+ManifestDPIAware true
 
 !macro STACK_VERIFY_START
 	Push 666
