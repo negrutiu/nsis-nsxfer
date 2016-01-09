@@ -38,7 +38,7 @@ call "%VCVARSALL%" x86
 echo -----------------------------------
 echo ANSI
 echo -----------------------------------
-set OUTDIR=ReleaseA-nocrt-cl
+set OUTDIR=ReleaseA-nocrt
 call :BUILD_PARAMS
 set CL=/D "_MBCS" %CL%
 call :BUILD_CL
@@ -47,7 +47,7 @@ if %ERRORLEVEL% neq 0 pause && goto :EOF
 echo -----------------------------------
 echo Unicode
 echo -----------------------------------
-set OUTDIR=ReleaseW-nocrt-cl
+set OUTDIR=ReleaseW-nocrt
 call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" %CL%
 call :BUILD_CL

@@ -232,7 +232,7 @@ void __cdecl Request(
 	TRACE_CALL( stacktop, _T( "NSxfer!Request" ) );
 
 	/// Receive unloading notification
-	extra->RegisterPluginCallback( g_hInst, (NSISPLUGINCALLBACK)NsisMessageCallback );
+	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
 	/// Working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
@@ -868,7 +868,7 @@ void __cdecl Transfer(
 	TRACE_CALL( stacktop, _T( "NSxfer!Transfer" ) );
 
 	/// Receive unloading notification
-	extra->RegisterPluginCallback( g_hInst, (NSISPLUGINCALLBACK)NsisMessageCallback );
+	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
 
 	/// Working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
