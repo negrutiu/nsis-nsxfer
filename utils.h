@@ -110,3 +110,7 @@ ULONG BinaryToString( __in LPVOID pData, __in ULONG iDataSize, __out LPTSTR pszS
 // Returns Win32 error
 DWORD RegReadDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue, __out LPDWORD pdwValue );
 DWORD RegWriteDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue, __in DWORD dwValue );
+
+//+ MyStrToInt64
+// Replacement for shlwapi!StrToInt64Ex introduced in "Update Rollup 1 for Windows 2000 SP4"
+BOOL MyStrToInt64( _In_ LPCTSTR pszStr, _Out_ PUINT64 piNum );
