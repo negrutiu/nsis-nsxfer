@@ -348,23 +348,3 @@ DWORD RegWriteDWORD( __in HKEY hRoot, __in LPCTSTR pszKey, __in LPCTSTR pszValue
 	}
 	return err;
 }
-
-
-//++ MyStrToInt64
-BOOL MyStrToInt64( _In_ LPCTSTR pszStr, _Out_ PUINT64 piNum )
-{
-	BOOL bRet = FALSE;
-	int ch;
-	if (pszStr && piNum) {
-		*piNum = 0;
-		for (;;) {
-			ch = *(pszStr++) - _T( '0' );
-			if (ch < 0 || ch > 9)
-				break;
-			*piNum *= 10;
-			*piNum += ch;
-		}
-		bRet = TRUE;
-	}
-	return bRet;
-}

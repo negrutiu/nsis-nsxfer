@@ -137,8 +137,7 @@ ULONG ThreadDownload_QueryContentLength64( _In_ HINTERNET hFile, _Out_ PULONG64 
 	assert( piContentLength );
 
 	if ( HttpQueryInfo( hFile, HTTP_QUERY_CONTENT_LENGTH, szContentLength, &iDataSize, NULL ) ) {
-		///if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
-		if (MyStrToInt64( szContentLength, piContentLength )) {
+		if ( StrToInt64Ex( szContentLength, STIF_DEFAULT, piContentLength ) ) {
 			/// SUCCESS
 		} else {
 			err = ERROR_DATATYPE_MISMATCH;
