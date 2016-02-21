@@ -940,8 +940,8 @@ INT_PTR CALLBACK GuiAbortDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WPARAM
 		}
 		if (TRUE) {
 			HWND hCallbackWnd = (HWND)GetProp( hDlg, _T( "CallbackWnd" ) );
-			UINT iCallbackMsg = (UINT)GetProp( hDlg, _T( "CallbackMsg" ) );
-			BOOL bAnswerYes = (BOOL)GetProp( hDlg, _T( "AnswerYes" ) );
+			UINT iCallbackMsg = HandleToULong( GetProp( hDlg, _T( "CallbackMsg" ) ) );
+			BOOL bAnswerYes = (BOOL)HandleToUlong( GetProp( hDlg, _T( "AnswerYes" ) ) );
 			RemoveProp( hDlg, _T( "CallbackWnd" ) );
 			RemoveProp( hDlg, _T( "CallbackMsg" ) );
 			RemoveProp( hDlg, _T( "AnswerYes" ) );
@@ -990,7 +990,7 @@ void GuiAbortShow( __in HWND hParent, __in HWND hCallbackWnd, __in UINT iCallbac
 					g_Gui.hAbortWnd = CreateDialogParam( g_hInst, MAKEINTRESOURCE( IDD_CONFIRMATION ), hParent, GuiAbortDialogProc, 0 );
 					if (g_Gui.hAbortWnd) {
 						SetProp( g_Gui.hAbortWnd, _T( "CallbackWnd" ), (HANDLE)hCallbackWnd );
-						SetProp( g_Gui.hAbortWnd, _T( "CallbackMsg" ), (HANDLE)iCallbackMsg );
+						SetProp( g_Gui.hAbortWnd, _T( "CallbackMsg" ), ULongToHandle( iCallbackMsg ) );
 						ShowWindow( g_Gui.hAbortWnd, SW_SHOW );
 					}
 				}

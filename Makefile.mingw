@@ -1,0 +1,117 @@
+
+# -------------------------------
+# Mandatory definitions
+# -------------------------------
+#   ARCH=X86|x64
+#   CHAR=ANSI|Unicode
+#   OUTDIR=<output_directory>
+# -------------------------------
+# Optional definitions
+# -------------------------------
+#   CUSTOM_CFLAGS
+#   CUSTOM_LDFLAGS
+#   CUSTOM_RCFLAGS
+
+
+PROJECT  = NSxfer
+CPP      = g++.exe
+CC       = gcc.exe
+WINDRES  = windres.exe
+OBJS     = $(OUTDIR)/pluginapi.o $(OUTDIR)/gui.o $(OUTDIR)/main.o $(OUTDIR)/queue.o $(OUTDIR)/thread.o $(OUTDIR)/utils.o $(OUTDIR)/Resource.res
+LIBS     = -lkernel32 -luser32 -ladvapi32 -lshlwapi -lwininet -lole32 -luuid -lversion
+BIN      = $(OUTDIR)/$(PROJECT).dll
+SAL      = -D__in= -D__out= -D__inout= -D__in_opt= -D__out_opt= \
+           -D_In_= -D_Out_= -D_Inout_= -D_In_opt_= -D_Out_opt_=
+
+#
+# https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html
+# http://linux.die.net/man/1/gcc
+# http://linux.die.net/man/1/ld
+#
+
+# ARCH
+ifeq ($(ARCH), X64)
+	CFLAGS  += -m64 -mmmx -msse -msse2
+	LDFLAGS += -m64 -Wl,-e'DllMain'
+	RCFLAGS +=
+else
+	CFLAGS  += -m32 -mmmx -msse
+	LDFLAGS += -m32 -Wl,-e'_DllMain'
+	RCFLAGS += -F pe-i386
+endif
+
+# CHAR
+ifeq ($(CHAR), ANSI)
+	CFLAGS  += -DMBCS -D_MBCS
+	LDFLAGS +=
+else
+	CFLAGS  += -municode -DUNICODE -D_UNICODE
+	LDFLAGS += -municode
+endif
+
+
+CFLAGS  += \
+	-nostdlib \
+	-mwindows \
+	$(SAL) \
+	$(CUSTOM_CFLAGS)
+
+LDFLAGS += \
+	-nostdlib \
+	-s \
+	-mwindows \
+	-Wl,--no-seh \
+	-Wl,--nxcompat \
+	-Wl,--dynamicbase \
+	-Wl,--enable-auto-image-base \
+	-Wl,--enable-stdcall-fixup \
+	$(CUSTOM_LDFLAGS)
+
+RCFLAGS += \
+	$(CUSTOM_RCFLAGS)
+
+DEF      = $(OUTDIR)/lib$(PROJECT).def
+STATIC   = $(OUTDIR)/lib$(PROJECT).a
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	@echo.
+	if exist "$(OUTDIR)" del /q "$(OUTDIR)\*.*"
+
+$(BIN): $(OBJS)
+	@echo.
+	$(CC) -shared $(OBJS) -o $(BIN) $(LIBS) $(LDFLAGS) -Wl,--output-def,$(DEF),--out-implib,$(STATIC),--add-stdcall-alias
+
+$(OUTDIR)/pluginapi.o: nsiswapi/pluginapi.c
+	@echo.
+	$(CC) -c nsiswapi/pluginapi.c -o $(OUTDIR)/pluginapi.o $(CFLAGS)
+
+$(OUTDIR)/gui.o: gui.c
+	@echo.
+	$(CC) -c gui.c -o $(OUTDIR)/gui.o $(CFLAGS)
+
+$(OUTDIR)/main.o: main.c
+	@echo.
+	$(CC) -c main.c -o $(OUTDIR)/main.o $(CFLAGS)
+
+$(OUTDIR)/queue.o: queue.c
+	@echo.
+	$(CC) -c queue.c -o $(OUTDIR)/queue.o $(CFLAGS)
+
+$(OUTDIR)/thread.o: thread.c
+	@echo.
+	$(CC) -c thread.c -o $(OUTDIR)/thread.o $(CFLAGS)
+
+$(OUTDIR)/utils.o: utils.c
+	@echo.
+	$(CC) -c utils.c -o $(OUTDIR)/utils.o $(CFLAGS)
+
+$(OUTDIR)/Resource.res: resource.rc
+	@echo.
+	$(WINDRES) -i resource.rc --input-format=rc -o $(OUTDIR)/Resource.res -O coff $(RCFLAGS)
+
+all-before:
+	@if not exist "$(OUTDIR)" mkdir "$(OUTDIR)"

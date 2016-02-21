@@ -275,13 +275,13 @@ void CALLBACK ThreadDownload_StatusCallback(
 	}
 	case INTERNET_STATUS_COOKIE_SENT:
 	{
-		DWORD dwSentCookies = (DWORD)lpvStatusInformation;
+		DWORD dwSentCookies = HandleToULong( lpvStatusInformation );
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_SENT CookiesSent:%u)\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, dwSentCookies );
 		break;
 	}
 	case INTERNET_STATUS_COOKIE_RECEIVED:
 	{
-		DWORD dwRecvCookies = (DWORD)lpvStatusInformation;
+		DWORD dwRecvCookies = HandleToULong( lpvStatusInformation );
 		TRACE2( _T( "  Th:%s Id:%u StatusCallback( 0x%p, [%u]INTERNET_STATUS_COOKIE_RECEIVED CookiesRecv:%u )\n" ), pReq->pThread->szName, pReq->iId, hRequest, dwInternetStatus, dwRecvCookies );
 		break;
 	}

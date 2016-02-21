@@ -39,7 +39,7 @@ VOID QueueInitialize(
 		pThread->hTermEvent = pQueue->hThreadTermEvent;
 		pThread->hWakeEvent = pQueue->hThreadWakeEvent;
 		wnsprintf( pThread->szName, ARRAYSIZE( pThread->szName ), _T( "%s%02d" ), pQueue->szName, i );
-		pThread->hThread = CreateThread( NULL, 0, ThreadProc, pThread, 0, &pThread->iTID );
+		pThread->hThread = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)ThreadProc, pThread, 0, &pThread->iTID );
 		assert( pThread->hThread );
 		if ( !pThread->hThread ) {
 			DWORD err = GetLastError();
