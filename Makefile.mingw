@@ -14,14 +14,17 @@
 
 
 PROJECT  = NSxfer
-CPP      = g++.exe
-CC       = gcc.exe
-WINDRES  = windres.exe
-OBJS     = $(OUTDIR)/pluginapi.o $(OUTDIR)/gui.o $(OUTDIR)/main.o $(OUTDIR)/queue.o $(OUTDIR)/thread.o $(OUTDIR)/utils.o $(OUTDIR)/Resource.res
-LIBS     = -lkernel32 -luser32 -ladvapi32 -lshlwapi -lwininet -lole32 -luuid -lversion
-BIN      = $(OUTDIR)/$(PROJECT).dll
+BIN      = $(PROJECT).dll
+OBJ      = pluginapi.o gui.o main.o queue.o thread.o utils.o resource.res
+LIB      = -lkernel32 -luser32 -ladvapi32 -lshlwapi -lwininet -lole32 -luuid -lversion
 SAL      = -D__in= -D__out= -D__inout= -D__in_opt= -D__out_opt= \
            -D_In_= -D_Out_= -D_Inout_= -D_In_opt_= -D_Out_opt_=
+
+_OBJ     = $(patsubst %,$(OUTDIR)/%,$(OBJ))
+_BIN     = $(patsubst %,$(OUTDIR)/%,$(BIN))
+
+DEF      = $(OUTDIR)/lib$(PROJECT).def
+STATIC   = $(OUTDIR)/lib$(PROJECT).a
 
 #
 # https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html
@@ -33,9 +36,9 @@ SAL      = -D__in= -D__out= -D__inout= -D__in_opt= -D__out_opt= \
 ifeq ($(ARCH), X64)
 	CFLAGS  += -m64 -mmmx -msse -msse2
 	LDFLAGS += -m64 -Wl,-e'DllMain'
-	RCFLAGS +=
+	RCFLAGS += -F pe-x86-64
 else
-	CFLAGS  += -m32 -mmmx -msse
+	CFLAGS  += -m32 -march=pentium4
 	LDFLAGS += -m32 -Wl,-e'_DllMain'
 	RCFLAGS += -F pe-i386
 endif
@@ -57,6 +60,7 @@ CFLAGS  += \
 	$(CUSTOM_CFLAGS)
 
 LDFLAGS += \
+	-shared \
 	-nostdlib \
 	-s \
 	-mwindows \
@@ -65,53 +69,37 @@ LDFLAGS += \
 	-Wl,--dynamicbase \
 	-Wl,--enable-auto-image-base \
 	-Wl,--enable-stdcall-fixup \
+	-Wl,--add-stdcall-alias \
+	$(LIB) \
 	$(CUSTOM_LDFLAGS)
 
 RCFLAGS += \
 	$(CUSTOM_RCFLAGS)
 
-DEF      = $(OUTDIR)/lib$(PROJECT).def
-STATIC   = $(OUTDIR)/lib$(PROJECT).a
 
-.PHONY: all all-before all-after clean clean-custom
+.PHONY: clean all-before all all-after
 
-all: all-before $(BIN) all-after
-
-clean: clean-custom
+clean:
 	@echo.
-	if exist "$(OUTDIR)" del /q "$(OUTDIR)\*.*"
+	if exist $(OUTDIR) rd /S /Q $(OUTDIR)
 
-$(BIN): $(OBJS)
-	@echo.
-	$(CC) -shared $(OBJS) -o $(BIN) $(LIBS) $(LDFLAGS) -Wl,--output-def,$(DEF),--out-implib,$(STATIC),--add-stdcall-alias
-
-$(OUTDIR)/pluginapi.o: nsiswapi/pluginapi.c
-	@echo.
-	$(CC) -c nsiswapi/pluginapi.c -o $(OUTDIR)/pluginapi.o $(CFLAGS)
-
-$(OUTDIR)/gui.o: gui.c
-	@echo.
-	$(CC) -c gui.c -o $(OUTDIR)/gui.o $(CFLAGS)
-
-$(OUTDIR)/main.o: main.c
-	@echo.
-	$(CC) -c main.c -o $(OUTDIR)/main.o $(CFLAGS)
-
-$(OUTDIR)/queue.o: queue.c
-	@echo.
-	$(CC) -c queue.c -o $(OUTDIR)/queue.o $(CFLAGS)
-
-$(OUTDIR)/thread.o: thread.c
-	@echo.
-	$(CC) -c thread.c -o $(OUTDIR)/thread.o $(CFLAGS)
-
-$(OUTDIR)/utils.o: utils.c
-	@echo.
-	$(CC) -c utils.c -o $(OUTDIR)/utils.o $(CFLAGS)
-
-$(OUTDIR)/Resource.res: resource.rc
-	@echo.
-	$(WINDRES) -i resource.rc --input-format=rc -o $(OUTDIR)/Resource.res -O coff $(RCFLAGS)
+all: all-before $(_BIN) all-after
 
 all-before:
-	@if not exist "$(OUTDIR)" mkdir "$(OUTDIR)"
+	if not exist $(OUTDIR) mkdir $(OUTDIR)
+
+# Link
+$(_BIN): $(_OBJ)
+	@echo.
+	gcc $(_OBJ) -o $(_BIN) $(LDFLAGS)
+
+# Compile .c
+$(OUTDIR)/%.o: %.c
+	gcc $(CFLAGS) -o $@ -c $<
+
+$(OUTDIR)/%.o: nsiswapi/%.c
+	gcc $(CFLAGS) -o $@ -c $<
+
+# Compile .rc
+$(OUTDIR)/%.res: %.rc
+	windres -o $@ -i $< -O coff --input-format=rc $(RCFLAGS)
