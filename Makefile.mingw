@@ -38,7 +38,7 @@ ifeq ($(ARCH), X64)
 	LDFLAGS += -m64 -Wl,-e'DllMain'
 	RCFLAGS += -F pe-x86-64
 else
-	CFLAGS  += -m32 -march=pentium4
+	CFLAGS  += -m32 -march=pentium2
 	LDFLAGS += -m32 -Wl,-e'_DllMain'
 	RCFLAGS += -F pe-i386
 endif
@@ -55,21 +55,21 @@ endif
 
 CFLAGS  += \
 	-nostdlib \
-	-mwindows \
 	$(SAL) \
 	$(CUSTOM_CFLAGS)
 
 LDFLAGS += \
-	-shared \
 	-nostdlib \
 	-s \
-	-mwindows \
+	-mdll \
+	-fPIC \
 	-Wl,--no-seh \
 	-Wl,--nxcompat \
 	-Wl,--dynamicbase \
 	-Wl,--enable-auto-image-base \
 	-Wl,--enable-stdcall-fixup \
-	-Wl,--add-stdcall-alias \
+	-Wl,--output-def,$(DEF) \
+	-Wl,--out-implib,$(STATIC) \
 	$(LIB) \
 	$(CUSTOM_LDFLAGS)
 
