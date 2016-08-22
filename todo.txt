@@ -41,3 +41,4 @@ x Pause/Resume transfer. Create paused => Can be emulated with dependencies
 * Dynamic transfer buffer, based on speed (1KB - 256KB)
 - Incorrect ETA when resuming. Data already downloaded must be excluded
 - Add {FILELIST} keyword
+- Transfer() doesn't return the ID, therefore no later querying is possible. Suggestion: add /PUSHID parameter to push the transfer ID on the stack (in addition to the status)
