@@ -21,8 +21,12 @@
 
 # Engine
 ;!define USE_NSXFER				; Implemented using WinINet. Supports HTTPS
-!define USE_NSISDL				; Custom HTTP implementation. No HTTPS support
+;!define USE_NSISDL				; Custom HTTP implementation. No HTTPS support
 ;!define USE_NSINETC			; Implemented using WinINet. Supports HTTPS
+!ifndef USE_NSXFER & USE_NSISDL & USE_NSINETC
+	!warning "Defined USE_NSXFER by default!"
+	!define USE_NSXFER
+!endif
 
 # Plugin folders
 !ifdef ENABLE_DEBUGGING
@@ -35,6 +39,11 @@
 		!endif
 	!else ifdef USE_NSISDL
 	!else ifdef USE_NSINETC
+		!ifdef NSIS_UNICODE
+			!define DLL "$EXEDIR\..\..\NSinetc\DebugW\NSinetc.dll"
+		!else
+			!define DLL "$EXEDIR\..\..\NSinetc\DebugA\NSinetc.dll"
+		!endif
 	!else
 		!error "USE_XXX not declared!"
 	!endif
@@ -48,6 +57,11 @@
 		!endif
 	!else ifdef USE_NSISDL
 	!else ifdef USE_NSINETC
+		!ifdef NSIS_UNICODE
+			!AddPluginDir "..\..\NSinetc\ReleaseW-mingw"
+		!else
+			!AddPluginDir "..\..\NSinetc\ReleaseA-mingw"
+		!endif
 	!else
 		!error "USE_XXX not declared!"
 	!endif
@@ -136,9 +150,13 @@ Section Flood
 		DetailPrint "UserAgent: $3"
 
 	!else ifdef USE_NSISDL
+
 		DetailPrint "Plugin: NSISdl"
+
 	!else ifdef USE_NSINETC
+
 		DetailPrint "Plugin: NSinetc"
+
 	!endif
 
 	; Temp file
@@ -149,7 +167,7 @@ Section Flood
 
 !ifdef USE_NSXFER
 
-		; Transfer
+		; NSxfer::Transfer
 	!ifdef ENABLE_DEBUGGING
 		Push "/END"
 		Push "None"
@@ -164,7 +182,7 @@ Section Flood
 	!else
 		NSxfer::Transfer /NOUNLOAD /METHOD GET /MODE Silent /URL "$R1" /LOCAL None /END
 	!endif
-		Pop $0		; "OK"
+		Pop $0			; "OK"
 
 		; NSxfer doesn't remove the request after completion, to allow the caller to query detailed information
 		; In this example we don't need to query anything, so we clear the queue after each transfer
@@ -175,7 +193,7 @@ Section Flood
 	!else
 		NSxfer::Set /NOUNLOAD /REMOVE /END
 	!endif
-		Pop $1		; Ignored
+		Pop $1			; Ignored
 
 		;NSxfer::QueryGlobal /NOUNLOAD /TOTALCOUNT /END
 		;Pop $1
@@ -185,15 +203,28 @@ Section Flood
 
 !else ifdef USE_NSISDL
 
-		; download_quiet
+		; NSISdl::download_quiet
 		NSISdl::download_quiet "$R1" "$R3"
-		Pop $0
+		Pop $0			; "success"
 
 		SetDetailsPrint none
 		Delete "$R3"	; Temp file
 		SetDetailsPrint lastused
 
 !else ifdef USE_NSINETC
+
+		; Transfer
+	!ifdef ENABLE_DEBUGGING
+		Push "/END"
+		Push "$R3"
+		Push "$R1"
+		Push "/SILENT"
+		CallInstDLL "${DLL}" "get"
+	!else
+		NSinetc::get /NOUNLOAD /SILENT "$R1" "$R3" /END
+	!endif
+		Pop $0			; "OK"
+
 !endif
 
 		DetailPrint "[$R0 / $R2] $R1 = $0"
@@ -201,7 +232,7 @@ Section Flood
 	${Next}
 
 	SetDetailsPrint none
-	Delete "$R3"	; Temp file
+	Delete "$R3"		; Temp file
 	SetDetailsPrint lastused
 
 	SetDetailsPrint both
