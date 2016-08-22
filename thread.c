@@ -1209,11 +1209,13 @@ VOID ThreadDownload( _Inout_ PQUEUE_REQUEST pReq )
 	}
 
 	TRACE(
-		_T( "  Th:%s Id:%u ThreadDownload(Recv:%d%% %I64u @ %s, %s %s [%s] -> %s)\n" ),
+		_T( "  Th:%s Id:%u ThreadDownload(Recv:%d%% %I64u @ %s, %s %s [%s] -> %s) == %u \"%s\"\n" ),
 		pReq->pThread->szName, pReq->iId,
 		RequestRecvPercent( pReq ), pReq->iFileSize, pReq->Speed.szSpeed,
 		pReq->szMethod, pReq->pszURL, pReq->pszSrvIP,
-		pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY)
+		pReq->iLocalType == REQUEST_LOCAL_NONE ? TEXT_LOCAL_NONE : (pReq->iLocalType == REQUEST_LOCAL_FILE ? pReq->Local.pszFile : TEXT_LOCAL_MEMORY),
+		pReq->iWin32Error == ERROR_SUCCESS ? pReq->iHttpStatus : pReq->iWin32Error,
+		pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error
 		);
 }
 
