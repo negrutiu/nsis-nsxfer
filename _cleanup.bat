@@ -4,6 +4,7 @@ cd /d "%~dp0"
 
 del "%CD%\Test\*.exe"
 del "%CD%\Test2\*.exe"
+del "%CD%\Test3\*.exe"
 call :CLEANUP
 call :CLEANUP
 call :CLEANUP
