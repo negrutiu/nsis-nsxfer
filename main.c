@@ -633,13 +633,16 @@ void __cdecl Set(
 		PQUEUE_REQUEST pReq;
 
 		QueueLock( &g_Queue );
-		for (pReq = g_Queue.pHead; pReq; pReq = pReq->pNext) {
+		for (pReq = g_Queue.pHead; pReq; ) {
 			if (RequestMatched( pReq, iId, iPrio, ANY_STATUS )) {
 				if (bRemove) {
 					// Abort + Remove
 					if (QueueAbort( &g_Queue, pReq, 10000 )) {
-						if (QueueRemove( &g_Queue, pReq )) {
+						PQUEUE_REQUEST pReqRemove = pReq;
+						pReq = pReq->pNext;
+						if (QueueRemove( &g_Queue, pReqRemove )) {
 							///iRet++;
+							continue;
 						}
 					}
 				} else if (bAbort) {
@@ -657,6 +660,7 @@ void __cdecl Set(
 					}
 				}
 			}
+			pReq = pReq->pNext;		/// Next in list
 		}
 		QueueUnlock( &g_Queue );
 
