@@ -73,7 +73,7 @@
 # Welcome page
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange-nsis.bmp"
 !define MUI_WELCOMEPAGE_TITLE "HTTP Flood"
-!define MUI_WELCOMEPAGE_TEXT "Syntax:$\n    $EXEFILE /url='your_url' /count=conn_count$\n$\nExample:$\n    $EXEFILE /url='${DEFAULT_URL}' /count=${DEFAULT_COUNT}"
+!define MUI_WELCOMEPAGE_TEXT "Syntax:$\n    $EXEFILE /url='your_url' /count=conn_count$\n$\nExamples:$\n    $EXEFILE /url='${DEFAULT_URL}' /count=${DEFAULT_COUNT}$\n    $EXEFILE /url='https://127.0.0.1' /count=${DEFAULT_COUNT}"
 !define MUI_PAGE_CUSTOMFUNCTION_PRE .onWelcomePage.Pre		; pre-callback for the Welcome page
 !insertmacro MUI_PAGE_WELCOME
 
