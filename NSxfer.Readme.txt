@@ -60,9 +60,10 @@ NSxfer::Transfer	/NOUNLOAD
 					[/HEADERS hdr]
 					[/DATA data | /DATAFILE file]
 					[/TIMEOUTCONNECT msec] [/TIMEOUTRECONNECT msec]
-					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
+					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec] [/OPTSENDTIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 					[/REFERER url]
+					[/INTERNETFLAGS flags] [/SECURITYFLAGS flags]
 					[/MODE SILENT|POPUP|PAGE]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
@@ -93,9 +94,10 @@ NSxfer::Request		/NOUNLOAD
 					[/HEADERS hdr]
 					[/DATA data | /DATAFILE file]
 					[/TIMEOUTCONNECT msec] [/TIMEOUTRECONNECT msec]
-					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec]
+					[/OPTCONNECTRETRIES count] [/OPTCONNECTTIMEOUT msec] [/OPTRECEIVETIMEOUT msec] [/OPTSENDTIMEOUT msec]
 					[/PROXY server] [/PROXYUSER user] [/PROXYPASS pass]
 					[/REFERER url]
+					[/INTERNETFLAGS flags] [/SECURITYFLAGS flags]
 					/END
 
 Remarks:
