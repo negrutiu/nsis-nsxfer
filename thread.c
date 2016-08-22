@@ -519,12 +519,11 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 
 							if (pReq->iHttpInternetFlags == DEFAULT_VALUE) {
 								pReq->iHttpInternetFlags =
-									INTERNET_FLAG_NO_CACHE_WRITE |
+									INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_RELOAD |
+									INTERNET_FLAG_NO_COOKIES |
 									INTERNET_FLAG_IGNORE_CERT_DATE_INVALID |
 									///INTERNET_FLAG_IGNORE_CERT_CN_INVALID |
-									INTERNET_FLAG_NO_COOKIES |
-									INTERNET_FLAG_NO_UI |
-									INTERNET_FLAG_RELOAD;
+									INTERNET_FLAG_NO_UI;
 							}
 							if ( uc.nScheme == INTERNET_SCHEME_HTTPS )
 								pReq->iHttpInternetFlags |= INTERNET_FLAG_SECURE;
