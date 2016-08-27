@@ -554,8 +554,7 @@ Section /o "Request: SysinternalsSuite (proxy)"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK  "http://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
-	;!define /redef PROXY "http=http://47.88.15.198:80"	; Ottawa, Canada
-	!define /redef PROXY "https=https://212.47.235.81:3129"	; France
+	!define /redef PROXY "http=http://36.75.132.76:80"			; Indonesia
 	DetailPrint 'NSxfer::Request /proxy ${PROXY} "${LINK}" "${FILE}"'
 !ifdef ENABLE_DEBUGGING
 	Push "/END"

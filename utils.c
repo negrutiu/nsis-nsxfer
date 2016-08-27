@@ -364,7 +364,7 @@ BOOL MyStrToInt64( _In_ LPCTSTR pszStr, _Out_ PUINT64 piNum )
 				break;
 
 			/// *piNum *= 10;
-			for (i = 0, n = *piNum; i < 10; i++)
+			for (i = 0, n = *piNum; i < 9; i++)
 				*piNum += n;
 
 			*piNum += ch;

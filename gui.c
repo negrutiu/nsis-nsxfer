@@ -356,6 +356,7 @@ void GuiExpandKeywords(
 }
 
 
+//++ GuiRefreshData
 ULONG GuiRefreshData()
 {
 	ULONG err = ERROR_SUCCESS;
@@ -463,6 +464,7 @@ ULONG GuiRefreshData()
 }
 
 
+//++ GuiWaitAbort
 VOID GuiWaitAbort()
 {
 	PQUEUE_REQUEST p;
@@ -476,6 +478,7 @@ VOID GuiWaitAbort()
 }
 
 
+//++ GuiEndChildDialogCallback
 BOOL CALLBACK GuiEndChildDialogCallback( __in HWND hwnd, __in LPARAM lParam )
 {
 	HWND hRootOwner = (HWND)lParam;
@@ -497,6 +500,7 @@ BOOL CALLBACK GuiEndChildDialogCallback( __in HWND hwnd, __in LPARAM lParam )
 }
 
 
+//++ GuiSleep
 VOID GuiSleep( _In_ ULONG iMillisec )
 {
 	MSG msg;

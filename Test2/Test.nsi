@@ -266,19 +266,17 @@ Function .onDownloadPage.Execute
 	; NSIS buttons
 	EnableWindow $mui.Button.Back ${FALSE}
 	EnableWindow $mui.Button.Next ${FALSE}
-	;EnableWindow $mui.Button.Cancel ${FALSE}
+	;EnableWindow $mui.Button.Cancel ${TRUE}
 
 	; Download files
 	Call Download.Request
 	Call Download.Wait
-
-	; Cleanup (optional, in case the user hits Back and the download starts again...)
-	Call Download.Clear
+	Call Download.Clear		; Clear the queue, in case the user hits [Back]...
 
 	; NSIS buttons
 	EnableWindow $mui.Button.Back ${TRUE}
 	EnableWindow $mui.Button.Next ${TRUE}
-	;EnableWindow $mui.Button.Cancel ${TRUE}
+	EnableWindow $mui.Button.Cancel ${FALSE}
 FunctionEnd
 
 
