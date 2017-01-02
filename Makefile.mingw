@@ -34,11 +34,11 @@ STATIC   = $(OUTDIR)/lib$(PROJECT).a
 
 # ARCH
 ifeq ($(ARCH), X64)
-	CFLAGS  += -m64 -mmmx -msse -msse2
+	CFLAGS  += -m64 -mmmx -msse -msse2 -DNDEBUG -O3
 	LDFLAGS += -m64 -Wl,-e'DllMain'
 	RCFLAGS += -F pe-x86-64
 else
-	CFLAGS  += -m32 -march=pentium2
+	CFLAGS  += -m32 -march=pentium2 -DNDEBUG -O3
 	LDFLAGS += -m32 -Wl,-e'_DllMain'
 	RCFLAGS += -F pe-i386
 endif
