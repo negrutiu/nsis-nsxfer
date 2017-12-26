@@ -1,4 +1,7 @@
+REM :: Marius Negrutiu (marius.negrutiu@protonmail.com)
+
 @echo off
+echo.
 
 cd /d "%~dp0"
 
@@ -15,7 +18,7 @@ goto :EOF
 rd /S /Q .vs
 rd /S /Q ipch
 
-for /D %%a in (Debug*) do rd /S /Q "%%a"
+for /D %%a in (Debug*)   do rd /S /Q "%%a"
 for /D %%a in (Release*) do rd /S /Q "%%a"
 
 del *.aps

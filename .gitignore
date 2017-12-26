@@ -1,7 +1,12 @@
-/Debug*
-/Release*
-/ipch
 
-/*.sdf
-/*.opensdf
-/*.suo
+DebugA
+DebugW
+ReleaseA*
+ReleaseW*
+ipch
+
+*.opensdf
+*.sdf
+*.suo
+*.user
+*.aps

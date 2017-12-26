@@ -1,17 +1,23 @@
+REM :: Marius Negrutiu (marius.negrutiu@protonmail.com)
+
 @echo off
+echo.
 SetLocal
 
 :: This script builds the project by directly calling cl.exe
 :: The sln/vcxproj files are ignored
-:: Suitable for Visual Studio 2008+
 
 cd /d "%~dp0"
 
 set OUTNAME=NSxfer
 set RCNAME=resource
 
-if defined PROGRAMFILES(X86) set PF=%PROGRAMFILES(X86)%
-if not defined PROGRAMFILES(X86) set PF=%PROGRAMFILES%
+if not exist "%PF%" set PF=%PROGRAMFILES(X86)%
+if not exist "%PF%" set PF=%PROGRAMFILES%
+
+set VSWHERE=%PF%\Microsoft Visual Studio\Installer\vswhere.exe
+if exist "%VSWHERE%" for /f "usebackq tokens=1* delims=: " %%i in (`"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild`) do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat
+if exist "%VCVARSALL%" goto :BUILD
 
 set VCVARSALL=%PF%\Microsoft Visual Studio 14.0\VC\VcVarsAll.bat
 if exist "%VCVARSALL%" goto :BUILD
@@ -28,12 +34,14 @@ if exist "%VCVARSALL%" goto :BUILD
 set VCVARSALL=%PF%\Microsoft Visual Studio 9.0\VC\VcVarsAll.bat
 if exist "%VCVARSALL%" goto :BUILD
 
-echo ERROR: Can't find Visual Studio 2008/2010/2012/2013/2015
+echo ERROR: Can't find Visual Studio 2008/2010/2012/2013/2015/2017
 pause
 goto :EOF
 
 :BUILD
+pushd "%CD%"
 call "%VCVARSALL%" x86
+popd
 
 echo -----------------------------------
 echo ANSI

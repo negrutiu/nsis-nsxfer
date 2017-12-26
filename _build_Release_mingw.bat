@@ -1,4 +1,7 @@
+REM :: Marius Negrutiu (marius.negrutiu@protonmail.com)
+
 @echo off
+echo.
 
 set MINGW=%SYSTEMDRIVE%\TDM-GCC-64
 if not exist "%MINGW%\mingwvars.bat" echo ERROR: "%MINGW%\mingwvars.bat" not found && pause && goto :EOF
