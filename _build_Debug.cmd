@@ -17,8 +17,14 @@ set BUILD_VERBOSITY=normal
 
 :COMPILER
 set VSWHERE=%PF%\Microsoft Visual Studio\Installer\vswhere.exe
-if exist "%VSWHERE%" for /f "usebackq tokens=1* delims=: " %%i in (`"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild`) do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat
-set BUILD_PLATFORMTOOLSET=v141_xp
+if exist "%VSWHERE%" (
+	for /f "usebackq tokens=1* delims=: " %%i in (`"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild`) do (
+		if /i "%%i"=="installationPath" (
+			set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat
+			set BUILD_PLATFORMTOOLSET=v141_xp
+		)
+	)
+)
 if exist "%VCVARSALL%" goto :BUILD
 
 set VCVARSALL=%PF%\Microsoft Visual Studio 14.0\VC\VcVarsAll.bat
