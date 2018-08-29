@@ -34,12 +34,12 @@ STATIC   = $(OUTDIR)/lib$(PROJECT).a
 
 # ARCH
 ifeq ($(ARCH), X64)
-	CFLAGS  += -m64 -mmmx -msse -msse2 -DNDEBUG -O3
-	LDFLAGS += -m64 -Wl,-e'DllMain'
+	CFLAGS  += -DNDEBUG
+	LDFLAGS += -m64 -Wl,--high-entropy-va -Wl,-e'DllMain'
 	RCFLAGS += -F pe-x86-64
 else
-	CFLAGS  += -m32 -march=pentium2 -DNDEBUG -O3
-	LDFLAGS += -m32 -Wl,-e'_DllMain'
+	CFLAGS  += -march=pentium2 -DNDEBUG
+	LDFLAGS += -Wl,-e'_DllMain'
 	RCFLAGS += -F pe-i386
 endif
 
@@ -54,15 +54,29 @@ endif
 
 
 CFLAGS  += \
+	-mdll \
 	-nostdlib \
+	-s \
+	-Os \
+	-fPIE \
+	-ffunction-sections \
+	-fdata-sections \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
 	$(SAL) \
 	$(CUSTOM_CFLAGS)
 
 LDFLAGS += \
+	-mdll \
 	-nostdlib \
 	-s \
-	-mdll \
-	-fPIC \
+	-Os \
+	-fPIE \
+	-ffunction-sections \
+	-fdata-sections \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
+	-Wl,--gc-sections \
 	-Wl,--no-seh \
 	-Wl,--nxcompat \
 	-Wl,--dynamicbase \
