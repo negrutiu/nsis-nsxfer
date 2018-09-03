@@ -1,6 +1,6 @@
 
 NSxfer - NSIS WinINet Plugin
-Marius Negruțiu (marius.negrutiu@gmail.com)
+Marius Negruțiu (marius.negrutiu@protonmail.com)
 _________________________________________________________________________________________________
 
 Features:
@@ -13,27 +13,27 @@ Features:
 - Supports custom HTTP headers and data
 - Supports proxy servers (both authenticated and open)
 - Supports files larger than 4GB
-- Can download remote content to memory
+- Can download remote content to RAM instead of a file
 - Many more...
 
 Examples:
 	# Quick transfer, single file
-	NSxfer::Transfer /NOUNLOAD /URL "http://MyServer" /LOCAL "$TEMP\MyFile" /MODE Page /ABORT "Abort Title" "Are you sure?" /END
+	NSxfer::Transfer /NOUNLOAD /URL "http://MyServer/MyFile" /LOCAL "$TEMP\MyFile" /MODE Page /ABORT "Abort Title" "Are you sure?" /END
 	Pop $0 ; Status text ("OK" for success)
 	DetailPrint "Status: $0"
 
 	# Parallel transfer, multiple files
 	; Start the downloads
-	NSxfer::Request /NOUNLOAD /URL "http://MyServer1" /LOCAL "$TEMP\MyFile1" /END
+	NSxfer::Request /NOUNLOAD /URL "http://MyServer1/MyFile1" /LOCAL "$TEMP\MyFile1" /END
 	Pop $1 ; Request ID1
-	NSxfer::Request /NOUNLOAD /URL "http://MyServer2" /LOCAL "$TEMP\MyFile2" /END
+	NSxfer::Request /NOUNLOAD /URL "http://MyServer2/MyFile2" /LOCAL "$TEMP\MyFile2" /END
 	Pop $2 ; Request ID2
-	NSxfer::Request /NOUNLOAD /URL "http://MyServer3" /LOCAL "$TEMP\MyFile3" /END
+	NSxfer::Request /NOUNLOAD /URL "http://MyServer3/MyFile3" /LOCAL "$TEMP\MyFile3" /END
 	Pop $3 ; Request ID3
 	
 	; ...do other useful stuff...
 	
-	; Wait for downloads to complete
+	; Wait for all downloads to complete
 	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
 
 	; Query status (1)
@@ -71,10 +71,10 @@ NSxfer::Transfer	/NOUNLOAD
 					/END
 
 Remarks:
-	Make a (single) HTTP request, wait for it to complete and return the status code (Request + Wait + Query).
+	Make a (single) HTTP request, wait for it to complete and return the status code.
 	This routine is recommended if you only need to transfer one file at a time.
 
-	To transfer multiple files in parallel, you must use lower level functions (Request(1) + Request(2) + ... + Request(n) + Wait + Query)
+	To transfer multiple files in parallel, you must use lower level functions (Request(1) + Request(2) + ... + Request(n) + [...] + Wait(*) + Query(*))
 	
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
@@ -103,12 +103,12 @@ NSxfer::Request		/NOUNLOAD
 Remarks:
 	Add a transfer request to the queue.
 	The transfer will start as soon as a worker thread becomes available.
-	This command will not display any GUI by itself.
+	This command will not display any GUI.
 	
 Parameters:
 	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	/PRIORITY					| Priority in queue. Lower value means higher priority (default: 1000)
-	/DEPEND id					| Another request that the new one depends on. The new request will wait in queue until the other is completed (default: 0, no dependency)
+	/PRIORITY					| Priority in queue. Lower value mean higher priority (default: 1000)
+	/DEPEND id					| Another request that this one depends on. The new request will wait in queue until the other is completed (default: 0, no dependency)
 	/METHOD GET|POST|HEAD|...	| HTTP Method (default: GET)
 	/URL url					| HTTP or HTTPS...
 	/LOCAL file|MEMORY|NONE		| Local destination. Can be either a local file, a memory buffer, or none (none: make the HTTP request, but don't transfer the content) (default: NONE)
@@ -130,7 +130,7 @@ Parameters:
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
-	[Stack] An unique request ID. Useful for querying the status later
+	[Stack] An unique request ID. You'll need it later, to query the status
 
 Examples:
 
@@ -160,7 +160,7 @@ NSxfer::Wait		/NOUNLOAD
 					/END
 
 Remarks:
-	Wait for one or multiple transfers to complete (by ID or PRIORITY)
+	Wait (by ID or PRIORITY) for one or multiple transfers to complete
 
 	Waiting modes:
 	- SILENT					| No GUI is displayed, the call returns when transfer(s) complete(s)
