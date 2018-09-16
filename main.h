@@ -1,3 +1,6 @@
+
+//? Marius Negrutiu (marius.negrutiu@protonmail.com) :: 2014/01/19
+
 #pragma once
 
 #ifndef _DEBUG

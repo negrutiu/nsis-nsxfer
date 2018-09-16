@@ -1,5 +1,7 @@
-#pragma once
 
+//? Marius Negrutiu (marius.negrutiu@protonmail.com) :: 2014/02/08
+
+#pragma once
 
 typedef struct _THREAD {
 	LPVOID pQueue;					/// The QUEUE that owns this thread

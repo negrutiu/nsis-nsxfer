@@ -1,3 +1,6 @@
+
+//? Marius Negrutiu (marius.negrutiu@protonmail.com) :: 2014/02/08
+
 #include "main.h"
 #include "thread.h"
 #include "queue.h"

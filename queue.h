@@ -1,3 +1,6 @@
+
+//? Marius Negrutiu (marius.negrutiu@protonmail.com) :: 2014/02/02
+
 #pragma once
 #include "thread.h"
 

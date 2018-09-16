@@ -1,4 +1,6 @@
 
+//? Marius Negrutiu (marius.negrutiu@protonmail.com) :: 2014/02/02
+
 #include "main.h"
 #include "utils.h"
 
