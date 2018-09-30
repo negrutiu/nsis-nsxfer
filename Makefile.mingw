@@ -35,7 +35,7 @@ STATIC   = $(OUTDIR)/lib$(PROJECT).a
 # ARCH
 ifeq ($(ARCH), X64)
 	CFLAGS  += -DNDEBUG
-	LDFLAGS += -m64 -Wl,--high-entropy-va -Wl,-e'DllMain'
+	LDFLAGS += -Wl,--high-entropy-va -Wl,-e'DllMain'
 	RCFLAGS += -F pe-x86-64
 else
 	CFLAGS  += -march=pentium2 -DNDEBUG
