@@ -329,7 +329,7 @@ VOID ThreadDownload_CloseSession( _Inout_ PQUEUE_REQUEST pReq )
 BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 {
 	DWORD err = ERROR_SUCCESS;
-	DWORD dwSecureProtocols;
+	DWORD dwSecureProtocols = ULONG_MAX;
 	assert( pReq );
 	assert( pReq->hSession == NULL );
 

@@ -128,7 +128,7 @@ void GuiExpandKeywords(
 			///StringCchCopyNEx( pszTextOut, iTextOutLen, pszPreviousKeywordEnd + 1, (pszKeywordStart - pszPreviousKeywordEnd - 1), &pszTextOut, &iTextOutLen, 0 );
 			len = pszKeywordStart - pszPreviousKeywordEnd - 1;
 			len = __min( len, iTextOutLen );
-			if (lstrcpyn( pszTextOut, pszPreviousKeywordEnd + 1, len + 1 ))
+			if (lstrcpyn( pszTextOut, pszPreviousKeywordEnd + 1, (int)len + 1 ))
 				pszTextOut += len, iTextOutLen -= len;
 
 			if (*pszKeywordStart) {
@@ -338,7 +338,7 @@ void GuiExpandKeywords(
 						/// Unrecognized keyword
 						///StringCchCopyN( szNewValue, ARRAYSIZE( szNewValue ), pszKeywordStart, pszKeywordEnd - pszKeywordStart + 1 );
 						len = __min( ARRAYSIZE( szNewValue ), pszKeywordEnd - pszKeywordStart + 1 );
-						lstrcpyn( szNewValue, pszKeywordStart, len + 1 );
+						lstrcpyn( szNewValue, pszKeywordStart, (int)len + 1 );
 					}
 				}
 				
@@ -348,7 +348,7 @@ void GuiExpandKeywords(
 				///StringCchCopyEx( pszTextOut, iTextOutLen, szNewValue, &pszTextOut, &iTextOutLen, 0 );
 				len = lstrlen( szNewValue );
 				len = __min( len, iTextOutLen );
-				if (lstrcpyn( pszTextOut, szNewValue, len + 1 ))
+				if (lstrcpyn( pszTextOut, szNewValue, (int)len + 1 ))
 					pszTextOut += len, iTextOutLen -= len;
 
 				pszPreviousKeywordEnd = pszKeywordEnd;
@@ -677,8 +677,8 @@ ULONG GuiWaitPage()
 	/// Original InstFiles page controls
 	HWND hInstFilesPage = NULL, hStatus = NULL, hProgress = NULL, hDetailsBtn = NULL, hDetailsList = NULL;
 	RECT rcStatus, rcProgress, rcDetailsBtn, rcDetailsList;
-	LONG_PTR iStatusStyle, iStatusStyleEx;
-	LONG_PTR iProgressStyle, iProgressStyleEx;
+	LONG iStatusStyle, iStatusStyleEx;
+	LONG iProgressStyle, iProgressStyleEx;
 	HWND hAbortBtn = NULL;
 
 	/// New controls
@@ -701,15 +701,15 @@ ULONG GuiWaitPage()
 				GetWindowRect( hStatus, &rcStatus );
 				ScreenToClient( hInstFilesPage, (LPPOINT)&rcStatus.left );
 				ScreenToClient( hInstFilesPage, (LPPOINT)&rcStatus.right );
-				iStatusStyle = GetWindowLongPtr( hStatus, GWL_STYLE );
-				iStatusStyleEx = GetWindowLongPtr( hStatus, GWL_EXSTYLE );
+				iStatusStyle = (LONG)GetWindowLongPtr( hStatus, GWL_STYLE );
+				iStatusStyleEx = (LONG)GetWindowLongPtr( hStatus, GWL_EXSTYLE );
 
 				/// InstFiles page progress bar
 				GetWindowRect( hProgress, &rcProgress );
 				ScreenToClient( hInstFilesPage, (LPPOINT)&rcProgress.left );
 				ScreenToClient( hInstFilesPage, (LPPOINT)&rcProgress.right );
-				iProgressStyle = GetWindowLongPtr( hProgress, GWL_STYLE );
-				iProgressStyleEx = GetWindowLongPtr( hProgress, GWL_EXSTYLE );
+				iProgressStyle = (LONG)GetWindowLongPtr( hProgress, GWL_STYLE );
+				iProgressStyleEx = (LONG)GetWindowLongPtr( hProgress, GWL_EXSTYLE );
 
 				/// InstFiles page details button
 				hDetailsBtn = GetDlgItem( hInstFilesPage, 1027 );
@@ -864,7 +864,7 @@ ULONG GuiWait( __in PGUI_WAIT_PARAM pParam )
 		g_Gui.iOriginalProgressStyle = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_STYLE );
 		g_Gui.iOriginalProgressStyleEx = GetWindowLongPtr( g_Gui.hProgressWnd, GWL_EXSTYLE );
 		SendMessage( g_Gui.hProgressWnd, PBM_GETRANGE, 0, (WPARAM)&g_Gui.OriginalProgressRange );
-		g_Gui.iOriginalProgressPos = SendMessage( g_Gui.hProgressWnd, PBM_GETPOS, 0, 0 );
+		g_Gui.iOriginalProgressPos = (int)SendMessage( g_Gui.hProgressWnd, PBM_GETPOS, 0, 0 );
 		g_Gui.bRestoreProgressStyle = TRUE;
 		g_Gui.bRestoreProgressPos = TRUE;
 	}
