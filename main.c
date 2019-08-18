@@ -10,6 +10,10 @@ HINSTANCE g_hInst = NULL;
 BOOL g_bInitialized = FALSE;
 QUEUE g_Queue = { 0 };
 
+// NSIS plugin API
+extra_parameters *g_ep = NULL;
+HWND g_hwndparent = NULL;
+
 
 /// Forward declarations
 UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage );

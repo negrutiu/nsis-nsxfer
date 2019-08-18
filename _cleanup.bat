@@ -20,6 +20,7 @@ rd /S /Q ipch
 
 for /D %%a in (Debug*)   do rd /S /Q "%%a"
 for /D %%a in (Release*) do rd /S /Q "%%a"
+rd /S /Q nsis
 
 del *.aps
 del *.bak

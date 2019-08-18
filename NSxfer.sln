@@ -7,27 +7,27 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NSxfer", "NSxfer.vcxproj", 
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		DebugA|Win32 = DebugA|Win32
-		DebugW|Win32 = DebugW|Win32
-		ReleaseA-nocrt|Win32 = ReleaseA-nocrt|Win32
-		ReleaseA-staticcrt|Win32 = ReleaseA-staticcrt|Win32
-		ReleaseW-nocrt|Win32 = ReleaseW-nocrt|Win32
-		ReleaseW-staticcrt|Win32 = ReleaseW-staticcrt|Win32
+		Debug-x86-ansi|Win32 = Debug-x86-ansi|Win32
+		Debug-x86-unicode|Win32 = Debug-x86-unicode|Win32
+		Release-nocrt-x86-ansi|Win32 = Release-nocrt-x86-ansi|Win32
+		Release-staticcrt-x86-ansi|Win32 = Release-staticcrt-x86-ansi|Win32
+		Release-nocrt-x86-unicode|Win32 = Release-nocrt-x86-unicode|Win32
+		Release-staticcrt-x86-unicode|Win32 = Release-staticcrt-x86-unicode|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugA|Win32.ActiveCfg = DebugA|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugA|Win32.Build.0 = DebugA|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW|Win32.ActiveCfg = DebugW|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.DebugW|Win32.Build.0 = DebugW|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA-nocrt|Win32.ActiveCfg = ReleaseA-nocrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA-nocrt|Win32.Build.0 = ReleaseA-nocrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA-staticcrt|Win32.ActiveCfg = ReleaseA-staticcrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseA-staticcrt|Win32.Build.0 = ReleaseA-staticcrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-nocrt|Win32.ActiveCfg = ReleaseW-nocrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-nocrt|Win32.Build.0 = ReleaseW-nocrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-nocrt|Win32.Deploy.0 = ReleaseW-nocrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-staticcrt|Win32.ActiveCfg = ReleaseW-staticcrt|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.ReleaseW-staticcrt|Win32.Build.0 = ReleaseW-staticcrt|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-ansi|Win32.ActiveCfg = Debug-x86-ansi|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-ansi|Win32.Build.0 = Debug-x86-ansi|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-unicode|Win32.ActiveCfg = Debug-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-unicode|Win32.Build.0 = Debug-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-ansi|Win32.ActiveCfg = Release-nocrt-x86-ansi|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-ansi|Win32.Build.0 = Release-nocrt-x86-ansi|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-ansi|Win32.ActiveCfg = Release-staticcrt-x86-ansi|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-ansi|Win32.Build.0 = Release-staticcrt-x86-ansi|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-unicode|Win32.ActiveCfg = Release-nocrt-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-unicode|Win32.Build.0 = Release-nocrt-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-unicode|Win32.Deploy.0 = Release-nocrt-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-unicode|Win32.ActiveCfg = Release-staticcrt-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-unicode|Win32.Build.0 = Release-staticcrt-x86-unicode|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

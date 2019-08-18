@@ -22,8 +22,11 @@ del "%~1\*.def" 2> NUL
 
 REM :: MSVC specific
 rmdir /S /Q "%~1\temp" 2> NUL
+del "%~1\*.lib" 2> NUL
 del "%~1\*.res" 2> NUL
 del "%~1\*.ilk" 2> NUL
 del "%~1\*.exp" 2> NUL
+del "%~1\*.iobj" 2> NUL
+del "%~1\*.ipdb" 2> NUL
 
 exit /B 0

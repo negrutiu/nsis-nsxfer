@@ -16,6 +16,7 @@
 PROJECT  = NSxfer
 BIN      = $(PROJECT).dll
 OBJ      = pluginapi.o gui.o main.o queue.o thread.o utils.o resource.res
+INC      = -I.
 LIB      = -lkernel32 -luser32 -ladvapi32 -lshlwapi -lwininet -lole32 -luuid -lversion
 SAL      = -D__in= -D__out= -D__inout= -D__in_opt= -D__out_opt= \
            -D_In_= -D_Out_= -D_Inout_= -D_In_opt_= -D_Out_opt_=
@@ -63,6 +64,7 @@ CFLAGS  += \
 	-fdata-sections \
 	-fno-unwind-tables \
 	-fno-asynchronous-unwind-tables \
+	$(INC) \
 	$(SAL) \
 	$(CUSTOM_CFLAGS)
 
@@ -111,7 +113,7 @@ $(_BIN): $(_OBJ)
 $(OUTDIR)/%.o: %.c
 	gcc $(CFLAGS) -o $@ -c $<
 
-$(OUTDIR)/%.o: nsiswapi/%.c
+$(OUTDIR)/%.o: nsis/pluginapi.c
 	gcc $(CFLAGS) -o $@ -c $<
 
 # Compile .rc

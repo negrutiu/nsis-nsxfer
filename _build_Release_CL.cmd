@@ -9,6 +9,20 @@ SetLocal
 
 cd /d "%~dp0"
 
+:pluginapi
+call _acquire_pluginapi.bat
+if %errorlevel% neq 0 exit /B %errorlevel%
+
+pushd "%~dp0\.."
+set NSIS_REPO=%CD%\nsis
+popd
+xcopy "%NSIS_REPO%\Contrib\ExDLL\pluginapi.*"  "nsis\" /DYI
+xcopy "%NSIS_REPO%\Contrib\ExDLL\nsis_tchar.h" "nsis\" /DYI
+xcopy "%NSIS_REPO%\Source\exehead\api.h"       "nsis\" /DYI
+if not exist "nsis\*.*" if not exist "%NSIS_REPO%" echo ERROR: NSIS sources not found. Clone NSIS repository to "%NSIS_REPO%" & popd & pause & exit /B 2
+echo.
+
+:environment
 set OUTNAME=NSxfer
 set RCNAME=resource
 
@@ -44,25 +58,25 @@ call "%VCVARSALL%" x86
 popd
 
 echo -----------------------------------
-echo x86-ansi
+set OUTDIR=Release-cl-x86-ansi
+echo %OUTDIR%
 echo -----------------------------------
-set OUTDIR=ReleaseA-nocrt
 set BUILD_MACHINE=X86
 call :BUILD_PARAMS
 set CL=/D "_MBCS" /arch:SSE %CL%
 set LINK=/MACHINE:X86 /SAFESEH %LINK%
 call :BUILD_CL
-if %ERRORLEVEL% neq 0 pause && exit /B %ERRORLEVEL%
+if %errorlevel% neq 0 pause & exit /B %errorlevel%
 
 echo -----------------------------------
-echo x86-unicode
+set OUTDIR=Release-cl-x86-unicode
+echo %OUTDIR%
 echo -----------------------------------
-set OUTDIR=ReleaseW-nocrt
 call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" /arch:SSE %CL%
 set LINK=/MACHINE:X86 /SAFESEH %LINK%
 call :BUILD_CL
-if %ERRORLEVEL% neq 0 pause && exit /B %ERRORLEVEL%
+if %errorlevel% neq 0 pause & exit /B %errorlevel%
 
 :BUILD64
 pushd "%CD%"
@@ -70,14 +84,14 @@ call "%VCVARSALL%" amd64
 popd
 
 echo -----------------------------------
-echo amd64-unicode
+set OUTDIR=Release-cl-amd64-unicode
+echo %OUTDIR%
 echo -----------------------------------
-set OUTDIR=ReleaseW-nocrt-amd64
 call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" %CL%
 set LINK=/MACHINE:AMD64 %LINK%
 call :BUILD_CL
-if %ERRORLEVEL% neq 0 pause && exit /B %ERRORLEVEL%
+if %errorlevel% neq 0 pause & exit /B %errorlevel%
 
 :: Finish
 exit /B 0
@@ -93,7 +107,8 @@ set CL=^
 	/Gm- /EHsc /MT /GS- /Gd /TC /GF /FD /LD ^
 	/Fo".\%OUTDIR%\temp\\" ^
 	/Fd".\%OUTDIR%\temp\\" ^
-	/Fe".\%OUTDIR%\%OUTNAME%"
+	/Fe".\%OUTDIR%\%OUTNAME%" ^
+	/I.
 
 set LINK=^
 	/NOLOGO ^
@@ -114,12 +129,13 @@ set FILES=^
 	"queue.c" ^
 	"thread.c" ^
 	"utils.c" ^
-	"nsiswapi\pluginapi.c"
+	"nsis\pluginapi.c"
 
 exit /B 0
 
 
 :BUILD_CL
+title %OUTDIR%
 echo.
 if not exist "%~dp0\%OUTDIR%"      mkdir "%~dp0\%OUTDIR%"
 if not exist "%~dp0\%OUTDIR%\temp" mkdir "%~dp0\%OUTDIR%\temp"

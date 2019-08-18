@@ -6,7 +6,6 @@ files = Split("""
 	queue.c
 	thread.c
 	utils.c
-	nsiswapi/pluginapi.c
 """)
 
 resources = Split("""

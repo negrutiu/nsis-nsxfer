@@ -13,13 +13,13 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="nsiswapi">
+    <Filter Include="NSIS">
       <UniqueIdentifier>{94173627-5bd7-4abd-ac49-e35d1171ab70}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="nsiswapi\pluginapi.c">
-      <Filter>nsiswapi</Filter>
+    <ClCompile Include="nsis\pluginapi.c">
+      <Filter>NSIS</Filter>
     </ClCompile>
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
@@ -42,14 +42,14 @@
     <Text Include="todo.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="nsiswapi\api.h">
-      <Filter>nsiswapi</Filter>
+    <ClInclude Include="nsis\api.h">
+      <Filter>NSIS</Filter>
     </ClInclude>
-    <ClInclude Include="nsiswapi\nsis_tchar.h">
-      <Filter>nsiswapi</Filter>
+    <ClInclude Include="nsis\nsis_tchar.h">
+      <Filter>NSIS</Filter>
     </ClInclude>
-    <ClInclude Include="nsiswapi\pluginapi.h">
-      <Filter>nsiswapi</Filter>
+    <ClInclude Include="nsis\pluginapi.h">
+      <Filter>NSIS</Filter>
     </ClInclude>
     <ClInclude Include="main.h">
       <Filter>Header Files</Filter>

@@ -11,7 +11,6 @@ echo ** NSxfer
 echo ***********************
 
 mkdir							"%~1\Contrib\NSxfer" 2> NUL
-xcopy "%~dp0\nsiswapi"			"%~1\Contrib\NSxfer\nsiswapi" /EIDYF
 xcopy "%~dp0\tools"				"%~1\Contrib\NSxfer\tools" /EIDYF
 xcopy "%~dp0\*.h"				"%~1\Contrib\NSxfer" /DYF
 xcopy "%~dp0\*.c"				"%~1\Contrib\NSxfer" /DYF

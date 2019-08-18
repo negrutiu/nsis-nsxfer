@@ -1,9 +1,10 @@
 
-DebugA
-DebugW
-ReleaseA*
-ReleaseW*
+/nsis
+
+Debug-*
+Release-*
 ipch
+.vs
 
 *.opensdf
 *.sdf
