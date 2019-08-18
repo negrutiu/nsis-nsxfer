@@ -1,7 +1,10 @@
-!ifdef ANSI
-	Unicode false
+
+!ifdef AMD64
+	Target amd64-unicode
+!else ifdef ANSI
+	Target x86-ansi
 !else
-	Unicode true	; Default
+	Target x86-unicode	; Default
 !endif
 
 !include "MUI2.nsh"
@@ -17,31 +20,36 @@ ${StrRep}			; Declare function in advance
 
 ; Enable debugging
 ; Call NSxfer functins with CallInstDLL
-!define ENABLE_DEBUGGING
+;!define ENABLE_DEBUGGING
 
 
 # The folder where NSxfer.dll is
 !ifdef ENABLE_DEBUGGING
 	; Debug
-	!ifdef NSIS_UNICODE
-		!define NSXFER "$EXEDIR\..\DebugW\NSxfer.dll"
+	!ifdef NSIS_AMD64
+		!define NSXFER "$EXEDIR\..\Debug-amd64-unicode\NSxfer.dll"
+	!else ifdef NSIS_UNICODE
+		!define NSXFER "$EXEDIR\..\Debug-x86-unicode\NSxfer.dll"
 	!else
-		!define NSXFER "$EXEDIR\..\DebugA\NSxfer.dll"
+		!define NSXFER "$EXEDIR\..\Debug-x86-ansi\NSxfer.dll"
 	!endif
 !else
 	; Release
-	!ifdef NSIS_UNICODE
-		!if /FileExists "..\ReleaseW-mingw\NSxfer.dll"
-			!AddPluginDir "..\ReleaseW-mingw"
-		!else
-			!error "NSxfer.dll (Unicode) not found. Have you built it?"
+	!ifdef NSIS_AMD64
+		!if ! /FileExists "..\Release-mingw-amd64-unicode\NSxfer.dll"
+			!error "NSxfer.dll (amd64-unicode) not found. Have you built it?"
 		!endif
+		!AddPluginDir "..\Release-mingw-amd64-unicode"
+	!else ifdef NSIS_UNICODE
+		!if ! /FileExists "..\Release-mingw-x86-unicode\NSxfer.dll"
+			!error "NSxfer.dll (x86-unicode) not found. Have you built it?"
+		!endif
+		!AddPluginDir "..\Release-mingw-x86-unicode"
 	!else
-		!if /FileExists "..\ReleaseA-mingw\NSxfer.dll"
-			!AddPluginDir "..\ReleaseA-mingw"
-		!else
-			!error "NSxfer.dll (ANSI) not found. Have you built it?"
+		!if ! /FileExists "..\Release-mingw-x86-ansi\NSxfer.dll"
+			!error "NSxfer.dll (x86-ansi) not found. Have you built it?"
 		!endif
+		!AddPluginDir "..\Release-mingw-x86-ansi"
 	!endif
 !endif
 
@@ -69,7 +77,10 @@ InstType "None"		; 2
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 # Installer details
-!ifdef NSIS_UNICODE
+!ifdef NSIS_AMD64
+	Name "NSxfer64"
+	OutFile "NSxfer64.exe"
+!else ifdef NSIS_UNICODE
 	Name "NSxferW"
 	OutFile "NSxferW.exe"
 !else
