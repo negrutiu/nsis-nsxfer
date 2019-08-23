@@ -345,7 +345,7 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 #define SECURE_PROTOCOLS_KEY _T("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Internet Settings")
 #define SECURE_PROTOCOLS_VAL _T("SecureProtocols")
 
-	if (pReq->pszURL && CompareString( 0, NORM_IGNORECASE, pReq->pszURL, 8, _T( "https://" ), -1 ) == CSTR_EQUAL)
+	//x if (pReq->pszURL && CompareString( 0, NORM_IGNORECASE, pReq->pszURL, 8, _T( "https://" ), -1 ) == CSTR_EQUAL)	// NOTE: Always enable TLS, including HTTP->HTTPS redirections
 		RegReadDWORD( HKEY_CURRENT_USER, SECURE_PROTOCOLS_KEY, SECURE_PROTOCOLS_VAL, &dwSecureProtocols );
 		if ((dwSecureProtocols & PROTO_TLS_ALL) != PROTO_TLS_ALL)
 			RegWriteDWORD( HKEY_CURRENT_USER, SECURE_PROTOCOLS_KEY, SECURE_PROTOCOLS_VAL, dwSecureProtocols | PROTO_TLS_ALL );
@@ -392,8 +392,6 @@ BOOL ThreadDownload_OpenSession( _Inout_ PQUEUE_REQUEST pReq )
 	// Restore TLS 1.0 original value
 	//x if (pReq->pszURL && CompareString( 0, NORM_IGNORECASE, pReq->pszURL, 8, _T( "https://" ), -1 ) == CSTR_EQUAL)
 		if ((dwSecureProtocols & PROTO_TLS_ALL) != PROTO_TLS_ALL)
-	if (pReq->pszURL && CompareString( 0, NORM_IGNORECASE, pReq->pszURL, 8, _T( "https://" ), -1 ) == CSTR_EQUAL)
-		if (!(dwSecureProtocols & PROTO_TLS1))
 			RegWriteDWORD( HKEY_CURRENT_USER, SECURE_PROTOCOLS_KEY, SECURE_PROTOCOLS_VAL, dwSecureProtocols );
 
 	return (err == ERROR_SUCCESS) ? TRUE : FALSE;
