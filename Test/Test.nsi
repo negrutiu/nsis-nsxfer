@@ -25,7 +25,6 @@ ${StrRep}			; Declare function in advance
 
 # The folder where NSxfer.dll is
 !ifdef ENABLE_DEBUGGING
-	; Debug
 	!ifdef NSIS_AMD64
 		!define NSXFER "$EXEDIR\..\Debug-amd64-unicode\NSxfer.dll"
 	!else ifdef NSIS_UNICODE
@@ -34,23 +33,10 @@ ${StrRep}			; Declare function in advance
 		!define NSXFER "$EXEDIR\..\Debug-x86-ansi\NSxfer.dll"
 	!endif
 !else
-	; Release
-	!ifdef NSIS_AMD64
-		!if ! /FileExists "..\Release-mingw-amd64-unicode\NSxfer.dll"
-			!error "NSxfer.dll (amd64-unicode) not found. Have you built it?"
-		!endif
-		!AddPluginDir "..\Release-mingw-amd64-unicode"
-	!else ifdef NSIS_UNICODE
-		!if ! /FileExists "..\Release-mingw-x86-unicode\NSxfer.dll"
-			!error "NSxfer.dll (x86-unicode) not found. Have you built it?"
-		!endif
-		!AddPluginDir "..\Release-mingw-x86-unicode"
-	!else
-		!if ! /FileExists "..\Release-mingw-x86-ansi\NSxfer.dll"
-			!error "NSxfer.dll (x86-ansi) not found. Have you built it?"
-		!endif
-		!AddPluginDir "..\Release-mingw-x86-ansi"
-	!endif
+
+	!AddPluginDir /amd64-unicode "..\Release-mingw-amd64-unicode"
+	!AddPluginDir /x86-unicode   "..\Release-mingw-x86-unicode"
+	!AddPluginDir /x86-ansi      "..\Release-mingw-x86-ansi"
 !endif
 
 # GUI settings

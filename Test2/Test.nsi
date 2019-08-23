@@ -15,16 +15,15 @@
 !define /ifndef TRUE 1
 !define /ifndef FALSE 0
 !define /ifndef NULL 0
-!define SYSINTERNALS_NAME "SysinternalsSuite (January 19, 2015)"
+
 
 ; Enable debugging
 ; Call NSxfer functins with CallInstDLL
-!define ENABLE_DEBUGGING
+;!define ENABLE_DEBUGGING
 
 
 # The folder where NSxfer.dll is
 !ifdef ENABLE_DEBUGGING
-	; Debug
 	!ifdef NSIS_AMD64
 		!define NSXFER "$EXEDIR\..\Debug-amd64-unicode\NSxfer.dll"
 	!else ifdef NSIS_UNICODE
@@ -33,26 +32,9 @@
 		!define NSXFER "$EXEDIR\..\Debug-x86-ansi\NSxfer.dll"
 	!endif
 !else
-	; Release
-	!ifdef NSIS_AMD64
-		!if /FileExists "..\Release-mingw-amd64-unicode\NSxfer.dll"
-			!AddPluginDir "..\Release-mingw-amd64-unicode"
-		!else
-			!error "NSxfer.dll (amd64-unicode) not found. Have you built it?"
-		!endif
-	!else ifdef NSIS_UNICODE
-		!if /FileExists "..\Release-mingw-x86-unicode\NSxfer.dll"
-			!AddPluginDir "..\Release-mingw-x86-unicode"
-		!else
-			!error "NSxfer.dll (x86-unicode) not found. Have you built it?"
-		!endif
-	!else
-		!if /FileExists "..\Release-mingw-x86-ansi\NSxfer.dll"
-			!AddPluginDir "..\Release-mingw-x86-ansi"
-		!else
-			!error "NSxfer.dll (x86-ansi) not found. Have you built it?"
-		!endif
-	!endif
+	!AddPluginDir /amd64-unicode "..\Release-mingw-amd64-unicode"
+	!AddPluginDir /x86-unicode   "..\Release-mingw-x86-unicode"
+	!AddPluginDir /x86-ansi      "..\Release-mingw-x86-ansi"
 !endif
 
 # GUI settings
