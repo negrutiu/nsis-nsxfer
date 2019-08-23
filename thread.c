@@ -509,7 +509,7 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 					if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
 
 						// Make an HTTP request
-						LPCTSTR szReqType[2] = { _T( "*/*" ), 0 };
+						LPCTSTR szReqType[2] = { _T( "*/*" ), NULL };
 						ULONG iObjectNameLen = uc.dwUrlPathLength + uc.dwExtraInfoLength;
 						LPTSTR pszObjectName = MyAllocStr( iObjectNameLen );
 
