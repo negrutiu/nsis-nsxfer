@@ -1,7 +1,5 @@
 
-pushd "%~dp0\.."
-set NSIS_REPO=%CD%\nsis
-popd
+set NSIS_REPO=%~dp0..\..
 
 xcopy "%NSIS_REPO%\Contrib\ExDLL\pluginapi.*"  "nsis\" /DYI
 xcopy "%NSIS_REPO%\Contrib\ExDLL\nsis_tchar.h" "nsis\" /DYI
