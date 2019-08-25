@@ -93,7 +93,7 @@ Function .onInit
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_onInit.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /METHOD POST /MODE Popup /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
+	NSxfer::Transfer /METHOD POST /MODE Popup /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 	!insertmacro STACK_VERIFY_END */
 FunctionEnd
@@ -123,7 +123,7 @@ Section /o "HTTP GET (Page mode)"
 	!define /redef LINK 'http://live.sysinternals.com/Files/SysinternalsSuite.zip'
 	!define /redef FILE '$EXEDIR\_SysinternalsSuite.zip'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 30000 /END
+	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 30000 /END
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -142,7 +142,7 @@ Section /o "HTTP GET (Popup mode)"
 	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
 	!define /redef FILE "$EXEDIR\_CuckooBox_master.zip"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /Mode Popup /END
+	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /Mode Popup /END
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -160,7 +160,7 @@ Section /o "HTTP GET (Silent mode)"
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
 	!define /redef FILE "$EXEDIR\_Firefox.exe"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
+	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -179,7 +179,7 @@ Section /o "HTTP GET (Parallel transfers)"
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
 	!define /redef FILE "$EXEDIR\_Firefox(2).exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
-	NSxfer::Request /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
+	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
 	Pop $1
 	!insertmacro STACK_VERIFY_END
 
@@ -188,7 +188,7 @@ Section /o "HTTP GET (Parallel transfers)"
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
 	!define /redef FILE "$EXEDIR\_Firefox(3).exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
-	NSxfer::Request /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
+	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 	Pop $2
 	!insertmacro STACK_VERIFY_END
 
@@ -197,14 +197,14 @@ Section /o "HTTP GET (Parallel transfers)"
 	!define /redef LINK `http://download.osmc.tv/installers/osmc-installer.exe`
 	!define /redef FILE "$EXEDIR\_osmc_installer.exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
-	NSxfer::Request /NOUNLOAD /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
+	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 	Pop $3
 	!insertmacro STACK_VERIFY_END
 
 	; Wait for all
 	!insertmacro STACK_VERIFY_START
 	DetailPrint 'Waiting . . .'
-	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 	!insertmacro STACK_VERIFY_END
 
@@ -227,7 +227,7 @@ Section /o "HTTP GET (proxy)"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
 	!define /redef PROXY "http=54.36.139.108:8118 https=54.36.139.108:8118"			; France
 	DetailPrint 'NSxfer::Transfer /proxy ${PROXY} "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Transfer /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -245,7 +245,7 @@ Section /o "HTTP POST (application/json)"
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_json.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
+	NSxfer::Transfer /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -263,7 +263,7 @@ Section /o "HTTP POST (application/x-www-form-urlencoded)"
 	!define /redef LINK 'http://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_form.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /NOUNLOAD /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
+	NSxfer::Transfer /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -273,7 +273,7 @@ SectionEnd
 !macro TEST_DEPENDENCY_REQUEST _Filename _DependsOn
 	!define /redef LINK `http://httpbin.org/post`
 	DetailPrint 'NSxfer::Request "${LINK}" "${_Filename}.txt"'
-	NSxfer::Request /NOUNLOAD /PRIORITY 2000 /DEPEND ${_DependsOn} /METHOD POST /URL "${LINK}" /LOCAL "$EXEDIR\${_Filename}.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
+	NSxfer::Request /PRIORITY 2000 /DEPEND ${_DependsOn} /METHOD POST /URL "${LINK}" /LOCAL "$EXEDIR\${_Filename}.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
 	Pop $0	; Request ID
 !macroend
 
@@ -300,12 +300,12 @@ Section /o "Test Dependencies (depend on first request)"
 	;Sleep 2000
 
 	; Unlock the first request, and consequently all the others...
-	NSxfer::Set /NOUNLOAD /ID $R0 /SETDEPEND 0 /END
+	NSxfer::Set /ID $R0 /SETDEPEND 0 /END
 	Pop $0	; Error code. Ignored
 
 	; Wait
 	DetailPrint 'Waiting . . .'
-	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 
 	!insertmacro STACK_VERIFY_END
@@ -334,12 +334,12 @@ Section /o "Test Dependencies (depend on previous request)"
 	;Sleep 2000
 
 	; Unlock the first request, and consequently all the others...
-	NSxfer::Set /NOUNLOAD /ID $R0 /SETDEPEND 0 /END
+	NSxfer::Set /ID $R0 /SETDEPEND 0 /END
 	Pop $0	; Error code. Ignored
 
 	; Wait
 	DetailPrint 'Waiting . . .'
-	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 
 	!insertmacro STACK_VERIFY_END
@@ -361,7 +361,7 @@ Function PrintSummary
 
 	; Enumerate all transfers (completed + pending + waiting)
 	DetailPrint "NSxfer::Enumerate"
-	NSxfer::Enumerate /NOUNLOAD /END
+	NSxfer::Enumerate /END
 
 	Pop $1	; Count
 	DetailPrint "    $1 requests"
@@ -369,7 +369,7 @@ Function PrintSummary
 
 		Pop $2	; Request ID
 
-		NSxfer::Query /NOUNLOAD /ID $2 /PRIORITY /DEPEND /STATUS /WININETSTATUS /METHOD /URL /PROXY /IP /LOCAL /DATA /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONNECTIONDROPS /CONTENT /END
+		NSxfer::Query /ID $2 /PRIORITY /DEPEND /STATUS /WININETSTATUS /METHOD /URL /PROXY /IP /LOCAL /DATA /SENTHEADERS /RECVHEADERS /RECVSIZE /FILESIZE /PERCENT /SPEEDBYTES /SPEED /TIMEWAITING /TIMEDOWNLOADING /ERRORCODE /ERRORTEXT /CONNECTIONDROPS /CONTENT /END
 
 		StrCpy $R0 "[>] ID:$2"
 		Pop $3 ;PRIORITY
@@ -457,7 +457,7 @@ Function PrintSummary
 		${EndIf}
 	${Next}
 
-	NSxfer::QueryGlobal /NOUNLOAD /TOTALCOUNT /TOTALCOMPLETED /TOTALDOWNLOADING /TOTALSPEED /TOTALTHREADS /PLUGINNAME /PLUGINVERSION /USERAGENT /END
+	NSxfer::QueryGlobal /TOTALCOUNT /TOTALCOMPLETED /TOTALDOWNLOADING /TOTALSPEED /TOTALTHREADS /PLUGINNAME /PLUGINVERSION /USERAGENT /END
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 	Pop $R2 ; Downloading

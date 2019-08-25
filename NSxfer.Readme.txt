@@ -18,42 +18,41 @@ Features:
 
 Examples:
 	# Quick transfer, single file
-	NSxfer::Transfer /NOUNLOAD /URL "http://MyServer/MyFile" /LOCAL "$TEMP\MyFile" /MODE Page /ABORT "Abort Title" "Are you sure?" /END
+	NSxfer::Transfer /URL "http://MyServer/MyFile" /LOCAL "$TEMP\MyFile" /MODE Page /ABORT "Abort Title" "Are you sure?" /END
 	Pop $0 ; Status text ("OK" for success)
 	DetailPrint "Status: $0"
 
 	# Parallel transfer, multiple files
 	; Start the downloads
-	NSxfer::Request /NOUNLOAD /URL "http://MyServer1/MyFile1" /LOCAL "$TEMP\MyFile1" /END
+	NSxfer::Request /URL "http://MyServer1/MyFile1" /LOCAL "$TEMP\MyFile1" /END
 	Pop $1 ; Request ID1
-	NSxfer::Request /NOUNLOAD /URL "http://MyServer2/MyFile2" /LOCAL "$TEMP\MyFile2" /END
+	NSxfer::Request /URL "http://MyServer2/MyFile2" /LOCAL "$TEMP\MyFile2" /END
 	Pop $2 ; Request ID2
-	NSxfer::Request /NOUNLOAD /URL "http://MyServer3/MyFile3" /LOCAL "$TEMP\MyFile3" /END
+	NSxfer::Request /URL "http://MyServer3/MyFile3" /LOCAL "$TEMP\MyFile3" /END
 	Pop $3 ; Request ID3
 	
 	; ...do other useful stuff...
 	
 	; Wait for all downloads to complete
-	NSxfer::Wait /NOUNLOAD /MODE Page /ABORT "Abort" "Are you sure?" /END
+	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 
 	; Query status (1)
-	NSxfer::Query /NOUNLOAD /ID $1 /ERRORCODE /END
+	NSxfer::Query /ID $1 /ERRORCODE /END
 	Pop $0 ; Error code (HTTP status 200-299 for success)
 	DetailPrint "Status1: $0"
 	; Query status (2)
-	NSxfer::Query /NOUNLOAD /ID $2 /ERRORCODE /END
+	NSxfer::Query /ID $2 /ERRORCODE /END
 	Pop $0 ; Error code (HTTP status 200-299 for success)
 	DetailPrint "Status2: $0"
 	; Query status (3)
-	NSxfer::Query /NOUNLOAD /ID $3 /ERRORCODE /END
+	NSxfer::Query /ID $3 /ERRORCODE /END
 	Pop $0 ; Error code (HTTP status 200-299 for success)
 	DetailPrint "Status3: $0"
 
 	; ...you got the idea...
 _________________________________________________________________________________________________
 
-NSxfer::Transfer	/NOUNLOAD
-					[/PRIORITY prio] [/DEPEND id]
+NSxfer::Transfer	[/PRIORITY prio] [/DEPEND id]
 					[/METHOD GET|POST]
 					/URL url
 					[/LOCAL file|MEMORY|NONE]
@@ -77,17 +76,15 @@ Remarks:
 	To transfer multiple files in parallel, you must use lower level functions (Request(1) + Request(2) + ... + Request(n) + [...] + Wait(*) + Query(*))
 	
 Parameters:
-	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
-	...							| Check out "Request" parameters!
-	...							| Check out "Wait" parameters!
+	[...]						| Check out "Request" parameters!
+	[...]						| Check out "Wait" parameters!
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
 	[Stack] "OK" for successful transfers, or an error string (HTTP or Win32) otherwise
 _________________________________________________________________________________________________
 
-NSxfer::Request		/NOUNLOAD
-					[/PRIORITY prio] [/DEPEND id]
+NSxfer::Request		[/PRIORITY prio] [/DEPEND id]
 					[/METHOD GET|POST]
 					/URL url
 					[/LOCAL file|MEMORY|NONE]
@@ -106,7 +103,6 @@ Remarks:
 	This command will not display any GUI.
 	
 Parameters:
-	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/PRIORITY					| Priority in queue. Lower value mean higher priority (default: 1000)
 	/DEPEND id					| Another request that this one depends on. The new request will wait in queue until the other is completed (default: 0, no dependency)
 	/METHOD GET|POST|HEAD|...	| HTTP Method (default: GET)
@@ -135,24 +131,23 @@ Return:
 Examples:
 
 	; Download to local file
-	NSxfer::Request /NOUNLOAD /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
+	NSxfer::Request /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL "$EXEDIR\SysinternalsSuite.zip" /TIMEOUTCONNECT 60000 /TIMEOUTRECONNECT 300000 /END
 	Pop $0	; Request ID
 
 	; Download to memory, highest priority
-	NSxfer::Request /NOUNLOAD /PRIORITY 1 /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
+	NSxfer::Request /PRIORITY 1 /URL "http://live.sysinternals.com/Files/SysinternalsSuite.zip" /LOCAL MEMORY /END
 	Pop $0	; Request ID
 
 	; Send the HTTP request but don't download the content
-	NSxfer::Request /NOUNLOAD /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
+	NSxfer::Request /URL "http://mydomain.com:800?param1=va1&param2=val2" /LOCAL NONE /END
 	Pop $0	; Request ID
 
 	; POST a form
-	NSxfer::Request /NOUNLOAD /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
+	NSxfer::Request /METHOD POST /URL "http://httpbin.org/post" /LOCAL "Post.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded" /DATA "user=MY+NAME&pass=MY+PASSWORD" /END
 	Pop R0	; Request ID
 _________________________________________________________________________________________________
 
-NSxfer::Wait		/NOUNLOAD
-					[/ID id] [/PRIORITY prio]	; Selection parameters
+NSxfer::Wait		[/ID id] [/PRIORITY prio]	; Selection parameters
 					[/MODE SILENT|POPUP|PAGE]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
@@ -215,7 +210,6 @@ Remarks:
 	{ANIMDOTS}					| The classic ./../... animation
 
 Parameters:
-	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/ID id						| Wait for a specific transfer. If not specified, we're waiting for all transfers
 	/PRIORITY prio				| Wait for transfers with specific priority. If not specified we're waiting for all transfers
 	/MODE						| Wait mode
@@ -233,7 +227,7 @@ Return:
 Examples:
 	; Wait for requests with priority 2000 (Popup mode)
 	NSxfer::Wait \
-		/NOUNLOAD /PRIORITY 2000 /MODE POPUP \
+		/PRIORITY 2000 /MODE POPUP \
 		/STATUSTEXT \
 			"Received {RECVSIZE}/{FILESIZE} @ {SPEED}, ETA: {TIMEREMAINING}$\n{URL}" \
 			"Downloading {TOTALACTIVE}/{TOTALCOUNT} files. Received {TOTALRECVSIZE} @ {TOTALSPEED}" \
@@ -244,8 +238,7 @@ Examples:
 	Pop $0
 _________________________________________________________________________________________________
 
-NSxfer::Enumerate	/NOUNLOAD
-					[/STATUS waiting|downloading|completed]
+NSxfer::Enumerate	[/STATUS waiting|downloading|completed]
 					[/PRIORITY prio]
 					/END
 
@@ -254,7 +247,6 @@ Remarks:
 	Be aware that completed requests remain in queue. They can be filtered out using /STATUS
 
 Parameters:
-	/NOUNLOAD					| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/STATUS						| Enumerate requests with specific status (Waiting, Downloading, Completed). If not specified, all requests will be enumerated
 	/PRIORITY prio				| Enumerate requests with specific priority. If not specified, all requests will be enumerated
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
@@ -268,7 +260,7 @@ Return:
 
 Example:
 	; Enumerate all completed requests
-	NSxfer::Enumerate /NOUNLOAD /STATUS "Completed" /END
+	NSxfer::Enumerate /STATUS "Completed" /END
 	Pop $1 ; Count
 	${For} $0 1 $1
 		Pop $2
@@ -276,8 +268,7 @@ Example:
 	${Next}
 _________________________________________________________________________________________________
 
-NSxfer::Query	/NOUNLOAD
-				/ID id
+NSxfer::Query	/ID id
 				[/PRIORITY] [/DEPEND]
 				[/STATUS] [/WININETSTATUS]
 				[/METHOD] [/URL] [/IP] [/PROXY] [/LOCAL]
@@ -293,7 +284,6 @@ Remarks:
 	Query information about a specific transfer request.
 
 Parameters:
-	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/ID id					| The request ID returned by NSxfer::Request
 	-----------             | ------------------
 	/PRIORITY				| Request priority
@@ -329,7 +319,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSxfer::Query /NOUNLOAD /ID $varID /STATUS /URL /PERCENT /SPEED /END
+	NSxfer::Query /ID $varID /STATUS /URL /PERCENT /SPEED /END
 	Pop $0	;Status
 	Pop $1	;URL
 	Pop $2	;Percent
@@ -337,8 +327,7 @@ Example:
 	DetailPrint "Status:$0, URL:$1, Percent:$2, Speed:$3"
 _________________________________________________________________________________________________
 
-NSxfer::Set			/NOUNLOAD
-					[/ID id] [/PRIORITY prio]	; Selection parameters
+NSxfer::Set			[/ID id] [/PRIORITY prio]	; Selection parameters
 					[/SETPRIORITY prio]
 					[/SETDEPEND id]
 					[/ABORT]
@@ -351,7 +340,6 @@ Remarks:
 	The caller is responsible for cleaning up unfinished/aborted downloads.
 
 Parameters:
-	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/ID id					| Modify specific request. If not specified, all requests will be modified
 	/PRIORITY prio			| Modify requests with specific priority. If not specified, all requests will be modified
 	/SETPRIORITY prio		| New priority
@@ -365,29 +353,28 @@ Return:
 
 Examples:
 	; Abort all transfers
-	NSxfer::Set /NOUNLOAD /ABORT /END
+	NSxfer::Set /ABORT /END
 
 	; Abort all transfer with priority 3000
-	NSxfer::Set /NOUNLOAD /PRIORITY 3000 /ABORT /END
+	NSxfer::Set /PRIORITY 3000 /ABORT /END
 
 	; Abort a specific transfer
-	NSxfer::Set /NOUNLOAD /ID 666 /ABORT /END
+	NSxfer::Set /ID 666 /ABORT /END
 
 	; Modify priority 3000 to 5000
-	NSxfer::Set /NOUNLOAD /PRIORITY 3000 /SETPRIORITY 5000 /END
+	NSxfer::Set /PRIORITY 3000 /SETPRIORITY 5000 /END
 
 	; Modify one request's dependency
-	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 1 /END
+	NSxfer::Set /ID 666 /SETDEPEND 1 /END
 
 	; Remove one request's dependency (by setting it to 0)
-	NSxfer::Set /NOUNLOAD /ID 666 /SETDEPEND 0 /END
+	NSxfer::Set /ID 666 /SETDEPEND 0 /END
 
 	; Abort all and clear the queue
-	NSxfer::Set /NOUNLOAD /REMOVE /END
+	NSxfer::Set /REMOVE /END
 _________________________________________________________________________________________________
 
-NSxfer::QueryGlobal /NOUNLOAD
-					[/TOTALCOUNT] [/TOTALWAITING] [/TOTALDOWNLOADING] [/TOTALCOMPLETED]
+NSxfer::QueryGlobal [/TOTALCOUNT] [/TOTALWAITING] [/TOTALDOWNLOADING] [/TOTALCOMPLETED]
 					[/TOTALSPEED] [/TOTALSPEEDBYTES]
 					[/TOTALTHREADS]
 					[/PLUGINNAME] [/PLUGINVERSION]
@@ -398,7 +385,6 @@ Remarks:
 	Query global information.
 
 Parameters:
-	/NOUNLOAD				| Must be specified, otherwise NSIS will unload NSxfer at runtime
 	/TOTALCOUNT				| The overall number of requests (waiting + downloading + completed)
 	/TOTALWAITING			| The number of waiting requests
 	/TOTALDOWNLOADING		| The number of requests in progress
@@ -421,7 +407,7 @@ Return:
 	[Stack] ValueN
 
 Example:
-	NSxfer::QueryGlobal /NOUNLOAD /TOTALCOUNT /TOTALCOMPLETED /TOTALDOWNLOADING /TOTALSPEED /TOTALTHREADS /END
+	NSxfer::QueryGlobal /TOTALCOUNT /TOTALCOMPLETED /TOTALDOWNLOADING /TOTALSPEED /TOTALTHREADS /END
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 	Pop $R2 ; Downloading
