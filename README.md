@@ -1,4 +1,4 @@
-# [NSIS](https://nsis.sourceforge.io/Main_Page) plugin NSxfer
+# NSxfer ([NSIS](https://nsis.sourceforge.io/Main_Page) plugin)
 NSxfer gives you the means to perform complex HTTP/HTTPS transfers from a NSIS script<br>
 The plugin is included in my **unofficial** [NSIS builds](https://github.com/negrutiu/nsis)
 
