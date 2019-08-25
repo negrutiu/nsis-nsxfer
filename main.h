@@ -38,6 +38,7 @@
 
 extern extra_parameters *g_ep;		/// main.c
 extern HWND g_hwndparent;			/// main.c
+#define safepushstring(psz)			pushstring( (psz) ? (psz) : _T("") )
 // <-- NSIS plugin API
 
 extern HINSTANCE g_hInst;			/// Defined in main.c

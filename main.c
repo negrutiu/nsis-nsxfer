@@ -472,18 +472,18 @@ void __cdecl Query(
 			} else if (lstrcmpi( pParam[i], _T( "/METHOD" ) ) == 0) {
 				pushstring( pReq->szMethod );
 			} else if (lstrcmpi( pParam[i], _T( "/URL" ) ) == 0) {
-				pushstring( pReq->pszURL );
+				safepushstring( pReq->pszURL );
 			} else if (lstrcmpi( pParam[i], _T( "/IP" ) ) == 0) {
-				pushstring( pReq->pszSrvIP );
+				safepushstring( pReq->pszSrvIP );
 			} else if (lstrcmpi( pParam[i], _T( "/PROXY" ) ) == 0) {
-				pushstring( pReq->pszProxy );
+				safepushstring( pReq->pszProxy );
 			} else if (lstrcmpi( pParam[i], _T( "/LOCAL" ) ) == 0) {
 				switch (pReq->iLocalType) {
 				case REQUEST_LOCAL_NONE:
 					pushstring( TEXT_LOCAL_NONE );
 					break;
 				case REQUEST_LOCAL_FILE:
-					pushstring( pReq->Local.pszFile );
+					safepushstring( pReq->Local.pszFile );
 					break;
 				case REQUEST_LOCAL_MEMORY:
 					pushstring( TEXT_LOCAL_MEMORY );
@@ -492,9 +492,9 @@ void __cdecl Query(
 					pushstring( _T( "" ) );
 				}
 			} else if (lstrcmpi( pParam[i], _T( "/SENTHEADERS" ) ) == 0) {
-				pushstring( pReq->pszHeaders );
+				safepushstring( pReq->pszHeaders );
 			} else if (lstrcmpi( pParam[i], _T( "/RECVHEADERS" ) ) == 0) {
-				pushstring( pReq->pszSrvHeaders );
+				safepushstring( pReq->pszSrvHeaders );
 			} else if (lstrcmpi( pParam[i], _T( "/FILESIZE" ) ) == 0) {
 				if (pReq->iFileSize != INVALID_FILE_SIZE64) {
 					TCHAR sz[30];
@@ -515,10 +515,10 @@ void __cdecl Query(
 				pushstring( pReq->Speed.szSpeed );
 			} else if (lstrcmpi( pParam[i], _T( "/CONTENT" ) ) == 0) {
 				RequestMemoryToString( pReq, psz, string_size );
-				pushstring( psz );
+				safepushstring( psz );
 			} else if (lstrcmpi( pParam[i], _T( "/DATA" ) ) == 0) {
 				RequestDataToString( pReq, psz, string_size );
-				pushstring( psz );
+				safepushstring( psz );
 			} else if (lstrcmpi( pParam[i], _T( "/TIMEWAITING" ) ) == 0) {
 				switch (pReq->iStatus) {
 				case REQUEST_STATUS_WAITING:
@@ -562,7 +562,7 @@ void __cdecl Query(
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORCODE" ) ) == 0) {
 				pushint( pReq->iWin32Error == ERROR_SUCCESS ? pReq->iHttpStatus : pReq->iWin32Error );
 			} else if (lstrcmpi( pParam[i], _T( "/ERRORTEXT" ) ) == 0) {
-				pushstring( pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error );
+				safepushstring( pReq->iWin32Error == ERROR_SUCCESS ? pReq->pszHttpStatus : pReq->pszWin32Error );
 			} else {
 				TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), pParam[i] );
 				pushstring( _T( "" ) );
@@ -917,11 +917,11 @@ void __cdecl Transfer(
 		QueueLock( &g_Queue );
 		if (pReq->iWin32Error == ERROR_SUCCESS) {
 			if (pReq->iHttpStatus > 200 && pReq->iHttpStatus < 300)
-				pushstring( _T( "OK" ) );			/// Convert any successful HTTP status to "OK"
+				pushstring( _T( "OK" ) );				/// Convert any successful HTTP status to "OK"
 			else
-				pushstring( pReq->pszHttpStatus );	/// HTTP status
+				safepushstring( pReq->pszHttpStatus );	/// HTTP status
 		} else {
-			pushstring( pReq->pszWin32Error );	/// Win32 error
+			safepushstring( pReq->pszWin32Error );		/// Win32 error
 		}
 		QueueUnlock( &g_Queue );
 	} else {
