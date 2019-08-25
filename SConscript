@@ -23,7 +23,10 @@ libs = Split("""
 	wininet
 """)
 
-examples = ''
+examples = Split("""
+	Test/NSxfer-Test.nsi
+	Test/NSxfer-Test-build.bat
+""")
 
 docs = Split("""
 	NSxfer.Readme.txt
