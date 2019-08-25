@@ -15,10 +15,6 @@ extra_parameters *g_ep = NULL;
 HWND g_hwndparent = NULL;
 
 
-/// Forward declarations
-UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage );
-
-
 //++ PluginInit
 BOOL PluginInit()
 {
@@ -60,24 +56,6 @@ BOOL PluginUninit( _In_ BOOLEAN bForced )
 		bRet = TRUE;
 	}
 	return bRet;
-}
-
-
-//++ NsisMessageCallback
-UINT_PTR __cdecl NsisMessageCallback( enum NSPIM iMessage )
-{
-	switch ( iMessage )
-	{
-	case NSPIM_UNLOAD:
-		TRACE( _T( "NSPIM_UNLOAD\n" ) );
-		PluginUninit( FALSE );
-		break;
-
-	case NSPIM_GUIUNLOAD:
-		TRACE( _T( "NSPIM_GUIUNLOAD\n" ) );
-		break;
-	}
-	return 0;
 }
 
 
@@ -237,8 +215,10 @@ void __cdecl Request(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Request" ) );
 
-	/// Receive unloading notification
-	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
+	/// Receive unload notification
+	/// By registering PluginCallback the plugin remains locked in memory
+	/// Otherwise the framework would unload it when this call returns... Unless the caller specifies /NOUNLOAD...
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof(TCHAR) );
@@ -830,6 +810,11 @@ void __cdecl Wait(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Wait" ) );
 
+	/// Receive unload notification
+	/// By registering PluginCallback the plugin remains locked in memory
+	/// Otherwise the framework would unload it when this call returns... Unless the caller specifies /NOUNLOAD...
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
+
 	/// Working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	assert( psz );
@@ -877,8 +862,10 @@ void __cdecl Transfer(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Transfer" ) );
 
-	/// Receive unloading notification
-	extra->RegisterPluginCallback( g_hInst, NsisMessageCallback );
+	/// Receive unload notification
+	/// By registering PluginCallback the plugin remains locked in memory
+	/// Otherwise the framework would unload it when this call returns... Unless the caller specifies /NOUNLOAD...
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -968,6 +955,24 @@ void __cdecl Test(
 		i = MyTimeDiff( &t2, &t1 );
 		assert( i == 1234 );
 	}*/
+}
+
+
+//++ PluginCallback
+UINT_PTR __cdecl PluginCallback( enum NSPIM iMessage )
+{
+	switch ( iMessage )
+	{
+		case NSPIM_UNLOAD:
+			TRACE( _T( "NSPIM_UNLOAD\n" ) );
+			//x PluginUninit( FALSE );		// DLL_PROCESS_DETACH will handle it
+			break;
+
+		case NSPIM_GUIUNLOAD:
+			TRACE( _T( "NSPIM_GUIUNLOAD\n" ) );
+			break;
+	}
+	return 0;
 }
 
 
