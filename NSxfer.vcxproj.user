@@ -1,15 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-nocrt-x86-unicode|Win32'">
-    <LocalDebuggerCommand>$(SolutionDir)\Test\NSxferW.exe</LocalDebuggerCommand>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseA-nocrt|Win32'">
-    <LocalDebuggerCommand>$(SolutionDir)\Test\NSxferA.exe</LocalDebuggerCommand>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-x86-ansi|Win32'">
+    <LocalDebuggerCommand>$(ProjectDir)\Test\NSxfer-Debug-x86-ansi.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-x86-unicode|Win32'">
-    <LocalDebuggerCommand>$(ProjectDir)\Test2\NSxferW.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>$(ProjectDir)\Test\NSxfer-Debug-x86-unicode.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

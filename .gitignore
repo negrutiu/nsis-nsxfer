@@ -1,5 +1,7 @@
 
 /nsis
+/Test/*.exe
+/Test/_*
 
 Debug-*
 Release-*
