@@ -71,6 +71,7 @@ BEGIN
             VALUE "FileVersion", "1.2019.8.25"
             VALUE "InternalName", "NSxfer.dll"
             VALUE "LegalCopyright", "(C)2014-2019, Marius Negrutiu. All rights reserved."
+            VALUE "LegalTrademarks", "https://github.com/negrutiu/nsis-nsutils"
             VALUE "OriginalFilename", "NSxfer.dll"
             VALUE "ProductName", "NSIS WinINet Plugin"
             VALUE "ProductVersion", "1.0.0.0"
