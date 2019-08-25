@@ -50,7 +50,7 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,2019,8,23
+ FILEVERSION 1,2019,8,25
  PRODUCTVERSION 1,0,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
@@ -68,7 +68,7 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Marius Negrutiu (marius.negrutiu@protonmail.com)"
             VALUE "FileDescription", "NSIS WinINet Plugin"
-            VALUE "FileVersion", "1.2019.8.23"
+            VALUE "FileVersion", "1.2019.8.25"
             VALUE "InternalName", "NSxfer.dll"
             VALUE "LegalCopyright", "(C)2014-2019, Marius Negrutiu. All rights reserved."
             VALUE "OriginalFilename", "NSxfer.dll"
