@@ -1,6 +1,5 @@
-# NSxfer ([NSIS](https://nsis.sourceforge.io/Main_Page) plugin)
-NSxfer gives you the means to perform complex HTTP/HTTPS transfers from a NSIS script<br>
-The plugin is included in my **unofficial** [NSIS builds](https://github.com/negrutiu/nsis)
+# NSxfer ([NSIS](https://github.com/negrutiu/nsis) plugin)
+NSxfer gives you the means to perform complex HTTP/HTTPS transfers from a NSIS script
 
 ### Features:
 - **Multi threaded**: transfer multiple files in parallel
@@ -19,20 +18,20 @@ The plugin is included in my **unofficial** [NSIS builds](https://github.com/neg
 ### Basic usage:
 - HTTP GET example:
 ```
-Delete "$TEMP\MyFile.json"	; If the file exists, the transfer will resume
-NSxfer::Transfer /NOUNLOAD /URL "https://httpbin.org/get?param1=1&param2=2" /LOCAL "$TEMP\Response.json" /END
+Delete "$TEMP\MyFile.json"	; If the file already exists, the transfer will resume...
+NSxfer::Transfer /URL "https://httpbin.org/get?param1=1&param2=2" /LOCAL "$TEMP\Response.json" /END
 Pop $0 				; Status text ("OK" for success)
 ```
 - HTTP POST `application/json`:
 ```
-Delete "$TEMP\MyFile.json"	; If the file exists, the transfer will resume
-NSxfer::Transfer /NOUNLOAD /URL "https://httpbin.org/post?param1=1&param2=2" /LOCAL "$TEMP\MyFile.json" /METHOD POST /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /END
+Delete "$TEMP\MyFile.json"
+NSxfer::Transfer /URL "https://httpbin.org/post?param1=1&param2=2" /LOCAL "$TEMP\MyFile.json" /METHOD POST /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /END
 Pop $0 				; Status text ("OK" for success)
 ```
 - HTTP POST `application/x-www-form-urlencoded`:
 ```
-Delete "$TEMP\MyFile.json"	; If the file exists, the transfer will resume
-NSxfer::Transfer /NOUNLOAD /URL "https://httpbin.org/post?param1=1&param2=2" /LOCAL "$TEMP\MyFile.json" /METHOD POST /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded" /END
+Delete "$TEMP\MyFile.json"
+NSxfer::Transfer /URL "https://httpbin.org/post?param1=1&param2=2" /LOCAL "$TEMP\MyFile.json" /METHOD POST /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded" /END
 Pop $0 				; Status text ("OK" for success)
 ```
 - More complex examples in the [readme file](NSxfer.Readme.txt)
