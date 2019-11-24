@@ -1,6 +1,7 @@
 
 NSxfer - NSIS WinINet Plugin
-Marius Negruțiu (marius.negrutiu@protonmail.com)
+https://github.com/negrutiu/nsis-nsxfer
+marius.negrutiu@protonmail.com
 _________________________________________________________________________________________________
 
 Features:
