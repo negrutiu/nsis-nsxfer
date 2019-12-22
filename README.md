@@ -1,6 +1,11 @@
 # NSxfer ([NSIS](https://github.com/negrutiu/nsis) plugin)
 NSxfer gives you the means to perform complex HTTP/HTTPS transfers from a NSIS script
 
+[![License: zlib/libpng](https://img.shields.io/badge/License-zlib%2Flibpng-blue.svg)](LICENSE)
+[![Latest Release](https://img.shields.io/badge/dynamic/json.svg?label=Latest%20Release&url=https%3A%2F%2Fapi.github.com%2Frepos%2Fnegrutiu%2Fnsis-nsxfer%2Freleases%2Flatest&query=%24.name&colorB=orange)](../../releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/negrutiu/nsis-nsxfer/total.svg?label=Downloads&colorB=orange)](../../releases/latest)
+[![GitHub issues](https://img.shields.io/github/issues/negrutiu/nsis-nsxfer.svg?label=Issues)](../../issues)
+
 ### Features:
 - **Multi threaded**: transfer multiple files in parallel
 - **Asynchronous**: start a download now, check its status later
