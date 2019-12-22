@@ -1,31 +1,34 @@
 
+# NSxfer development script
+# Marius Negrutiu - https://github.com/negrutiu/nsis-nsxfer#nsis-plugin-nsxfer
+
 !ifdef AMD64
-	Target amd64-unicode
+	!define _TARGET_ amd64-unicode
 !else ifdef ANSI
-	Target x86-ansi
+	!define _TARGET_ x86-ansi
 !else
-	Target x86-unicode	; Default
+	!define _TARGET_ x86-unicode		; Default
 !endif
+
+Target ${_TARGET_}
+
+# /dll commandline parameter
+Var /global DLL
 
 !include "MUI2.nsh"
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 !include "Sections.nsh"
 
+!include "FileFunc.nsh"
+!insertmacro GetOptions
+!insertmacro GetParameters
+
 !include "StrFunc.nsh"
 ${StrRep}				; Declare in advance
 
 !define /ifndef NULL 0
 
-
-# NSxfer.dll (debug) location
-!ifdef NSIS_AMD64
-	!define NSXFER "$EXEDIR\..\Debug-amd64-unicode\NSxfer.dll"
-!else ifdef NSIS_UNICODE
-	!define NSXFER "$EXEDIR\..\Debug-x86-unicode\NSxfer.dll"
-!else
-	!define NSXFER "$EXEDIR\..\Debug-x86-ansi\NSxfer.dll"
-!endif
 
 # GUI settings
 !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\orange-install-nsis.ico"
@@ -50,15 +53,8 @@ InstType "None"		; 2
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 # Installer details
-!ifdef NSIS_AMD64
-	OutFile "NSxfer-Debug-amd64-unicode.exe"
-!else ifdef NSIS_UNICODE
-	OutFile "NSxfer-Debug-x86-unicode.exe"
-!else
-	OutFile "NSxfer-Debug-x86-ansi.exe"
-!endif
-
-Name "NSxfer-Debug"
+Name    "NSxfer-Debug-${_TARGET_}"
+OutFile "NSxfer-Debug-${_TARGET_}.exe"
 XPStyle on
 RequestExecutionLevel user		; Don't require UAC elevation
 ShowInstDetails show
@@ -88,7 +84,16 @@ Function .onInit
 	!define MUI_LANGDLL_ALLLANGUAGES
 	!insertmacro MUI_LANGDLL_DISPLAY
 
-/*	; .onInit download demo
+	; Command line
+	${GetParameters} $R0
+	${GetOptions} "$R0" "/dll" $DLL
+	${If} ${Errors}
+		MessageBox MB_ICONSTOP 'Syntax:$\n"$EXEFILE" /DLL <NSxfer.dll>'
+		Abort
+	${EndIf}
+
+/*
+	; .onInit download demo
 	; NOTE: Transfers from .onInit can be either Silent or Popup (no Page!)
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
@@ -113,9 +118,10 @@ Function .onInit
 	Push "/MODE"
 	Push "POST"
 	Push "/METHOD"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
-	!insertmacro STACK_VERIFY_END */
+	!insertmacro STACK_VERIFY_END
+*/
 FunctionEnd
 
 
@@ -152,7 +158,7 @@ Section /o "HTTP GET (Page mode)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -178,7 +184,7 @@ Section /o "HTTP GET (Popup mode)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -203,7 +209,7 @@ Section /o "HTTP GET (Silent mode)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -227,7 +233,7 @@ Section /o "HTTP GET (Parallel transfers)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSXFER}" Request
+	CallInstDLL $DLL Request
 	Pop $1
 	!insertmacro STACK_VERIFY_END
 
@@ -243,7 +249,7 @@ Section /o "HTTP GET (Parallel transfers)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSXFER}" Request
+	CallInstDLL $DLL Request
 	Pop $2
 	!insertmacro STACK_VERIFY_END
 
@@ -259,7 +265,7 @@ Section /o "HTTP GET (Parallel transfers)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL "${NSXFER}" Request
+	CallInstDLL $DLL Request
 	Pop $3
 	!insertmacro STACK_VERIFY_END
 
@@ -272,11 +278,11 @@ Section /o "HTTP GET (Parallel transfers)"
 	Push "/ABORT"
 	Push "Page"
 	Push "/Mode"
-	CallInstDLL "${NSXFER}" Wait
+	CallInstDLL $DLL Wait
 	Pop $0
 	!insertmacro STACK_VERIFY_END
 
-	; Check for individual transfer status...
+	; Validate individual transfer status...
 	; TODO
 
 	DetailPrint 'Done'
@@ -311,7 +317,7 @@ Section /o "HTTP GET (proxy)"
 	Push "/URL"
 	Push 10
 	Push "/PRIORITY"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -346,7 +352,7 @@ Section /o "HTTP POST (application/json)"
 	Push "/URL"
 	Push "POST"
 	Push "/METHOD"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -381,7 +387,7 @@ Section /o "HTTP POST (application/x-www-form-urlencoded)"
 	Push "/URL"
 	Push "POST"
 	Push "/METHOD"
-	CallInstDLL "${NSXFER}" Transfer
+	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
 	!insertmacro STACK_VERIFY_END
@@ -412,7 +418,7 @@ SectionEnd
 	Push "/DEPEND"
 	Push 2000
 	Push "/PRIORITY"
-	CallInstDLL "${NSXFER}" Request
+	CallInstDLL $DLL Request
 	Pop $0	; Request ID
 !macroend
 
@@ -444,7 +450,7 @@ Section /o "Test Dependencies (depend on first request)"
 	Push "/SETDEPEND"
 	Push $R0		; First request ID
 	Push "/ID"
-	CallInstDLL "${NSXFER}" "Set"
+	CallInstDLL $DLL "Set"
 	Pop $0	; Error code. Ignored
 
 	; Wait
@@ -455,7 +461,7 @@ Section /o "Test Dependencies (depend on first request)"
 	Push "/ABORT"
 	Push "Page"
 	Push "/Mode"
-	CallInstDLL "${NSXFER}" Wait
+	CallInstDLL $DLL Wait
 	Pop $0
 
 	!insertmacro STACK_VERIFY_END
@@ -489,7 +495,7 @@ Section /o "Test Dependencies (depend on previous request)"
 	Push "/SETDEPEND"
 	Push $R0		; First request ID
 	Push "/ID"
-	CallInstDLL "${NSXFER}" "Set"
+	CallInstDLL $DLL "Set"
 	Pop $0	; Error code. Ignored
 
 	; Wait
@@ -503,7 +509,7 @@ Section /o "Test Dependencies (depend on previous request)"
 	;Push "/TITLEHWND"
 	Push "Page"
 	Push "/MODE"
-	CallInstDLL "${NSXFER}" Wait
+	CallInstDLL $DLL Wait
 	Pop $0
 
 	!insertmacro STACK_VERIFY_END
@@ -526,7 +532,7 @@ Function PrintSummary
 	; Enumerate all transfers (completed + pending + waiting)
 	DetailPrint "NSxfer::Enumerate"
 	Push "/END"
-	CallInstDLL "${NSXFER}" Enumerate
+	CallInstDLL $DLL Enumerate
 	Pop $1	; Count
 	DetailPrint "    $1 requests"
 	${For} $0 1 $1
@@ -559,7 +565,7 @@ Function PrintSummary
 		Push "/PRIORITY"
 		Push $2	; Request ID
 		Push "/ID"
-		CallInstDLL "${NSXFER}" Query
+		CallInstDLL $DLL Query
 
 		StrCpy $R0 "[>] ID:$2"
 		Pop $3 ;PRIORITY
@@ -656,7 +662,7 @@ Function PrintSummary
 	Push "/TOTALDOWNLOADING"
 	Push "/TOTALCOMPLETED"
 	Push "/TOTALCOUNT"
-	CallInstDLL "${NSXFER}" QueryGlobal
+	CallInstDLL $DLL QueryGlobal
 	Pop $R0 ; Total
 	Pop $R1 ; Completed
 	Pop $R2 ; Downloading

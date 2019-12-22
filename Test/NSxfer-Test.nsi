@@ -3,12 +3,14 @@
 # Marius Negrutiu - https://github.com/negrutiu/nsis-nsxfer#nsis-plugin-nsxfer
 
 !ifdef AMD64
-	Target amd64-unicode
+	!define _TARGET_ amd64-unicode
 !else ifdef ANSI
-	Target x86-ansi
+	!define _TARGET_ x86-ansi
 !else
-	Target x86-unicode	; Default
+	!define _TARGET_ x86-unicode		; Default
 !endif
+
+Target ${_TARGET_}
 
 !include "MUI2.nsh"
 !define LOGICLIB_STRCMP
@@ -49,31 +51,13 @@ InstType "None"		; 2
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 # Installer details
-!ifdef NSIS_AMD64
-	OutFile "NSxfer-Test-amd64-unicode.exe"
-!else ifdef NSIS_UNICODE
-	OutFile "NSxfer-Test-x86-unicode.exe"
-!else
-	OutFile "NSxfer-Test-x86-ansi.exe"
-!endif
-
-Name "NSxfer-Test"
+Name    "NSxfer-Test-${_TARGET_}"
+OutFile "NSxfer-Test-${_TARGET_}.exe"
 XPStyle on
 RequestExecutionLevel user		; Don't require UAC elevation
 ShowInstDetails show
 ManifestDPIAware true
 
-!macro STACK_VERIFY_START
-	; This macro is optional. You don't have to use it in your script!
-	Push "MyStackTop"
-!macroend
-
-!macro STACK_VERIFY_END
-	; This macro is optional. You don't have to use it in your script!
-	Pop $R9
-	StrCmp $R9 "MyStackTop" +2 +1
-		MessageBox MB_ICONSTOP "Stack is NOT OK"
-!macroend
 
 #---------------------------------------------------------------#
 # .onInit                                                       #
@@ -87,15 +71,15 @@ Function .onInit
 	!define MUI_LANGDLL_ALLLANGUAGES
 	!insertmacro MUI_LANGDLL_DISPLAY
 
-/*	; .onInit download demo
+/*
+	; .onInit download demo
 	; NOTE: Transfers from .onInit can be either Silent or Popup (no Page!)
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_onInit.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /METHOD POST /MODE Popup /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
-	!insertmacro STACK_VERIFY_END */
+*/
 FunctionEnd
 
 
@@ -119,14 +103,12 @@ Section /o "HTTP GET (Page mode)"
 	DetailPrint '${__SECTION__}'
 	DetailPrint '-----------------------------------------------'
 
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK 'http://live.sysinternals.com/Files/SysinternalsSuite.zip'
 	!define /redef FILE '$EXEDIR\_SysinternalsSuite.zip'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 30000 /END
 	Pop $0
 	DetailPrint "Status: $0"
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
@@ -137,7 +119,6 @@ Section /o "HTTP GET (Popup mode)"
 	DetailPrint '${__SECTION__}'
 	DetailPrint '-----------------------------------------------'
 
-	!insertmacro STACK_VERIFY_START
 	; NOTE: github.com doesn't support Range headers
 	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
 	!define /redef FILE "$EXEDIR\_CuckooBox_master.zip"
@@ -145,7 +126,6 @@ Section /o "HTTP GET (Popup mode)"
 	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /Mode Popup /END
 	Pop $0
 	DetailPrint "Status: $0"
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
@@ -156,14 +136,12 @@ Section /o "HTTP GET (Silent mode)"
 	DetailPrint '${__SECTION__}'
 	DetailPrint '-----------------------------------------------'
 
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
 	!define /redef FILE "$EXEDIR\_Firefox.exe"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
 	Pop $0
 	DetailPrint "Status: $0"
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
@@ -175,40 +153,32 @@ Section /o "HTTP GET (Parallel transfers)"
 	DetailPrint '-----------------------------------------------'
 
 	; Request 1
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
 	!define /redef FILE "$EXEDIR\_Firefox(2).exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
 	Pop $1
-	!insertmacro STACK_VERIFY_END
 
 	; Request 2
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
 	!define /redef FILE "$EXEDIR\_Firefox(3).exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 	Pop $2
-	!insertmacro STACK_VERIFY_END
 
 	; Request 3
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `http://download.osmc.tv/installers/osmc-installer.exe`
 	!define /redef FILE "$EXEDIR\_osmc_installer.exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 	Pop $3
-	!insertmacro STACK_VERIFY_END
 
 	; Wait for all
-	!insertmacro STACK_VERIFY_START
 	DetailPrint 'Waiting . . .'
 	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 	Pop $0
-	!insertmacro STACK_VERIFY_END
 
-	; Check for individual transfer status...
+	; Validate individual transfer status...
 	; TODO
 
 	DetailPrint 'Done'
@@ -222,7 +192,6 @@ Section /o "HTTP GET (proxy)"
 	DetailPrint '${__SECTION__}'
 	DetailPrint '-----------------------------------------------'
 
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK  "https://live.sysinternals.com/Files/SysinternalsSuite.zip"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
 	!define /redef PROXY "http=54.36.139.108:8118 https=54.36.139.108:8118"			; France
@@ -230,7 +199,6 @@ Section /o "HTTP GET (proxy)"
 	NSxfer::Transfer /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 	DetailPrint "Status: $0"
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
@@ -241,14 +209,12 @@ Section /o "HTTP POST (application/json)"
 	DetailPrint '${__SECTION__}'
 	DetailPrint '-----------------------------------------------'
 
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_json.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 	DetailPrint "Status: $0"
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
@@ -259,14 +225,12 @@ Section /o "HTTP POST (application/x-www-form-urlencoded)"
 	DetailPrint '${__SECTION__}'
 	DetailPrint '-----------------------------------------------'
 
-	!insertmacro STACK_VERIFY_START
 	!define /redef LINK 'http://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_form.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 	DetailPrint "Status: $0"
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
@@ -280,7 +244,6 @@ SectionEnd
 
 Section /o "Test Dependencies (depend on first request)"
 	;SectionIn 1	; All
-	!insertmacro STACK_VERIFY_START
 
 	StrCpy $R0 0	; First request ID
 	StrCpy $R1 0	; Last request ID
@@ -308,13 +271,11 @@ Section /o "Test Dependencies (depend on first request)"
 	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
 Section /o "Test Dependencies (depend on previous request)"
 	;SectionIn 1	; All
-	!insertmacro STACK_VERIFY_START
 
 	StrCpy $R0 0	; First request ID
 	StrCpy $R1 0	; Last request ID
@@ -342,13 +303,11 @@ Section /o "Test Dependencies (depend on previous request)"
 	NSxfer::Wait /MODE Page /ABORT "Abort" "Are you sure?" /END
 	Pop $0
 
-	!insertmacro STACK_VERIFY_END
 SectionEnd
 
 
 Function PrintSummary
 
-	!insertmacro STACK_VERIFY_START
 	Push $0
 	Push $1
 	Push $2
@@ -480,7 +439,6 @@ Function PrintSummary
 	Pop $2
 	Pop $1
 	Pop $0
-	!insertmacro STACK_VERIFY_END
 
 FunctionEnd
 
