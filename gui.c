@@ -729,7 +729,7 @@ ULONG GuiWaitPage()
 
 				/// New status control
 				CopyRect( &rcNewStatus, &rcStatus );
-				OffsetRect( &rcNewStatus, 0, rcProgress.bottom + rcProgress.top - rcNewStatus.top );
+				OffsetRect( &rcNewStatus, 0, (rcProgress.bottom - rcStatus.top) + (rcDetailsList.top - rcProgress.bottom) );
 				hNewStatus = CreateWindowEx( iStatusStyleEx, _T( "STATIC" ), _T( "" ), iStatusStyle, LTWH( rcNewStatus ), hInstFilesPage, NULL, NULL, NULL );
 				SendMessage( hNewStatus, WM_SETFONT, (WPARAM)SendMessage( hStatus, WM_GETFONT, 0, 0 ), MAKELPARAM( FALSE, 0 ) );
 
@@ -738,7 +738,8 @@ ULONG GuiWaitPage()
 				OffsetRect( &rcNewProgress, 0, rcNewStatus.bottom + (rcStatus.bottom - rcProgress.top) - rcNewProgress.top );
 				hNewProgress = CreateWindowEx( iProgressStyleEx, PROGRESS_CLASS, _T( "" ), iProgressStyle, LTWH( rcNewProgress ), hInstFilesPage, NULL, NULL, NULL );
 
-				iDetailsOffsetY = rcNewProgress.bottom + (rcDetailsList.top - rcProgress.bottom) - rcDetailsBtn.top;
+				iDetailsOffsetY = rcNewProgress.bottom + (rcDetailsList.top - rcProgress.bottom) - rcDetailsList.top;
+				iDetailsOffsetY += iDetailsOffsetY / 8;
 
 				/// Move details button
 				if (hDetailsBtn) {
