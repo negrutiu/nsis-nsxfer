@@ -771,6 +771,7 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_REQUEST pReq )
 
 			// Try and open already existing file (resume)
 			dwTime = GetTickCount();
+			MyCreateDirectory( pReq->Local.pszFile, TRUE );				/// Create intermediate directories
 		_create_file:
 			pReq->Local.hFile = CreateFile( pReq->Local.pszFile, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
 			if (pReq->Local.hFile != INVALID_HANDLE_VALUE) {
