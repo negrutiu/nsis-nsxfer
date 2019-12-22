@@ -767,7 +767,7 @@ ULONG ThreadDownload_LocalCreate1( _Inout_ PQUEUE_REQUEST pReq )
 		{
 			DWORD dwTime;
 			assert( !VALID_FILE_HANDLE( pReq->Local.hFile ) );			/// File must not be opened
-			assert( pReq->Local.pszFile && *pReq->Local.pszFile );	/// File name must not be empty
+			assert( pReq->Local.pszFile && *pReq->Local.pszFile );		/// File name must not be empty
 
 			// Try and open already existing file (resume)
 			dwTime = GetTickCount();
@@ -1278,8 +1278,29 @@ ULONG ThreadSetHttpStatus( _Inout_ PQUEUE_REQUEST pReq )
 				szErrorText[0] = 0;
 				iDataSize = sizeof( szErrorText );
 				HttpQueryInfo( pReq->hRequest, HTTP_QUERY_STATUS_TEXT, szErrorText, &iDataSize, NULL );
-				if ( *szErrorText )
+				if (*szErrorText) {
 					MyStrDup( pReq->pszHttpStatus, szErrorText );
+				} else {
+					// NOTE: Some servers don't return the Reason-Phrase in their HTTP response Status-Line (e.g. https://files.loseapp.com/file)
+					if (iHttpStatus >= 200 && iHttpStatus < 300) {
+						MyStrDup( pReq->pszHttpStatus, _T( "OK" ) );
+					} else if (iHttpStatus == 400) {
+						MyStrDup( pReq->pszHttpStatus, _T( "Bad Request" ) );
+					} else if (iHttpStatus == 401) {
+						MyStrDup( pReq->pszHttpStatus, _T( "Unauthorized" ) );
+					} else if (iHttpStatus == 403) {
+						MyStrDup( pReq->pszHttpStatus, _T( "Forbidden" ) );
+					} else if (iHttpStatus == 404) {
+						MyStrDup( pReq->pszHttpStatus, _T( "Not Found" ) );
+					} else if (iHttpStatus == 405) {
+						MyStrDup( pReq->pszHttpStatus, _T( "Method Not Allowed" ) );
+					} else if (iHttpStatus == 500) {
+						MyStrDup( pReq->pszHttpStatus, _T( "Internal Server Error" ) );
+					} else {
+						wnsprintf( szErrorText, ARRAYSIZE( szErrorText ), _T( "%d" ), iHttpStatus );
+						MyStrDup( pReq->pszHttpStatus, szErrorText );
+					}
+				}
 			}
 		}
 	}
