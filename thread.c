@@ -596,32 +596,40 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 								if (err == ERROR_SUCCESS) {
 
 									ULONG iHttpStatus;
+									LPTSTR pszHeaders = NULL;
+									ULONG iHeadersSize = 0;
 
 									/// HTTP headers
-									if ( TRUE ) {
+									HttpQueryInfo( pReq->hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, NULL, &iHeadersSize, NULL );	/// Query the size
+									pszHeaders = MyAllocStr( iHeadersSize );
+									if (pszHeaders) {
 
-										TCHAR szHeaders[512];
-										ULONG iHeadersSize = sizeof(szHeaders);
+										if (HttpQueryInfo( pReq->hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, pszHeaders, &iHeadersSize, NULL )) {
 
-										szHeaders[0] = 0;
-										if (HttpQueryInfo( pReq->hRequest, HTTP_QUERY_RAW_HEADERS_CRLF, szHeaders, &iHeadersSize, NULL )) {
+											/// Remember the headers
 											MyFree( pReq->pszSrvHeaders );
-											MyStrDup( pReq->pszSrvHeaders, szHeaders );	/// Remember the headers
+											MyStrDup( pReq->pszSrvHeaders, pszHeaders );
+
+											/// Debugging
+											if (!bReconnecting) {
+												LPTSTR psz;
+												for (psz = pszHeaders; *psz; psz++) {
+													if (*psz == _T( '\r' ))
+														*psz = _T( '\\' );
+													if (*psz == _T( '\n' ))
+														*psz = _T( 'n' );
+												}
+												TRACE( _T( "  Th:%s Id:%u HttpQueryInfo( HTTP_QUERY_RAW_HEADERS_CRLF ) == 0x%x, \"%s\"\n" ), pReq->pThread->szName, pReq->iId, err, pszHeaders );
+											}
+
 										} else {
 											err = GetLastError();
 										}
 
-										/// Debugging
-										if (!bReconnecting) {
-											LPTSTR psz;
-											for (psz = szHeaders; *psz; psz++) {
-												if (*psz == _T( '\r' ))
-													*psz = _T( '\\' );
-												if (*psz == _T( '\n' ))
-													*psz = _T( 'n' );
-											}
-											TRACE( _T( "  Th:%s Id:%u HttpQueryInfo( HTTP_QUERY_RAW_HEADERS_CRLF ) == 0x%x, \"%s\"\n" ), pReq->pThread->szName, pReq->iId, err, szHeaders );
-										}
+										MyFree( pszHeaders );
+
+									} else {
+										err = ERROR_OUTOFMEMORY;
 									}
 
 									/// HTTP status code
@@ -637,11 +645,11 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 										if (ThreadDownload_QueryContentLength64( pReq->hRequest, &pReq->iFileSize ) == ERROR_SUCCESS) {
 											if (pReq->bUsingRanges) {
 												if (iHttpStatus == HTTP_STATUS_PARTIAL || iHttpStatus == HTTP_STATUS_PARTIAL_CONTENT) {
-													/// If the Range header is accepted, the remote content length will represent
-													/// the amount of data left to transfer, instead of the whole file size
+													/// If the Range header is accepted, the remote content length represents
+													/// the amount of data left to transfer, rather than the whole file size
 													pReq->iFileSize += pReq->iRecvSize;
 												} else {
-													/// Our Range header seemd to have been ignored by the server
+													/// Our Range header seems to have been ignored by the server
 													/// We'll have to download the whole file...
 													pReq->bUsingRanges = FALSE;
 												}
