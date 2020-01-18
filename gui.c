@@ -563,7 +563,7 @@ INT_PTR CALLBACK GuiWaitPopupDialogProc( _In_ HWND hDlg, _In_ UINT uMsg, _In_ WP
 		}
 
 		// Icon
-		g_Gui.hPopupIco = LoadImage( GetModuleHandle( NULL ), MAKEINTRESOURCE( 103 ), IMAGE_ICON, 32, 32, 0 );
+		g_Gui.hPopupIco = LoadImage( GetModuleHandle( NULL ), MAKEINTRESOURCE( 103 ), IMAGE_ICON, GetSystemMetrics( SM_CXICON ), GetSystemMetrics( SM_CYICON ), 0 );
 		if (g_Gui.hPopupIco)
 			SendDlgItemMessage( hDlg, IDC_POPUP_ICON, STM_SETICON, (WPARAM)g_Gui.hPopupIco, 0 );
 
