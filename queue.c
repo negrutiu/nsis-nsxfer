@@ -435,7 +435,7 @@ ULONG RequestOptimalBufferSize( _In_ PQUEUE_REQUEST pReq )
 	}
 
 	iSize -= iSize % 1024;				/// Align to kilobyte
-	iSize *= 2;							/// Allow the speed to grow. Accomodate more seconds' data...
+	iSize *= 4;							/// Allow the speed to grow. Accommodate more seconds' data...
 	iSize = __max( iSize, MIN_BUFFER_SIZE );
 	iSize = __min( iSize, MAX_BUFFER_SIZE );
 

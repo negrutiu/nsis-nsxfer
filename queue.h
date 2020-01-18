@@ -10,7 +10,7 @@
 #define DEFAULT_VALUE				((ULONG)-1)
 #define DEFAULT_PRIORITY			1000
 #define MIN_BUFFER_SIZE				2 * 1024		/// 2KB
-#define MAX_BUFFER_SIZE				512 * 1024		/// 512KB
+#define MAX_BUFFER_SIZE				1024 * 1024 * 2	/// 2MB
 #define ANY_REQUEST_ID				0
 #define ANY_PRIORITY				0
 #define ANY_STATUS					(REQUEST_STATUS)-1
