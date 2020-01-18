@@ -23,20 +23,17 @@ NSxfer gives you the means to perform complex HTTP/HTTPS transfers from a NSIS s
 ### Basic usage:
 - HTTP GET example:
 ```
-Delete "$TEMP\MyFile.json"	; If the file already exists, the transfer will resume...
 NSxfer::Transfer /URL "https://httpbin.org/get?param1=1&param2=2" /LOCAL "$TEMP\Response.json" /END
-Pop $0 				; Status text ("OK" for success)
+Pop $0  ; "OK" for success
 ```
 - HTTP POST `application/json`:
 ```
-Delete "$TEMP\MyFile.json"
 NSxfer::Transfer /URL "https://httpbin.org/post?param1=1&param2=2" /LOCAL "$TEMP\MyFile.json" /METHOD POST /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /END
-Pop $0 				; Status text ("OK" for success)
+Pop $0  ; "OK" for success
 ```
 - HTTP POST `application/x-www-form-urlencoded`:
 ```
-Delete "$TEMP\MyFile.json"
 NSxfer::Transfer /URL "https://httpbin.org/post?param1=1&param2=2" /LOCAL "$TEMP\MyFile.json" /METHOD POST /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded" /END
-Pop $0 				; Status text ("OK" for success)
+Pop $0  ; "OK" for success
 ```
 - More complex examples in the [readme file](NSxfer.Readme.txt)
