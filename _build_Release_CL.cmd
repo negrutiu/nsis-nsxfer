@@ -13,15 +13,6 @@ cd /d "%~dp0"
 call _acquire_pluginapi.bat
 if %errorlevel% neq 0 exit /B %errorlevel%
 
-pushd "%~dp0\.."
-set NSIS_REPO=%CD%\nsis
-popd
-xcopy "%NSIS_REPO%\Contrib\ExDLL\pluginapi.*"  "nsis\" /DYI
-xcopy "%NSIS_REPO%\Contrib\ExDLL\nsis_tchar.h" "nsis\" /DYI
-xcopy "%NSIS_REPO%\Source\exehead\api.h"       "nsis\" /DYI
-if not exist "nsis\*.*" if not exist "%NSIS_REPO%" echo ERROR: NSIS sources not found. Clone NSIS repository to "%NSIS_REPO%" & popd & pause & exit /B 2
-echo.
-
 :environment
 set OUTNAME=NSxfer
 set RCNAME=resource
@@ -66,7 +57,7 @@ call :BUILD_PARAMS
 set CL=/D "_MBCS" /arch:SSE %CL%
 set LINK=/MACHINE:X86 /SAFESEH %LINK%
 call :BUILD_CL
-if %errorlevel% neq 0 pause & exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /B %errorlevel%
 
 echo -----------------------------------
 set OUTDIR=Release-cl-x86-unicode
@@ -76,7 +67,7 @@ call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" /arch:SSE %CL%
 set LINK=/MACHINE:X86 /SAFESEH %LINK%
 call :BUILD_CL
-if %errorlevel% neq 0 pause & exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /B %errorlevel%
 
 :BUILD64
 pushd "%CD%"
@@ -91,7 +82,7 @@ call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" %CL%
 set LINK=/MACHINE:AMD64 %LINK%
 call :BUILD_CL
-if %errorlevel% neq 0 pause & exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /B %errorlevel%
 
 :: Finish
 exit /B 0

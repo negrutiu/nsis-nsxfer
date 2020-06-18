@@ -23,10 +23,15 @@ ${StrRep}				; Declare in advance
 !define /ifndef NULL 0
 
 
-# NSxfer.dll location
-;!AddPluginDir /amd64-unicode "..\Release-mingw-amd64-unicode"
-;!AddPluginDir /x86-unicode   "..\Release-mingw-x86-unicode"
-;!AddPluginDir /x86-ansi      "..\Release-mingw-x86-ansi"
+# NSxfer.dll development location
+!ifdef DEVEL
+!if ! /FileExists "..\Release-mingw-${_TARGET_}\NSxfer.dll"
+	!error "Missing \Release-mingw-${_TARGET_}\NSxfer.dll"
+!endif
+!AddPluginDir /amd64-unicode "..\Release-mingw-amd64-unicode"
+!AddPluginDir /x86-unicode   "..\Release-mingw-x86-unicode"
+!AddPluginDir /x86-ansi      "..\Release-mingw-x86-ansi"
+!endif
 
 # GUI settings
 !define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\orange-install-nsis.ico"

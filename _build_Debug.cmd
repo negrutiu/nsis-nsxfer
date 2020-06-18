@@ -49,7 +49,7 @@ if exist "%VCVARSALL%" goto :BUILD
 
 echo ERROR: Can't find Visual Studio 2010/2012/2013/2015/2017
 pause
-goto :EOF
+exit /B 2
 
 :BUILD
 pushd "%CD%"
@@ -58,8 +58,8 @@ popd
 
 title %BUILD_CONFIG%-x86-ansi
 msbuild /m /t:build "%BUILD_SOLUTION%" /p:Configuration=%BUILD_CONFIG%-x86-ansi /p:Platform=Win32 /p:PlatformToolset=%BUILD_PLATFORMTOOLSET% /p:WindowsTargetPlatformVersion=%WindowsSDKVersion% /nologo /verbosity:%BUILD_VERBOSITY%
-if %errorlevel% neq 0 ( echo errorlevel = %errorlevel% && pause && goto :EOF )
+if %errorlevel% neq 0 pause && exit /B %errorlevel%
 
 title %BUILD_CONFIG%-x86-unicode
 msbuild /m /t:build "%BUILD_SOLUTION%" /p:Configuration=%BUILD_CONFIG%-x86-unicode /p:Platform=Win32 /p:PlatformToolset=%BUILD_PLATFORMTOOLSET% /p:WindowsTargetPlatformVersion=%WindowsSDKVersion% /nologo /verbosity:%BUILD_VERBOSITY%
-if %errorlevel% neq 0 ( echo errorlevel = %errorlevel% && pause && goto :EOF )
+if %errorlevel% neq 0 pause && exit /B %errorlevel%
