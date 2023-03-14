@@ -26,6 +26,7 @@ Var /global DLL
 
 !include "StrFunc.nsh"
 ${StrRep}				; Declare in advance
+${StrTok}				; Declare in advance
 
 !define /ifndef NULL 0
 
@@ -146,7 +147,7 @@ Section /o "HTTP GET (Page mode)"
 	DetailPrint '-----------------------------------------------'
 
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK 'http://live.sysinternals.com/Files/SysinternalsSuite.zip'
+	!define /redef LINK 'https://download.sysinternals.com/files/SysinternalsSuite.zip'
 	!define /redef FILE '$EXEDIR\_SysinternalsSuite.zip'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	Push "/END"
@@ -212,6 +213,44 @@ Section /o "HTTP GET (Silent mode)"
 	CallInstDLL $DLL Transfer
 	Pop $0
 	DetailPrint "Status: $0"
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
+Section /o "HTTP GET (Memory)"
+	SectionIn 1	; All
+
+	DetailPrint '-----------------------------------------------'
+	DetailPrint '${__SECTION__}'
+	DetailPrint '-----------------------------------------------'
+
+	!insertmacro STACK_VERIFY_START
+	!define /redef LINK `https://wikipedia.org`
+	!define /redef FILE "memory"
+	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
+
+	Push "/END"
+	Push "${FILE}"
+	Push "/LOCAL"
+	Push "${LINK}"
+	Push "/URL"
+	CallInstDLL $DLL Request
+	Pop $0
+
+	Push "/END"
+	Push $0
+	Push "/ID"
+	CallInstDLL $DLL Wait
+    Pop $1
+
+	Push "/END"
+	Push "/STATUS"
+	Push $0
+	Push "/ID"
+	CallInstDLL $DLL Query
+    Pop $1
+
+	DetailPrint "Status: $1"
 	!insertmacro STACK_VERIFY_END
 SectionEnd
 
@@ -297,7 +336,7 @@ Section /o "HTTP GET (proxy)"
 	DetailPrint '-----------------------------------------------'
 
 	!insertmacro STACK_VERIFY_START
-	!define /redef LINK  "https://live.sysinternals.com/Files/SysinternalsSuite.zip"
+	!define /redef LINK  "https://download.sysinternals.com/files/SysinternalsSuite.zip"
 	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
 	!define /redef PROXY "http=54.36.139.108:8118 https=54.36.139.108:8118"			; France
 	DetailPrint 'NSxfer::Transfer /proxy ${PROXY} "${LINK}" "${FILE}"'
@@ -516,6 +555,149 @@ Section /o "Test Dependencies (depend on previous request)"
 SectionEnd
 
 
+; Input: [Stack] Request ID
+; Output: None
+Function PrintRequest
+    Exch $R1    ; Request ID
+	Push $0
+    Push $1
+    Push $2
+
+    Push "/END"
+    Push "/CONTENT"
+    Push "/CONNECTIONDROPS"
+    Push "/ERRORTEXT"
+    Push "/ERRORCODE"
+    Push "/TIMEDOWNLOADING"
+    Push "/TIMEWAITING"
+    Push "/SPEED"
+    Push "/SPEEDBYTES"
+    Push "/PERCENT"
+    Push "/FILESIZE"
+    Push "/RECVSIZE"
+    Push "/RECVHEADERS"
+    Push "/SENTHEADERS"
+    Push "/DATA"
+    Push "/LOCAL"
+    Push "/IP"
+    Push "/PROXY"
+    Push "/URL"
+    Push "/METHOD"
+    Push "/WININETSTATUS"
+    Push "/STATUS"
+    Push "/DEPEND"
+    Push "/PRIORITY"
+    Push $R1	; Request ID
+    Push "/ID"
+    CallInstDLL $DLL Query
+
+    StrCpy $0 "[>] ID:$R1"
+    Pop $1 ;PRIORITY
+    StrCpy $0 "$0, Prio:$1"
+    Pop $1 ;DEPEND
+    IntCmp $1 0 +2 +1 +1
+        StrCpy $0 "$0, DependsOn:$1"
+    Pop $1 ;STATUS
+    StrCpy $0 "$0, [$1]"
+    Pop $1 ;WININETSTATUS
+    StrCpy $0 "$0, WinINet:$1"
+    DetailPrint $0
+
+    StrCpy $0 "  [Request]"
+    Pop $1 ;METHOD
+    StrCpy $0 "$0 $1"
+    Pop $1 ;URL
+    StrCpy $0 "$0 $1"
+    DetailPrint $0
+
+    Pop $1 ;PROXY
+    StrCmp $1 "" +2 +1
+        DetailPrint "  [Proxy] $1"
+    Pop $1 ;IP
+    StrCmp $1 "" +2 +1
+        DetailPrint "  [Server] $1"
+
+    Pop $1 ;LOCAL
+    DetailPrint "  [Local] $1"
+
+    Pop $1 ;DATA
+    ${If} $1 != ""
+        ${StrRep} $1 "$1" "$\r" "\r"
+        ${StrRep} $1 "$1" "$\n" "\n"
+        DetailPrint "  [Sent Data] $1"
+    ${EndIf}
+    Pop $1 ;SENTHEADERS
+    ${If} $1 != ""
+        DetailPrint "  [Sent Headers]"
+        ${For} $2 0 100
+            ${StrTok} $0 $1 "$\r$\n" $2 1
+            ${If} $0 == ""
+                ${Break}
+            ${EndIf}
+            DetailPrint "    $0"
+        ${Next}
+    ${EndIf}
+    Pop $1 ;RECVHEADERS
+    ${If} $1 != ""
+        DetailPrint "  [Recv Headers]"
+        ${For} $2 0 100
+            ${StrTok} $0 $1 "$\r$\n" $2 1
+            ${If} $0 == ""
+                ${Break}
+            ${EndIf}
+            DetailPrint "    $0"
+        ${Next}
+    ${EndIf}
+
+    StrCpy $0 "  [Size]"
+    Pop $1 ;RECVSIZE
+    StrCpy $0 "$0 $1"
+    Pop $1 ;FILESIZE
+    StrCpy $0 "$0/$1"
+    Pop $1 ;PERCENT
+    StrCpy $0 "$0 ($1%)"
+    Pop $1 ;SPEEDBYTES
+    Pop $1 ;SPEED
+    StrCmp $1 "" +2 +1
+        StrCpy $0 "$0 @ $1"
+    DetailPrint "$0"
+
+    StrCpy $0 "  [Time]"
+    Pop $1 ;TIMEWAITING
+    StrCpy $0 "$0 Waiting $1ms"
+    Pop $1 ;TIMEDOWNLOADING
+    StrCpy $0 "$0, Downloading $1ms"
+    DetailPrint "$0"
+
+    StrCpy $0 "  [Error]"
+    Pop $1 ;ERRORCODE
+    StrCpy $0 "$0 $1"
+    Pop $1 ;ERRORTEXT
+    StrCpy $0 "$0, $1"
+    Pop $1 ;CONNECTIONDROPS
+    IntCmp $1 0 +2 +1 +1
+        StrCpy $0 "$0, Drops:$1"
+    DetailPrint "$0"
+
+    Pop $1 ;CONTENT
+    ${If} $1 != ""
+        DetailPrint "  [Content]"
+        ${For} $2 0 100
+            ${StrTok} $0 $1 "$\r$\n" $2 1
+            ${If} $0 == ""
+                ${Break}
+            ${EndIf}
+            DetailPrint "    $0"
+        ${Next}
+    ${EndIf}
+
+    Pop $2
+    Pop $1
+    Pop $0
+    Pop $R1
+FunctionEnd
+
+
 Function PrintSummary
 
 	!insertmacro STACK_VERIFY_START
@@ -536,121 +718,7 @@ Function PrintSummary
 	Pop $1	; Count
 	DetailPrint "    $1 requests"
 	${For} $0 1 $1
-
-		Pop $2	; Request ID
-
-		Push "/END"
-		Push "/CONTENT"
-		Push "/CONNECTIONDROPS"
-		Push "/ERRORTEXT"
-		Push "/ERRORCODE"
-		Push "/TIMEDOWNLOADING"
-		Push "/TIMEWAITING"
-		Push "/SPEED"
-		Push "/SPEEDBYTES"
-		Push "/PERCENT"
-		Push "/FILESIZE"
-		Push "/RECVSIZE"
-		Push "/RECVHEADERS"
-		Push "/SENTHEADERS"
-		Push "/DATA"
-		Push "/LOCAL"
-		Push "/IP"
-		Push "/PROXY"
-		Push "/URL"
-		Push "/METHOD"
-		Push "/WININETSTATUS"
-		Push "/STATUS"
-		Push "/DEPEND"
-		Push "/PRIORITY"
-		Push $2	; Request ID
-		Push "/ID"
-		CallInstDLL $DLL Query
-
-		StrCpy $R0 "[>] ID:$2"
-		Pop $3 ;PRIORITY
-		StrCpy $R0 "$R0, Prio:$3"
-		Pop $3 ;DEPEND
-		IntCmp $3 0 +2 +1 +1
-			StrCpy $R0 "$R0, DependsOn:$3"
-		Pop $3 ;STATUS
-		StrCpy $R0 "$R0, [$3]"
-		Pop $3 ;WININETSTATUS
-		StrCpy $R0 "$R0, WinINet:$3"
-		DetailPrint $R0
-
-		StrCpy $R0 "  [Request]"
-		Pop $3 ;METHOD
-		StrCpy $R0 "$R0 $3"
-		Pop $3 ;URL
-		StrCpy $R0 "$R0 $3"
-		DetailPrint $R0
-
-		Pop $3 ;PROXY
-		StrCmp $3 "" +2 +1
-			DetailPrint "  [Proxy] $3"
-		Pop $3 ;IP
-		StrCmp $3 "" +2 +1
-			DetailPrint "  [Server] $3"
-
-		Pop $3 ;LOCAL
-		DetailPrint "  [Local] $3"
-
-		Pop $3 ;DATA
-		${If} $3 != ""
-			${StrRep} $3 "$3" "$\r" "\r"
-			${StrRep} $3 "$3" "$\n" "\n"
-			DetailPrint "  [Sent Data] $3"
-		${EndIf}
-		Pop $3 ;SENTHEADERS
-		${If} $3 != ""
-			${StrRep} $3 "$3" "$\r" "\r"
-			${StrRep} $3 "$3" "$\n" "\n"
-			DetailPrint "  [Sent Headers] $3"
-		${EndIf}
-		Pop $3 ;RECVHEADERS
-		${If} $3 != ""
-			${StrRep} $3 "$3" "$\r" "\r"
-			${StrRep} $3 "$3" "$\n" "\n"
-			DetailPrint "  [Recv Headers] $3"
-		${EndIf}
-
-		StrCpy $R0 "  [Size]"
-		Pop $3 ;RECVSIZE
-		StrCpy $R0 "$R0 $3"
-		Pop $3 ;FILESIZE
-		StrCpy $R0 "$R0/$3"
-		Pop $3 ;PERCENT
-		StrCpy $R0 "$R0 ($3%)"
-		Pop $3 ;SPEEDBYTES
-		Pop $3 ;SPEED
-		StrCmp $3 "" +2 +1
-			StrCpy $R0 "$R0 @ $3"
-		DetailPrint "$R0"
-
-		StrCpy $R0 "  [Time]"
-		Pop $3 ;TIMEWAITING
-		StrCpy $R0 "$R0 Waiting $3ms"
-		Pop $3 ;TIMEDOWNLOADING
-		StrCpy $R0 "$R0, Downloading $3ms"
-		DetailPrint "$R0"
-
-		StrCpy $R0 "  [Error]"
-		Pop $3 ;ERRORCODE
-		StrCpy $R0 "$R0 $3"
-		Pop $3 ;ERRORTEXT
-		StrCpy $R0 "$R0, $3"
-		Pop $3 ;CONNECTIONDROPS
-		IntCmp $3 0 +2 +1 +1
-			StrCpy $R0 "$R0, Drops:$3"
-		DetailPrint "$R0"
-
-		Pop $3 ;CONTENT
-		${If} $3 != ""
-			${StrRep} $3 "$3" "$\r" "\r"
-			${StrRep} $3 "$3" "$\n" "\n"
-			DetailPrint "  [Content] $3"
-		${EndIf}
+        Call PrintRequest
 	${Next}
 
 	Push "/END"
