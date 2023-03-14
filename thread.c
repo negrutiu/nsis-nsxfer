@@ -897,25 +897,17 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 
 		case REQUEST_LOCAL_MEMORY:
 		{
-			/// NOTE: If we're reconnecting, the memory buffer is already be allocated. We'll resume the transfer...
-			if (pReq->iFileSize != INVALID_FILE_SIZE64) {
-				if (pReq->iFileSize <= MAX_MEMORY_CONTENT_LENGTH) {		// Size limit
+			// NOTE: The memory is already reserved when reconnecting
+			if (pReq->iFileSize == INVALID_FILE_SIZE64 || pReq->iFileSize <= MAX_MEMORY_CONTENT_LENGTH) {
+				if (!pReq->Local.pMemory) {
+					// Reserve the maximum supported content length. Pages will be commited later during the download
+					pReq->Local.pMemory = VirtualAlloc(NULL, MAX_MEMORY_CONTENT_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
 					if (!pReq->Local.pMemory) {
-						pReq->Local.pMemory = (LPBYTE)MyAlloc( (SIZE_T)pReq->iFileSize );
-						if (pReq->Local.pMemory) {
-							/// SUCCESS (full download)
-						} else {
-							err = ERROR_OUTOFMEMORY;	/// MyAlloc
-						}
-					} else {
-						/// SUCCESS (resume)
-						/// iRecvSize already set
+						err = GetLastError();
 					}
-				} else {
-					err = ERROR_FILE_TOO_LARGE;	/// The remote content length exceeds our size limit
 				}
 			} else {
-				err = ERROR_INVALID_DATA;	/// The remote content length is still unknown
+				err = ERROR_FILE_TOO_LARGE;	// The remote content length exceeds our size limit
 			}
 			break;
 		}
@@ -953,7 +945,7 @@ BOOL ThreadDownload_LocalClose( _Inout_ PQUEUE_REQUEST pReq )
 
 		case REQUEST_LOCAL_MEMORY:
 		{
-			///MyFree( pReq->Local.pMemory );	// Memory content must remain available after the transfer has completed
+			// VirtualFree(pReq->Local.pMemory, 0, MEM_RELEASE);	// Memory content must remain available after the transfer completes
 			break;
 		}
 	}
@@ -1125,38 +1117,44 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 				}
 #endif ///DEBUG_XFER_MAX_BYTES
 				if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
-					if (InternetReadFile( pReq->hRequest, pReq->Local.pMemory + pReq->iRecvSize, RequestOptimalBufferSize( pReq ), &iBytesRecv )) {
-						if ( iBytesRecv > 0 ) {
-							/// Update fields
-							pReq->iRecvSize += iBytesRecv;
-							pReq->Xfer.iXferSize += iBytesRecv;
-							pReq->Speed.iChunkSize += iBytesRecv;
+					ULONG requestSize = RequestOptimalBufferSize(pReq);
+					if (VirtualAlloc(pReq->Local.pMemory + pReq->iRecvSize, requestSize, MEM_COMMIT, PAGE_READWRITE)) {
+						if (InternetReadFile(pReq->hRequest, pReq->Local.pMemory + pReq->iRecvSize, requestSize, &iBytesRecv)) {
+							if (iBytesRecv > 0) {
+								/// Update fields
+								pReq->iRecvSize += iBytesRecv;
+								pReq->Xfer.iXferSize += iBytesRecv;
+								pReq->Speed.iChunkSize += iBytesRecv;
 #ifdef DEBUG_XFER_SLOWDOWN
-							/// Simulate transfer slow-download
-							Sleep( DEBUG_XFER_SLOWDOWN );
+								/// Simulate transfer slow-download
+								Sleep(DEBUG_XFER_SLOWDOWN);
 #endif ///DEBUG_XFER_SLOWDOWN
-							/// Speed measurement
-							ThreadDownload_RefreshSpeed( pReq, FALSE );
+								/// Speed measurement
+								ThreadDownload_RefreshSpeed(pReq, FALSE);
 #ifdef DEBUG_XFER_PROGRESS
-							/// Display transfer progress
-							TRACE(
-								_T( "  Th:%s Id:%u ThreadTransfer(Recv:%d%% %I64u/%I64u @ %s, %s %s -> Memory)\n" ),
-								pReq->pThread->szName, pReq->iId,
-								RequestRecvPercent( pReq ),
-								pReq->iRecvSize, pReq->iFileSize == INVALID_FILE_SIZE64 ? 0 : pReq->iFileSize,
-								pReq->Speed.szSpeed,
-								pReq->szMethod, pReq->pszURL
+								/// Display transfer progress
+								TRACE(
+									_T("  Th:%s Id:%u ThreadTransfer(Recv:%d%% %I64u/%I64u @ %s, %s %s -> Memory)\n"),
+									pReq->pThread->szName, pReq->iId,
+									RequestRecvPercent(pReq),
+									pReq->iRecvSize, pReq->iFileSize == INVALID_FILE_SIZE64 ? 0 : pReq->iFileSize,
+									pReq->Speed.szSpeed,
+									pReq->szMethod, pReq->pszURL
 								);
 #endif ///DEBUG_XFER_PROGRESS
+							} else {
+								// Transfer complete
+								ThreadSetWin32Error(pReq, ERROR_SUCCESS);
+								ThreadSetHttpStatus(pReq);
+								break;
+							}
 						} else {
-							// Transfer complete
-							ThreadSetWin32Error( pReq, ERROR_SUCCESS );
-							ThreadSetHttpStatus( pReq );
-							break;
+							err = ThreadSetWin32Error(pReq, GetLastError());	/// InternetReadFile
+							pReq->iConnectionDrops++;
 						}
 					} else {
-						err = ThreadSetWin32Error( pReq, GetLastError() );	/// InternetReadFile
-						pReq->iConnectionDrops++;
+						err = ThreadSetWin32Error(pReq, GetLastError());	/// VirtualAlloc(commit)
+						assert(!"VirtualAlloc failed");
 					}
 				} else {
 					err = ThreadSetWin32Error( pReq, ERROR_INTERNET_OPERATION_CANCELLED );

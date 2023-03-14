@@ -329,7 +329,7 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 				CloseHandle( pReq->Local.hFile );
 			break;
 		case REQUEST_LOCAL_MEMORY:
-			MyFree( pReq->Local.pMemory );
+			VirtualFree(pReq->Local.pMemory, 0, MEM_RELEASE);
 			break;
 		}
 
@@ -458,8 +458,8 @@ BOOL RequestMemoryToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _I
 		if (pReq->iLocalType == REQUEST_LOCAL_MEMORY) {
 			if (pReq->iStatus == REQUEST_STATUS_DONE) {
 				if (pReq->iWin32Error == ERROR_SUCCESS && (pReq->iHttpStatus >= 200 && pReq->iHttpStatus < 300)) {
-					if (pReq->iFileSize > 0 && pReq->iFileSize != INVALID_FILE_SIZE64) {
-						BinaryToString( pReq->Local.pMemory, (ULONG)pReq->iFileSize, pszString, iStringLen );
+					if (pReq->Local.pMemory && pReq->iRecvSize > 0) {
+						BinaryToString( pReq->Local.pMemory, (ULONG)pReq->iRecvSize, pszString, iStringLen );
 						bRet = TRUE;
 					}
 				}

@@ -116,7 +116,7 @@ typedef struct _QUEUE_REQUEST {
 			LPTSTR pszFile;			/// Valid for REQUEST_LOCAL_FILE
 			HANDLE hFile;
 		};
-		LPBYTE pMemory;				/// Valid for REQUEST_LOCAL_MEMORY. The buffer size will be iFileSize
+		LPBYTE pMemory;				/// Valid for REQUEST_LOCAL_MEMORY. Reserves MAX_MEMORY_CONTENT_LENGTH of virtual memory
 	} Local;
 
 	// Transfer options
