@@ -69,6 +69,17 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText );		/// Call
 		lstrcpy( (LPTSTR)(_dst), (LPTSTR)(_src) ); \
 }
 
+#define MyMakeUpper(_dst) { \
+	if (_dst) { \
+	    TCHAR *p; \
+		for (p = (TCHAR*)(_dst); *p; p++) { \
+		    if (*p >= 'a' && *p <= 'z') { \
+			    *p -= ('a' - 'A'); \
+			} \
+		} \
+	} \
+}
+
 #define MyZeroMemory(_ptr, _cnt) { \
 	LPBYTE p; \
 	for ( p = (LPBYTE)(_ptr) + (_cnt) - 1; p >= (LPBYTE)(_ptr); p-- ) *p = 0; \

@@ -83,6 +83,7 @@ BOOL ParseRequestParameter(
 			if (*psz) {
 				MyFree( pParam->pszMethod );
 				MyStrDup( pParam->pszMethod, psz );
+				MyMakeUpper( pParam->pszMethod );
 			}
 		}
 	} else if (lstrcmpi( psz, _T( "/URL" ) ) == 0) {
