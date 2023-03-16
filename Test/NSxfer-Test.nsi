@@ -174,6 +174,28 @@ Section /o "HTTP GET (Memory)"
 SectionEnd
 
 
+!define /redef COUNT 32
+Section /o "HTTP GET (Memory * ${COUNT}x)"
+	SectionIn 1	; All
+
+	DetailPrint '-----------------------------------------------'
+	DetailPrint '${__SECTION__}'
+	DetailPrint '-----------------------------------------------'
+
+	!define /redef FILE "memory"
+
+    ${For} $R0 1 ${COUNT}
+        StrCpy $R1 "https://httpbin.org/post?index=$R0&total=${COUNT}"
+        DetailPrint 'NSxfer::Request [$R0/${COUNT}] $R1 "${FILE}"'
+        NSxfer::Request /URL $R1 /LOCAL "${FILE}" /METHOD POST /END
+        Pop $0
+    ${Next}
+
+	NSxfer::Wait /ABORT "" "" /END
+    Pop $1
+SectionEnd
+
+
 Section /o "HTTP GET (Parallel transfers)"
 	SectionIn 1	; All
 
@@ -214,7 +236,7 @@ Section /o "HTTP GET (Parallel transfers)"
 SectionEnd
 
 
-Section /o "HTTP GET (proxy)"
+Section /o "-HTTP GET (proxy)"
 	SectionIn 1	; All
 
 	DetailPrint '-----------------------------------------------'
@@ -435,14 +457,17 @@ Function PrintRequest
 
     Pop $1 ;CONTENT
     ${If} $1 != ""
-        DetailPrint "  [Content]"
-        ${For} $2 0 100
-            ${StrTok} $0 $1 "$\r$\n" $2 1
-            ${If} $0 == ""
-                ${Break}
-            ${EndIf}
-            DetailPrint "    $0"
-        ${Next}
+        ; DetailPrint "  [Content]"
+        ; ${For} $2 0 100
+        ;     ${StrTok} $0 $1 "$\r$\n" $2 1
+        ;     ${If} $0 == ""
+        ;         ${Break}
+        ;     ${EndIf}
+        ;     DetailPrint "    $0"
+        ; ${Next}
+        ${StrRep} $1 "$1" "$\r" "\r"
+        ${StrRep} $1 "$1" "$\n" "\n"
+        DetailPrint "  [Content] $1"
     ${EndIf}
 
     Pop $2

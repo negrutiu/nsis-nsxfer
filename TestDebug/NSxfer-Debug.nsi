@@ -255,6 +255,41 @@ Section /o "HTTP GET (Memory)"
 SectionEnd
 
 
+!define /redef COUNT 32
+Section /o "HTTP GET (Memory * ${COUNT}x)"
+	SectionIn 1	; All
+
+	DetailPrint '-----------------------------------------------'
+	DetailPrint '${__SECTION__}'
+	DetailPrint '-----------------------------------------------'
+
+	!insertmacro STACK_VERIFY_START
+	!define /redef FILE "memory"
+    ${For} $R0 1 ${COUNT}
+        StrCpy $R1 "https://httpbin.org/post?index=$R0&total=${COUNT}"
+        DetailPrint 'NSxfer::Request [$R0/${COUNT}] $R1 "${FILE}"'
+        Push "/END"
+        Push "POST"
+        Push "/METHOD"
+        Push "${FILE}"
+        Push "/LOCAL"
+        Push $R1
+        Push "/URL"
+        CallInstDLL $DLL Request
+        Pop $0
+    ${Next}
+
+    Push "/END"
+    Push "" ; Abort message
+    Push "" ; Abort title
+    Push "/ABORT"
+    CallInstDLL $DLL Wait
+    Pop $1
+
+	!insertmacro STACK_VERIFY_END
+SectionEnd
+
+
 Section /o "HTTP GET (Parallel transfers)"
 	SectionIn 1	; All
 
@@ -328,7 +363,7 @@ Section /o "HTTP GET (Parallel transfers)"
 SectionEnd
 
 
-Section /o "HTTP GET (proxy)"
+Section /o "-HTTP GET (proxy)"
 	SectionIn 1	; All
 
 	DetailPrint '-----------------------------------------------'
