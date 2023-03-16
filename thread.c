@@ -92,10 +92,13 @@ DWORD WINAPI ThreadProc( _In_ PTHREAD pThread )
 
 		// Start downloading
 		if (pReq) {
+			InterlockedIncrement(&((PQUEUE)pThread->pQueue)->iThreadBusyCount);
 
 			ThreadDownload( pReq );
 			GetLocalFileTime( &pReq->tmDisconnect );
 			pReq->iStatus = REQUEST_STATUS_DONE;
+
+		    InterlockedDecrement(&((PQUEUE)pThread->pQueue)->iThreadBusyCount);
 
 			/// There may be transfer requests waiting for this one (dependency)
 			/// Wake up all threads to check out

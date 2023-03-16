@@ -211,7 +211,9 @@ typedef struct _QUEUE {
 
 	// Worker threads
 	THREAD pThreads[MAX_WORKER_THREADS];
-	int iThreadCount;
+	ULONG iThreadCount;					// Current thread count
+	volatile LONG iThreadBusyCount;		// Busy thread count
+	ULONG iThreadMaxCount;				// Maximum thread count
 	HANDLE hThreadTermEvent;
 	HANDLE hThreadWakeEvent;
 
@@ -220,7 +222,7 @@ typedef struct _QUEUE {
 
 // Initializing
 VOID QueueInitialize( _Inout_ PQUEUE pQueue, _In_ LPCTSTR szName, _In_ int iThreadCount );
-VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bFromDllUnload );
+VOID QueueDestroy( _Inout_ PQUEUE pQueue );
 
 // Queue locking
 VOID QueueLock( _Inout_ PQUEUE pQueue );
@@ -261,4 +263,4 @@ ULONG QueueSize( _Inout_ PQUEUE pQueue );
 // Wake up one or more worker threads
 // Returns the number of threads woken up
 // The queue must be locked
-int QueueWakeThreads( _In_ PQUEUE pQueue, _In_ int iThreadsToWake );
+int QueueWakeThreads( _In_ PQUEUE pQueue, _In_ ULONG iThreadsToWake );

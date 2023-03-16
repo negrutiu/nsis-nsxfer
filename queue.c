@@ -12,8 +12,6 @@ VOID QueueInitialize(
 	_In_ int iThreadCount
 	)
 {
-	int i;
-
 	assert( pQueue );
 	assert( szName && *szName );
 	assert( iThreadCount < MAX_WORKER_THREADS );
@@ -31,82 +29,55 @@ VOID QueueInitialize(
 	pQueue->iLastId = 0;
 
 	// Worker threads
-	pQueue->iThreadCount = __min( iThreadCount, MAX_WORKER_THREADS - 1 );
+	pQueue->iThreadMaxCount = __min( iThreadCount, MAX_WORKER_THREADS - 1 );
+	pQueue->iThreadCount = 0; // Don't create worker threads yet
+	pQueue->iThreadBusyCount = 0;
 	pQueue->hThreadTermEvent = CreateEvent( NULL, TRUE, FALSE, NULL );	/// Manual
 	pQueue->hThreadWakeEvent = CreateEvent( NULL, FALSE, FALSE, NULL );	/// Automatic
 	assert( pQueue->hThreadTermEvent );
 	assert( pQueue->hThreadWakeEvent );
-	for ( i = 0; i < pQueue->iThreadCount; i++ ) {
-		PTHREAD pThread = pQueue->pThreads + i;
-		pThread->pQueue = pQueue;
-		pThread->hTermEvent = pQueue->hThreadTermEvent;
-		pThread->hWakeEvent = pQueue->hThreadWakeEvent;
-		wnsprintf( pThread->szName, ARRAYSIZE( pThread->szName ), _T( "%s%02d" ), pQueue->szName, i );
-		pThread->hThread = CreateThread( NULL, 0, (LPTHREAD_START_ROUTINE)ThreadProc, pThread, 0, &pThread->iTID );
-		assert( pThread->hThread );
-		if ( !pThread->hThread ) {
-			DWORD err = GetLastError();
-			TRACE( _T( "  [!] CreateThread(%s) == 0x%x\n" ), pThread->szName, err );
-			MyZeroMemory( pThread, sizeof(pThread) );
-		}
-	}
 
-	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, pQueue->iThreadCount );
+	TRACE( _T( "  QueueInitialize(%s, ThCnt:%d)\n" ), szName, pQueue->iThreadMaxCount );
 }
 
-VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
+VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 {
 	assert( pQueue );
 
 	// Worker threads
 	if ( pQueue->iThreadCount > 0 ) {
 
+		HANDLE pObj[MAX_WORKER_THREADS];
+		ULONG i, iObjCnt = 0;
+		const ULONG QUEUE_WAIT_FOR_THREADS = 12000;
+
 		/// Signal thread termination
 		SetEvent( pQueue->hThreadTermEvent );
 
-		if (bForced) {
+		/// Build a list of thread handles
+		for (i = 0; i < pQueue->iThreadCount; i++)
+			if (pQueue->pThreads[i].hThread)
+				pObj[iObjCnt++] = pQueue->pThreads[i].hThread;
 
-			/// During DLL_PROCESS_DETACH only one thread is running, the others are suspended or something (check out CreateThread on MSDN)
-			/// Waiting for them to close gracefully would be pointless
-			int i;
-			for (i = 0; i < pQueue->iThreadCount; i++) {
-				if (pQueue->pThreads[i].hThread) {
-					DWORD err = TerminateThread( pQueue->pThreads[i].hThread, 666 ) ? ERROR_SUCCESS : GetLastError();
-					TRACE( _T( "  TerminateThread(%s) == 0x%x\n" ), pQueue->pThreads[i].szName, err );
-				}
-			}
+		TRACE( _T( "  Waiting for %u threads (max. %ums)...\n" ), iObjCnt, QUEUE_WAIT_FOR_THREADS );
 
-		} else {
-
-			HANDLE pObj[MAX_WORKER_THREADS];
-			int i, iObjCnt = 0;
-			const ULONG QUEUE_WAIT_FOR_THREADS = 12000;
-
-			/// Make a list of thread handles
-			for (i = 0; i < pQueue->iThreadCount; i++)
-				if (pQueue->pThreads[i].hThread)
-					pObj[iObjCnt++] = pQueue->pThreads[i].hThread;
-
-			TRACE( _T( "  Waiting for %d threads (max. %ums)...\n" ), iObjCnt, QUEUE_WAIT_FOR_THREADS );
-
-			/// Wait for all threads to terminate
-			if (iObjCnt > 0) {
-				DWORD dwTime = dwTime = GetTickCount();
-				DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, QUEUE_WAIT_FOR_THREADS );
-				dwTime = GetTickCount() - dwTime;
-				if (iWait == WAIT_OBJECT_0 || iWait == WAIT_ABANDONED_0) {
-					TRACE( _T( "  Threads closed in %ums\n" ), dwTime );
-					MyZeroMemory( pQueue->pThreads, ARRAYSIZE( pQueue->pThreads ) * sizeof( THREAD ) );
-				} else if (iWait == WAIT_TIMEOUT) {
-					TRACE( _T( "  Threads failed to stop after %ums. Will terminate them forcedly\n" ), dwTime );
-					for (i = 0; i < iObjCnt; i++)
-						TerminateThread( pObj[i], 666 );
-				} else {
-					DWORD err = GetLastError();
-					TRACE( _T( "  [!] WaitForMultipleObjects( ObjCnt:%d ) == 0x%x, GLE == 0x%x\n" ), iObjCnt, iWait, err );
-					for (i = 0; i < iObjCnt; i++)
-						TerminateThread( pObj[i], 666 );
-				}
+		/// Wait for all threads to terminate
+		if (iObjCnt > 0) {
+			DWORD dwTime = dwTime = GetTickCount();
+			DWORD iWait = WaitForMultipleObjects( iObjCnt, pObj, TRUE, QUEUE_WAIT_FOR_THREADS );
+			dwTime = GetTickCount() - dwTime;
+			if (iWait == WAIT_OBJECT_0 || iWait == WAIT_ABANDONED_0) {
+				TRACE( _T( "  Threads closed in %ums\n" ), dwTime );
+				MyZeroMemory( pQueue->pThreads, ARRAYSIZE( pQueue->pThreads ) * sizeof( THREAD ) );
+			} else if (iWait == WAIT_TIMEOUT) {
+				TRACE( _T( "  Threads failed to stop after %ums. Will terminate them forcedly\n" ), dwTime );
+				for (i = 0; i < iObjCnt; i++)
+					TerminateThread( pObj[i], 666 );
+			} else {
+				DWORD err = GetLastError();
+				TRACE( _T( "  [!] WaitForMultipleObjects( ObjCnt:%u ) == 0x%x, GLE == 0x%x\n" ), iObjCnt, iWait, err );
+				for (i = 0; i < iObjCnt; i++)
+					TerminateThread( pObj[i], 666 );
 			}
 		}
 	}
@@ -122,15 +93,37 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue, _In_ BOOLEAN bForced )
 	DeleteCriticalSection( &pQueue->csLock );
 
 	// Name
-	TRACE( _T( "  QueueDestroy(%s, Forced:%u)\n" ), pQueue->szName, (ULONG)bForced );
+	TRACE( _T( "  QueueDestroy(%s)\n" ), pQueue->szName );
 	*pQueue->szName = _T( '\0' );
+}
+
+VOID QueueNewThread(_Inout_ PQUEUE pQueue)
+{
+	ULONG availableThreads = pQueue->iThreadCount - InterlockedCompareExchange(&pQueue->iThreadBusyCount, -1, -1);
+	if (availableThreads == 0 && pQueue->iThreadCount < pQueue->iThreadMaxCount)
+	{
+		PTHREAD pThread = &pQueue->pThreads[pQueue->iThreadCount];
+		pThread->pQueue = pQueue;
+		pThread->hTermEvent = pQueue->hThreadTermEvent;
+		pThread->hWakeEvent = pQueue->hThreadWakeEvent;
+		wnsprintf(pThread->szName, ARRAYSIZE(pThread->szName), _T("%s%02d"), pQueue->szName, pQueue->iThreadCount);
+		pThread->hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ThreadProc, pThread, 0, &pThread->iTID);
+		assert(pThread->hThread);
+		if (pThread->hThread) {
+			pQueue->iThreadCount++;
+			TRACE(_T("  Th:%s create. %u running threads\n"), pThread->szName, pQueue->iThreadCount);
+		} else {
+			DWORD err = GetLastError();
+			TRACE(_T("  [!] CreateThread(%s) == 0x%x\n"), pThread->szName, err);
+			MyZeroMemory(pThread, sizeof(*pThread));
+		}
+	}
 }
 
 VOID QueueLock( _Inout_ PQUEUE pQueue )
 {
 	assert( pQueue );
-	if ( !TryEnterCriticalSection( &pQueue->csLock ) )
-		EnterCriticalSection( &pQueue->csLock );
+	EnterCriticalSection( &pQueue->csLock );
 	TRACE2( _T( "  QueueLock(%s)\n" ), pQueue->szName );
 }
 
@@ -266,6 +259,9 @@ BOOL QueueAdd(
 
 			// Wake up one worker thread
 			SetEvent( pQueue->hThreadWakeEvent );
+
+			// Create a worker thread if necessary
+			QueueNewThread(pQueue);
 
 			TRACE(
 				_T( "  QueueAdd(%s, ID:%u, %s %s -> %s, Prio:%u, DependsOn:%d)\n" ),
@@ -482,14 +478,14 @@ BOOL RequestDataToString( _In_ PQUEUE_REQUEST pReq, _Out_ LPTSTR pszString, _In_
 }
 
 
-int QueueWakeThreads( _In_ PQUEUE pQueue, _In_ int iThreadsToWake )
+int QueueWakeThreads( _In_ PQUEUE pQueue, _In_ ULONG iThreadsToWake )
 {
 	int iCount = 0;
 
 	assert( pQueue );
 	if (iThreadsToWake > 0) {
 
-		int i, n;
+		ULONG i, n;
 
 		/// Number of threads
 		n = __min( iThreadsToWake, pQueue->iThreadCount );

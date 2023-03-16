@@ -42,14 +42,14 @@ BOOL PluginInit()
 
 
 //++ PluginUninit
-BOOL PluginUninit( _In_ BOOLEAN bForced )
+BOOL PluginUninit()
 {
 	BOOL bRet = FALSE;
 	if ( g_bInitialized ) {
 
-		TRACE( _T( "PluginUninit(Forced:%u)\n" ), (ULONG)bForced );
+		TRACE( _T( "PluginUninit\n" ));
 
-		QueueDestroy( &g_Queue, bForced );
+		QueueDestroy( &g_Queue );
 		UtilsDestroy();
 
 		g_bInitialized = FALSE;
@@ -623,7 +623,7 @@ void __cdecl Set(
 	// Set
 	if (TRUE) {
 
-		int iThreadsToWake = 0;
+		ULONG iThreadsToWake = 0;
 		PQUEUE_REQUEST pReq;
 
 		QueueLock( &g_Queue );
@@ -975,7 +975,7 @@ UINT_PTR __cdecl PluginCallback( enum NSPIM iMessage )
 	{
 		case NSPIM_UNLOAD:
 			TRACE( _T( "NSPIM_UNLOAD\n" ) );
-			//x PluginUninit( FALSE );		// DLL_PROCESS_DETACH will handle it
+			PluginUninit();
 			break;
 
 		case NSPIM_GUIUNLOAD:
@@ -999,7 +999,7 @@ BOOL WINAPI DllMain(
 		PluginInit();
 	}
 	else if ( iReason == DLL_PROCESS_DETACH ) {
-		PluginUninit( TRUE );
+		PluginUninit();
 	}
 	return TRUE;
 }
