@@ -438,6 +438,7 @@ ULONG RequestOptimalBufferSize( _In_ PQUEUE_REQUEST pReq )
 	iSize *= 4;							/// Allow the speed to grow. Accommodate more seconds' data...
 	iSize = __max( iSize, MIN_BUFFER_SIZE );
 	iSize = __min( iSize, MAX_BUFFER_SIZE );
+	iSize = __min( iSize, (ULONG)((ULONG64)MAX_MEMORY_CONTENT_LENGTH - pReq->iRecvSize) );
 
 /*	TRACE(
 		_T( "[BufSize = %.4u KB] Speed = %u bps, ChunkTime = %u (%u ms), ChunkSize = %u\n" ),

@@ -7,9 +7,8 @@
 #include "utils.h"
 
 
-#define MAX_MEMORY_CONTENT_LENGTH	(16 * 1024U)	// Must fit in an NSIS string (usually 4K, sometimes 8K...)
-#define CONNECT_RETRY_DELAY			1000		/// milliseconds
-#define SPEED_MEASURE_INTERVAL		1000		/// milliseconds
+#define CONNECT_RETRY_DELAY			1000			/// milliseconds
+#define SPEED_MEASURE_INTERVAL		1000			/// milliseconds
 #define TIME_LOCKVIOLATION_WAIT 	15000
 #define TIME_LOCKVIOLATION_DELAY 	500
 
@@ -1118,7 +1117,8 @@ BOOL ThreadDownload_Transfer( _Inout_ PQUEUE_REQUEST pReq )
 #endif ///DEBUG_XFER_MAX_BYTES
 				if (!ThreadIsTerminating( pReq->pThread ) && !pReq->bAbort) {
 					ULONG requestSize = RequestOptimalBufferSize(pReq);
-					if (VirtualAlloc(pReq->Local.pMemory + pReq->iRecvSize, requestSize, MEM_COMMIT, PAGE_READWRITE)) {
+					TRACE(_T("  Th:%s VirtualAlloc(CommitSize:%I64u (RecvSize:%I64u + RequestSize:%u), Reserved:%I64u)\n"), pReq->pThread->szName, pReq->iRecvSize + requestSize, pReq->iRecvSize, requestSize, (ULONG64)MAX_MEMORY_CONTENT_LENGTH);
+					if (VirtualAlloc(pReq->Local.pMemory, (SIZE_T)pReq->iRecvSize + requestSize, MEM_COMMIT, PAGE_READWRITE)) {
 						if (InternetReadFile(pReq->hRequest, pReq->Local.pMemory + pReq->iRecvSize, requestSize, &iBytesRecv)) {
 							if (iBytesRecv > 0) {
 								/// Update fields
