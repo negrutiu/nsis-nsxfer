@@ -7,7 +7,7 @@
 #include "utils.h"
 
 
-#define MAX_MEMORY_CONTENT_LENGTH	104857600	/// 100 MiB
+#define MAX_MEMORY_CONTENT_LENGTH	(16 * 1024U)	// Must fit in an NSIS string (usually 4K, sometimes 8K...)
 #define CONNECT_RETRY_DELAY			1000		/// milliseconds
 #define SPEED_MEASURE_INTERVAL		1000		/// milliseconds
 #define TIME_LOCKVIOLATION_WAIT 	15000
