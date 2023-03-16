@@ -211,6 +211,7 @@ void __cdecl Request(
 	QUEUE_REQUEST_PARAM Param;
 	PQUEUE_REQUEST pReq = NULL;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -268,6 +269,7 @@ void __cdecl QueryGlobal(
 	ULONG64 iTotalRecvBytes = 0;
 	ULONG iTotalSpeed = 0;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -388,6 +390,7 @@ void __cdecl Query(
 	LPTSTR pParam[30];
 	int iParamCount = 0, iDropCount = 0, i;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -587,6 +590,7 @@ void __cdecl Set(
 	BOOLEAN bRemove = FALSE;
 	BOOLEAN bAbort = FALSE;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -680,6 +684,7 @@ void __cdecl Enumerate(
 	REQUEST_STATUS iStatus = ANY_STATUS;
 	ULONG iPrio = ANY_PRIORITY;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -816,6 +821,7 @@ void __cdecl Wait(
 	LPTSTR psz;
 	GUI_WAIT_PARAM Param;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -866,6 +872,7 @@ void __cdecl Transfer(
 	GUI_WAIT_PARAM WaitParam;
 	PQUEUE_REQUEST pReq = NULL;
 
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 
@@ -938,6 +945,7 @@ void __cdecl Test(
 	extra_parameters *extra
 	)
 {
+	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
 	EXDLL_VALIDATE();
 

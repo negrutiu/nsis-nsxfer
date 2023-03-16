@@ -24,6 +24,15 @@
 // --> NSIS plugin API
 #include <nsis/pluginapi.h>
 
+// NOTE:
+// VirusTotal "detonates" dlls by running `RunDll32.exe "<dll>",<proc>` with no parameters
+// If the function expects valid parameters the dll will likely crash creating WerFault.exe as child process
+// This is interpreted as a potential launcher, increasing the chances of the file being labeled as malitious
+// Validate input parameters to prevent this
+#define EXDLL_VALID_PARAMS() \
+    if (!parent || !IsWindow(parent) || string_size == 0 || !variables || !stacktop || !extra) \
+        return;
+
 #undef EXDLL_INIT
 #define EXDLL_INIT()           {  \
         g_stringsize=string_size; \
