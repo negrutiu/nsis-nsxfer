@@ -424,7 +424,7 @@ Section /o "HTTP POST (application/json)"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	Push "POST"
+	Push "post"
 	Push "/METHOD"
 	CallInstDLL $DLL Transfer
 	Pop $0

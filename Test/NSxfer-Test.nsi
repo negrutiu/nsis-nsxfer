@@ -263,7 +263,7 @@ Section /o "HTTP POST (application/json)"
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
 	!define /redef FILE '$EXEDIR\_Post_json.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
-	NSxfer::Transfer /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
+	NSxfer::Transfer /METHOD Post /URL "${LINK}" /LOCAL "${FILE}" /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 	DetailPrint "Status: $0"
 SectionEnd
