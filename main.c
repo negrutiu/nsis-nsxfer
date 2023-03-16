@@ -216,9 +216,7 @@ void __cdecl Request(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Request" ) );
 
-	/// Receive unload notification
-	/// By registering PluginCallback the plugin remains locked in memory
-	/// Otherwise the framework would unload it when this call returns... Unless the caller specifies /NOUNLOAD...
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
 	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Working buffer
@@ -274,6 +272,9 @@ void __cdecl QueryGlobal(
 	EXDLL_VALIDATE();
 
 	TRACE_CALL( stacktop, _T( "NSxfer!QueryGlobal" ) );
+
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Allocate the working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -391,6 +392,9 @@ void __cdecl Query(
 	EXDLL_VALIDATE();
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Query" ) );
+
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Allocate the working buffer
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -588,6 +592,9 @@ void __cdecl Set(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Set" ) );
 
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
+
 	// Parameters
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
 	while (TRUE) {
@@ -677,6 +684,9 @@ void __cdecl Enumerate(
 	EXDLL_VALIDATE();
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Enumerate" ) );
+
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	// Decide what requests to enumerate
 	psz = (LPTSTR)MyAlloc( string_size * sizeof( TCHAR ) );
@@ -811,9 +821,7 @@ void __cdecl Wait(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Wait" ) );
 
-	/// Receive unload notification
-	/// By registering PluginCallback the plugin remains locked in memory
-	/// Otherwise the framework would unload it when this call returns... Unless the caller specifies /NOUNLOAD...
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
 	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Working buffer
@@ -863,9 +871,7 @@ void __cdecl Transfer(
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Transfer" ) );
 
-	/// Receive unload notification
-	/// By registering PluginCallback the plugin remains locked in memory
-	/// Otherwise the framework would unload it when this call returns... Unless the caller specifies /NOUNLOAD...
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
 	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/// Working buffer
@@ -936,6 +942,9 @@ void __cdecl Test(
 	EXDLL_VALIDATE();
 
 	TRACE_CALL( stacktop, _T( "NSxfer!Test" ) );
+
+	// Lock the plugin in memory. PluginCallback will start receiving unload notifications
+	extra->RegisterPluginCallback( g_hInst, PluginCallback );
 
 	/*{
 		ULONGLONG ull, ull2;
