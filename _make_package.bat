@@ -23,6 +23,7 @@ mklink /H _Package\x86-unicode\NSxfer.dll			Release-mingw-x86-unicode\NSxfer.dll
 mklink /H _Package\x86-ansi\NSxfer.dll				Release-mingw-x86-ansi\NSxfer.dll
 mklink /H _Package\NSxfer.Readme.txt				NSxfer.Readme.txt
 mklink /H _Package\README.md						README.md
+mklink /H _Package\LICENSE.md						LICENSE.md
 
 pushd _Package
 "%Z7%" a "..\NSxfer-%RCVER%.7z" * -r
