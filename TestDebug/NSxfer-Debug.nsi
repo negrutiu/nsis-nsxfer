@@ -236,30 +236,29 @@ Section /o "HTTP GET (Memory)"
 	!insertmacro STACK_VERIFY_START
 	!define /redef LINK `https://wikipedia.org`
 	!define /redef FILE "memory"
-	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 
 	Push "/END"
+    Push "/RETURNID"
 	Push "${FILE}"
 	Push "/LOCAL"
 	Push "${LINK}"
 	Push "/URL"
-	CallInstDLL $DLL Request
-	Pop $0
+	CallInstDLL $DLL Transfer
+	Pop $0 ; Unique ID
 
 	Push "/END"
-	Push $0
-	Push "/ID"
-	CallInstDLL $DLL Wait
-    Pop $1
-
-	Push "/END"
-	Push "/STATUS"
+    Push "/CONTENT"
+	Push "/ERRORTEXT"
 	Push $0
 	Push "/ID"
 	CallInstDLL $DLL Query
-    Pop $1
+    Pop $1 ; Transfer status
+    Pop $2 ; Remote content (trimmed to NSIS_MAX_STRLEN)
 
-	DetailPrint "Status: $1"
+    StrCpy $2 $2 64
+    StrCpy $2 "$2..."
+	DetailPrint "Status: $1, Content: $2"
 	!insertmacro STACK_VERIFY_END
 SectionEnd
 

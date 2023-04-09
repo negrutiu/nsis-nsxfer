@@ -871,6 +871,7 @@ void __cdecl Transfer(
 	QUEUE_REQUEST_PARAM ReqParam;
 	GUI_WAIT_PARAM WaitParam;
 	PQUEUE_REQUEST pReq = NULL;
+	BOOL bReturnID = FALSE;
 
 	EXDLL_VALID_PARAMS();
 	EXDLL_INIT();
@@ -894,10 +895,14 @@ void __cdecl Transfer(
 		if (lstrcmpi( psz, _T( "/END" ) ) == 0)
 			break;
 
-		if (!ParseRequestParameter( string_size, psz, &ReqParam ) &&
-			!ParseWaitParameter( string_size, psz, &WaitParam ))
+		if (lstrcmpi(psz, _T("/RETURNID")) == 0) {
+			bReturnID = TRUE;
+		} else if (	ParseRequestParameter(string_size, psz, &ReqParam) ||
+					ParseWaitParameter(string_size, psz, &WaitParam))
 		{
-			TRACE( _T( "  [!] Unknown parameter \"%s\"\n" ), psz );
+			// Valid parameter, saved to pReq
+		} else {
+			TRACE(_T("  [!] Unknown parameter \"%s\"\n"), psz);
 		}
 	}
 
@@ -916,13 +921,17 @@ void __cdecl Transfer(
 	// Return value
 	if (pReq) {
 		QueueLock( &g_Queue );
-		if (pReq->iWin32Error == ERROR_SUCCESS) {
-			if (pReq->iHttpStatus > 200 && pReq->iHttpStatus < 300)
-				pushstring( _T( "OK" ) );				/// Convert any successful HTTP status to "OK"
-			else
-				safepushstring( pReq->pszHttpStatus );	/// HTTP status
+		if (bReturnID) {
+			pushint(pReq->iId);
 		} else {
-			safepushstring( pReq->pszWin32Error );		/// Win32 error
+			if (pReq->iWin32Error == ERROR_SUCCESS) {
+				if (pReq->iHttpStatus > 200 && pReq->iHttpStatus < 300)
+					pushstring(_T("OK"));				/// Convert any successful HTTP status to "OK"
+				else
+					safepushstring(pReq->pszHttpStatus);	/// HTTP status
+			} else {
+				safepushstring(pReq->pszWin32Error);		/// Win32 error
+			}
 		}
 		QueueUnlock( &g_Queue );
 	} else {

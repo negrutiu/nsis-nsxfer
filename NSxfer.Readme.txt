@@ -20,8 +20,16 @@ Features:
 Examples:
 	# Quick transfer, single file
 	NSxfer::Transfer /URL "http://MyServer/MyFile" /LOCAL "$TEMP\MyFile" /MODE Page /ABORT "Abort Title" "Are you sure?" /END
-	Pop $0 ; Status text ("OK" for success)
+	Pop $0 ; Transfer status ("OK" for success)
 	DetailPrint "Status: $0"
+
+    # Download to memory
+    NSxfer::Transfer /URL "https://wikipedia.org" /LOCAL memory /RETURNID /END
+    Pop $0 ; Request ID
+    NSxfer::Query /ID $0 /ERRORTEXT /CONTENT /SPEED /END
+    Pop $1 ; Transfer status ("OK" for success)
+    Pop $2 ; Remote-Content from memory
+    Pop $3 ; Transfer speed (i.e. "50 MB/s")
 
 	# Parallel transfer, multiple files
 	; Start the downloads
@@ -68,13 +76,13 @@ NSxfer::Transfer	[/PRIORITY prio] [/DEPEND id]
 					[/TITLEHWND Wnd] [/STATUSHWND Wnd] [/PROGRESSHWND Wnd]
 					[/TITLETEXT Text MultiText] [/STATUSTEXT Text Multitext]
 					[/ABORT Title Message]
+                    [/RETURNID]
 					/END
 
 Remarks:
 	Make a (single) HTTP request, wait for it to complete and return the status code.
-	This routine is recommended if you only need to transfer one file at a time.
-
-	To transfer multiple files in parallel, you must use lower level functions (Request(1) + Request(2) + ... + Request(n) + [...] + Wait(*) + Query(*))
+	This routine is recommended for single transfers.
+	For multiple, parallel transfers, you need to use lower level functions (Request(1) + Request(2) + ... + Request(n) + [...] + Wait() + Query())
 	
 Parameters:
 	[...]						| Check out "Request" parameters!
@@ -82,7 +90,8 @@ Parameters:
 	/END						| Must conclude the parameter list, otherwise the NSIS stack will be emptied...
 
 Return:
-	[Stack] "OK" for successful transfers, or an error string (HTTP or Win32) otherwise
+	[Stack] "OK" for successful transfers, or an error string (HTTP or Win32) otherwise.
+    If `/RETURNID` is specified, the unique transfer ID is returned instead of the transfer status. Use Query(id) to get additional transfer information.
 _________________________________________________________________________________________________
 
 NSxfer::Request		[/PRIORITY prio] [/DEPEND id]

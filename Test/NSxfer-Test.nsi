@@ -167,17 +167,18 @@ Section /o "HTTP GET (Memory)"
 
 	!define /redef LINK `https://wikipedia.org`
 	!define /redef FILE "memory"
+	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 
-	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
-    NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /END
-	Pop $0
+    NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /RETURNID /END
+	Pop $0 ; Unique transfer ID
 
-	NSxfer::Wait /ID $0 /END
-    Pop $1
+	NSxfer::Query /ID $0 /ERRORTEXT /CONTENT /END
+    Pop $1 ; Transfer status
+    Pop $2 ; Remote content (trimmed to NSIS_MAX_STRLEN)
 
-	NSxfer::Query /ID $0 /STATUS /END
-    Pop $1
-	DetailPrint "Status: $1"
+    StrCpy $2 $2 64
+    StrCpy $2 "$2..."
+	DetailPrint "Status: $1, Content: $2"
 SectionEnd
 
 
