@@ -7,6 +7,8 @@
 /TestDebug/*.exe
 /TestDebug/_*
 
+/NSxfer*.7z
+
 Debug-*
 Release-*
 ipch
