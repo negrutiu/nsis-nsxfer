@@ -123,6 +123,15 @@ Function .onInit
 	Pop $0
 	!insertmacro STACK_VERIFY_END
 */
+
+    ; Quick .onInit plugin test
+	Push "/END"
+	Push "/PLUGINNAME"
+	CallInstDLL $DLL QueryGlobal
+    Pop $0
+    ${If} $0 != "NSxfer"
+        MessageBox MB_ICONSTOP '[.onInit]$\nFailed to query plugin name$\nReturn value: "$0"'
+    ${EndIf}
 FunctionEnd
 
 

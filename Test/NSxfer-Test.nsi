@@ -86,6 +86,13 @@ Function .onInit
 	NSxfer::Transfer /METHOD POST /MODE Popup /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
 */
+
+    ; Quick .onInit plugin test
+    NSxfer::QueryGlobal /PLUGINNAME /END
+    Pop $0
+    ${If} $0 != "NSxfer"
+        MessageBox MB_ICONSTOP '[.onInit]$\nFailed to query plugin name$\nReturn value: "$0"'
+    ${EndIf}
 FunctionEnd
 
 
