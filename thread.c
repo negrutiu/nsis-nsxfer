@@ -900,16 +900,12 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 		case REQUEST_LOCAL_MEMORY:
 		{
 			// NOTE: The memory is already reserved when reconnecting
-			if (pReq->iFileSize == INVALID_FILE_SIZE64 || pReq->iFileSize <= MAX_MEMORY_CONTENT_LENGTH) {
+			if (!pReq->Local.pMemory) {
+				// Reserve the maximum supported content length. Pages will be commited later during the download
+				pReq->Local.pMemory = VirtualAlloc(NULL, MAX_MEMORY_CONTENT_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
 				if (!pReq->Local.pMemory) {
-					// Reserve the maximum supported content length. Pages will be commited later during the download
-					pReq->Local.pMemory = VirtualAlloc(NULL, MAX_MEMORY_CONTENT_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
-					if (!pReq->Local.pMemory) {
-						err = GetLastError();
-					}
+					err = GetLastError();
 				}
-			} else {
-				err = ERROR_FILE_TOO_LARGE;	// The remote content length exceeds our size limit
 			}
 			break;
 		}
