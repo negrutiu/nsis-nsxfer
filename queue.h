@@ -9,15 +9,15 @@
 
 #define MIN_WORKER_THREADS			2
 #define MAX_WORKER_THREADS			20
-#define INVALID_FILE_SIZE64			(ULONG64)-1
+#define INVALID_FILE_SIZE64			((ULONG64)-1)
 #define DEFAULT_VALUE				((ULONG)-1)
 #define DEFAULT_PRIORITY			1000
-#define MIN_BUFFER_SIZE				(2 * 1024)			// 2KB
-#define MAX_BUFFER_SIZE				(1024 * 1024 * 2)	// 2MB
+#define MIN_BUFFER_SIZE				KILOBYTES(2)
+#define MAX_BUFFER_SIZE				MEGABYTES(2)
 #define MAX_MEMORY_CONTENT_LENGTH	KILOBYTES(16)	// The NSIS script can only retrieve max NSIS_MAX_STRLEN characters (usually 4K, sometimes 8K...)
 #define ANY_REQUEST_ID				0
 #define ANY_PRIORITY				0
-#define ANY_STATUS					(REQUEST_STATUS)-1
+#define ANY_STATUS					((REQUEST_STATUS)-1)
 
 #define TEXT_USERAGENT				_T( "xfer/1.0" )
 #define TEXT_STATUS_WAITING			_T( "Waiting" )
