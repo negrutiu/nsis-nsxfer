@@ -117,7 +117,7 @@ Parameters:
 	/DEPEND id					| Another request that this one depends on. The new request will wait in queue until the other is completed (default: 0, no dependency)
 	/METHOD GET|POST|HEAD|...	| HTTP Method (default: GET)
 	/URL url					| HTTP or HTTPS...
-	/LOCAL file|MEMORY|NONE		| Local destination. Can be either a local file, a memory buffer, or none (none: make the HTTP request, but don't transfer the content) (default: NONE)
+	/LOCAL file|MEMORY|NONE		| Local destination. Can be either a local file, a memory buffer, or none (none: make the HTTP request, but don't transfer the content). MEMORY downloads will only retrieve the first NSIS_MAX_STRLEN bytes (usually 4K or 8K) (default: NONE)
 	/HEADERS hdr				| Additional HTTP headers, delimited by CRLF (\r\n)
 	/DATA data					| Additional data to be sent as part of the HTTP request
 	/DATAFILE file				| Additional data to be sent as part of the HTTP request (read from the specified file)
