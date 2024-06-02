@@ -6,7 +6,7 @@
 #include "queue.h"
 #include "utils.h"
 #include "resource.h"
-#include "Tools\ITaskbarList.h"
+#include "tools/ITaskbarList.h"
 
 #define GUI_TIMER_REFRESH_ID	1
 #define GUI_TIMER_REFRESH_TIME	500

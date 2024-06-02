@@ -17,9 +17,9 @@
 #define _WIN32_IE    0x0600
 #include <windows.h>
 #include <wininet.h>
-#include <Shlwapi.h>				/// for wvnsprintf, StrToInt64Ex
+#include <shlwapi.h>				/// for wvnsprintf, StrToInt64Ex
 #include <commctrl.h>
-#include <Shobjidl.h>				/// ITaskbarList
+#include <shobjidl.h>				/// ITaskbarList
 
 // --> NSIS plugin API
 #include <nsis/pluginapi.h>
