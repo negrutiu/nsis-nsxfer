@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ShObjIdl.h>
+#include <shobjidl.h>
 
 
 //++ ITaskbarList3
