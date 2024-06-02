@@ -856,7 +856,7 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 				} else {
 					if (pReq->iRecvSize < pReq->iFileSize) {
 						if (pReq->bUsingRanges) {
-							ULONG iZero = 0;
+							LONG iZero = 0;
 							if ((SetFilePointer( pReq->Local.hFile, 0, &iZero, FILE_END ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS)) {
 								/// SUCCESS (resume)
 							} else {
@@ -875,7 +875,7 @@ ULONG ThreadDownload_LocalCreate2( _Inout_ PQUEUE_REQUEST pReq )
 
 			// Full download if we can't resume
 			if (err != ERROR_SUCCESS) {
-				ULONG iZero = 0;
+				LONG iZero = 0;
 				if ((SetFilePointer( pReq->Local.hFile, 0, &iZero, FILE_BEGIN ) != INVALID_SET_FILE_POINTER) || (GetLastError() == ERROR_SUCCESS)) {
 					if (SetEndOfFile( pReq->Local.hFile )) {
 						/// SUCCESS (full download)

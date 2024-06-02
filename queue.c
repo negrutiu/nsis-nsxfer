@@ -327,7 +327,9 @@ BOOL QueueRemove( _Inout_ PQUEUE pQueue, _In_ PQUEUE_REQUEST pReq )
 		case REQUEST_LOCAL_MEMORY:
 			VirtualFree(pReq->Local.pMemory, 0, MEM_RELEASE);
 			break;
-		}
+        case REQUEST_LOCAL_NONE:
+            break;
+        }
 
 		// Remove from list
 		{
