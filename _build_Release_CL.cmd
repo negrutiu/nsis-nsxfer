@@ -10,7 +10,7 @@ SetLocal
 cd /d "%~dp0"
 
 :pluginapi
-call _acquire_pluginapi.bat
+call py -3 _get_nsis_sdk.py
 if %errorlevel% neq 0 exit /B %errorlevel%
 
 :environment

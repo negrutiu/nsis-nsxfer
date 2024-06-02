@@ -6,10 +6,6 @@ echo.
 :CHDIR
 cd /d "%~dp0"
 
-:pluginapi
-call _acquire_pluginapi.bat
-if %errorlevel% neq 0 exit /B %errorlevel%
-
 :DEFINITIONS
 if not exist "%PF%" set PF=%PROGRAMFILES(X86)%
 if not exist "%PF%" set PF=%PROGRAMFILES%

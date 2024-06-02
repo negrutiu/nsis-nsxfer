@@ -15,10 +15,6 @@ set ORIGINAL_PATH=%PATH%
 
 cd /d "%~dp0"
 
-:pluginapi
-call _acquire_pluginapi.bat
-if %errorlevel% neq 0 exit /B %errorlevel%
-
 :x86
 if not exist "%MINGW32%\bin\gcc.exe" echo ERROR: Missing "%MINGW32%" && pause && exit /B 2
 set PATH=%MINGW32%\bin;%ORIGINAL_PATH%

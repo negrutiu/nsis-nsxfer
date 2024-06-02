@@ -133,6 +133,9 @@
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>wininet.lib;shlwapi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>call py -3 _get_nsis_sdk.py</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-x86-unicode|Win32'">
     <ClCompile>
@@ -146,6 +149,9 @@
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>wininet.lib;shlwapi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>call py -3 _get_nsis_sdk.py</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-nocrt-x86-unicode|Win32'">
     <ClCompile>
@@ -166,6 +172,9 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
     </Link>
+    <PreBuildEvent>
+      <Command>call py -3 _get_nsis_sdk.py</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-staticcrt-x86-ansi|Win32'">
     <ClCompile>
@@ -184,6 +193,9 @@
       <AdditionalDependencies>wininet.lib;shlwapi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
     </Link>
+    <PreBuildEvent>
+      <Command>call py -3 _get_nsis_sdk.py</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-nocrt-x86-ansi|Win32'">
     <ClCompile>
@@ -204,6 +216,9 @@
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
     </Link>
+    <PreBuildEvent>
+      <Command>call py -3 _get_nsis_sdk.py</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-staticcrt-x86-unicode|Win32'">
     <ClCompile>
@@ -222,6 +237,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>wininet.lib;shlwapi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>call py -3 _get_nsis_sdk.py</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="gui.c" />

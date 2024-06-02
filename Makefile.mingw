@@ -84,16 +84,20 @@ RCFLAGS += \
 	$(CUSTOM_RCFLAGS)
 
 
-.PHONY: clean all-before all all-after
+.PHONY: clean all-before nsis-sdk all all-after
 
 clean:
 	@echo.
 	if exist $(OUTDIR) rd /S /Q $(OUTDIR)
 
-all: all-before $(_BIN) all-after
+all: all-before nsis-sdk $(_BIN) all-after
 
 all-before:
 	if not exist $(OUTDIR) mkdir $(OUTDIR)
+
+nsis-sdk:
+	REM ----- NSIS SDK ------------------------------------------------------------
+	call py -3 _get_nsis_sdk.py
 
 # Link
 $(_BIN): $(_OBJ)
