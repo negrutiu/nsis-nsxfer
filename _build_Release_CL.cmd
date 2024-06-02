@@ -1,47 +1,40 @@
 REM :: Marius Negrutiu (marius.negrutiu@protonmail.com)
 
 @echo off
+setlocal
 echo.
-SetLocal
 
 :: This script builds the project by directly calling cl.exe
 :: The sln/vcxproj files are ignored
 
+:CHDIR
 cd /d "%~dp0"
 
+:DEFINITIONS
+for /f "delims=*" %%i in ('dir /B /OD *.sln 2^> nul') do set BUILD_SOLUTION=%%~fi
+if "%BUILD_CONFIG%" equ "" set BUILD_CONFIG=%~1
+if "%BUILD_CONFIG%" equ "" set BUILD_CONFIG=Release
+set BUILD_VERBOSITY=normal
+
+:COMPILER
+if not exist "%PF%" set PF=%PROGRAMFILES(X86)%
+if not exist "%PF%" set PF=%PROGRAMFILES%
+set VSWHERE=%PF%\Microsoft Visual Studio\Installer\vswhere.exe
+if not exist "%VCVARSALL%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 17 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v143
+if not exist "%VCVARSALL%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 16 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v142
+if not exist "%VCVARSALL%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v141
+if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 14.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v140
+if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 12.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v120
+if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 11.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v110
+if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 10.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v100
+if not exist "%VCVARSALL%" echo ERROR: Can't find Visual Studio 2010-2022 && pause && exit /b 2
+
 :pluginapi
-call py -3 _get_nsis_sdk.py
-if %errorlevel% neq 0 exit /B %errorlevel%
+call py -3 _get_nsis_sdk.py || exit /b !errorlevel!
 
 :environment
 set OUTNAME=NSxfer
 set RCNAME=resource
-
-if not exist "%PF%" set PF=%PROGRAMFILES(X86)%
-if not exist "%PF%" set PF=%PROGRAMFILES%
-
-set VSWHERE=%PF%\Microsoft Visual Studio\Installer\vswhere.exe
-if exist "%VSWHERE%" for /f "usebackq tokens=1* delims=: " %%i in (`"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild`) do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat
-if exist "%VCVARSALL%" goto :BUILD
-
-set VCVARSALL=%PF%\Microsoft Visual Studio 14.0\VC\VcVarsAll.bat
-if exist "%VCVARSALL%" goto :BUILD
-
-set VCVARSALL=%PF%\Microsoft Visual Studio 12.0\VC\VcVarsAll.bat
-if exist "%VCVARSALL%" goto :BUILD
-
-set VCVARSALL=%PF%\Microsoft Visual Studio 11.0\VC\VcVarsAll.bat
-if exist "%VCVARSALL%" goto :BUILD
-
-set VCVARSALL=%PF%\Microsoft Visual Studio 10.0\VC\VcVarsAll.bat
-if exist "%VCVARSALL%" goto :BUILD
-
-set VCVARSALL=%PF%\Microsoft Visual Studio 9.0\VC\VcVarsAll.bat
-if exist "%VCVARSALL%" goto :BUILD
-
-echo ERROR: Can't find Visual Studio 2008/2010/2012/2013/2015/2017
-pause
-exit /B 2
 
 :BUILD
 pushd "%CD%"
@@ -57,7 +50,7 @@ call :BUILD_PARAMS
 set CL=/D "_MBCS" /arch:SSE %CL%
 set LINK=/MACHINE:X86 /SAFESEH %LINK%
 call :BUILD_CL
-if %errorlevel% neq 0 pause && exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 echo -----------------------------------
 set OUTDIR=Release-cl-x86-unicode
@@ -67,7 +60,7 @@ call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" /arch:SSE %CL%
 set LINK=/MACHINE:X86 /SAFESEH %LINK%
 call :BUILD_CL
-if %errorlevel% neq 0 pause && exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 :BUILD64
 pushd "%CD%"
@@ -82,10 +75,10 @@ call :BUILD_PARAMS
 set CL=/D "_UNICODE" /D "UNICODE" %CL%
 set LINK=/MACHINE:AMD64 %LINK%
 call :BUILD_CL
-if %errorlevel% neq 0 pause && exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 :: Finish
-exit /B 0
+exit /b 0
 
 
 :BUILD_PARAMS
@@ -122,7 +115,7 @@ set FILES=^
 	"utils.c" ^
 	"nsis\pluginapi.c"
 
-exit /B 0
+exit /b 0
 
 
 :BUILD_CL
@@ -133,9 +126,9 @@ if not exist "%~dp0\%OUTDIR%\temp" mkdir "%~dp0\%OUTDIR%\temp"
 
 echo %RCNAME%.rc
 rc.exe /l"0x0409" /Fo".\%OUTDIR%\temp\%RCNAME%.res" "%RCNAME%.rc"
-if %errorlevel% neq 0 exit /B %errorlevel%
+if %errorlevel% neq 0 exit /b %errorlevel%
 
 cl.exe %FILES%
-if %errorlevel% neq 0 exit /B %errorlevel%
+if %errorlevel% neq 0 exit /b %errorlevel%
 
-exit /B 0
+exit /b 0

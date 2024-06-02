@@ -16,7 +16,7 @@ set ORIGINAL_PATH=%PATH%
 cd /d "%~dp0"
 
 :x86
-if not exist "%MINGW32%\bin\gcc.exe" echo ERROR: Missing "%MINGW32%" && pause && exit /B 2
+if not exist "%MINGW32%\bin\gcc.exe" echo ERROR: Missing "%MINGW32%" && pause && exit /b 2
 set PATH=%MINGW32%\bin;%ORIGINAL_PATH%
 
 echo.
@@ -26,7 +26,7 @@ echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
 mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=%OUTDIR% -fMakefile.mingw clean all
-if %errorlevel% neq 0 pause && exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 echo.
 echo -------------------------------------------------------------------
@@ -35,11 +35,11 @@ echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
 mingw32-make.exe ARCH=X86 CHAR=Unicode OUTDIR=%OUTDIR% -fMakefile.mingw clean all
-if %errorlevel% neq 0 pause && exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 
 :amd64
-if not exist "%MINGW64%\bin\gcc.exe" echo ERROR: Missing "%MINGW64%" && pause && exit /B 2
+if not exist "%MINGW64%\bin\gcc.exe" echo ERROR: Missing "%MINGW64%" && pause && exit /b 2
 set PATH=%MINGW64%\bin;%ORIGINAL_PATH%
 
 echo.
@@ -49,7 +49,7 @@ echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
 mingw32-make.exe ARCH=X64 CHAR=Unicode OUTDIR=%OUTDIR% -fMakefile.mingw clean all
-if %errorlevel% neq 0 pause && exit /B %errorlevel%
+if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 echo.
 REM pause
