@@ -100,8 +100,7 @@ all-before:
 	if not exist $(OUTDIR) mkdir $(OUTDIR)
 
 nsis-sdk:
-	REM ----- NSIS SDK ------------------------------------------------------------
-	call py -3 _get_nsis_sdk.py
+	python3 _get_nsis_sdk.py
 
 # Link
 $(_BIN): $(_OBJ)
