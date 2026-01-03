@@ -43,17 +43,17 @@ jobs:
       - name: Build amd64-unicode
         run: |
           set PATH=C:\mingw64\bin;C:\msys64\usr\bin;%PATH%
-          mingw32-make.exe ARCH=X64 CHAR=Unicode OUTDIR=Release-mingw-amd64-unicode -fMakefile.mingw clean all
+          mingw32-make.exe ARCH=X64 CHAR=Unicode OUTDIR=build\Release-mingw-amd64-unicode -fMakefile.mingw clean all
 
       - name: Build x86-unicode
         run: |
           set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH%
-          mingw32-make.exe ARCH=X86 CHAR=Unicode OUTDIR=Release-mingw-x86-unicode -fMakefile.mingw clean all
+          mingw32-make.exe ARCH=X86 CHAR=Unicode OUTDIR=build\Release-mingw-x86-unicode -fMakefile.mingw clean all
 
       - name: Build x86-ansi
         run: |
           set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH%
-          mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=Release-mingw-x86-ansi -fMakefile.mingw clean all
+          mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=build\Release-mingw-x86-ansi -fMakefile.mingw clean all
 
       - name: Create package
         run: _make_package.bat

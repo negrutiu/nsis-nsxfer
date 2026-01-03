@@ -42,7 +42,7 @@ call "%VCVARSALL%" x86
 popd
 
 echo -----------------------------------
-set OUTDIR=Release-cl-x86-ansi
+set OUTDIR=build\Release-cl-x86-ansi
 echo %OUTDIR%
 echo -----------------------------------
 set BUILD_MACHINE=X86
@@ -53,7 +53,7 @@ call :BUILD_CL
 if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 echo -----------------------------------
-set OUTDIR=Release-cl-x86-unicode
+set OUTDIR=build\Release-cl-x86-unicode
 echo %OUTDIR%
 echo -----------------------------------
 call :BUILD_PARAMS
@@ -68,7 +68,7 @@ call "%VCVARSALL%" amd64
 popd
 
 echo -----------------------------------
-set OUTDIR=Release-cl-amd64-unicode
+set OUTDIR=build\Release-cl-amd64-unicode
 echo %OUTDIR%
 echo -----------------------------------
 call :BUILD_PARAMS
@@ -121,8 +121,8 @@ exit /b 0
 :BUILD_CL
 title %OUTDIR%
 echo.
-if not exist "%~dp0\%OUTDIR%"      mkdir "%~dp0\%OUTDIR%"
-if not exist "%~dp0\%OUTDIR%\temp" mkdir "%~dp0\%OUTDIR%\temp"
+mkdir "%~dp0\%OUTDIR%" 2> nul
+mkdir "%~dp0\%OUTDIR%\temp" 2> nul
 
 echo %RCNAME%.rc
 rc.exe /l"0x0409" /Fo".\%OUTDIR%\temp\%RCNAME%.res" "%RCNAME%.rc"

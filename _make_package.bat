@@ -1,34 +1,28 @@
 @echo off
+setlocal EnableDelayedExpansion
 
 cd /d "%~dp0"
 
-if not exist Release-mingw-amd64-unicode\NSxfer.dll		echo ERROR: Missing Release-mingw-amd64-unicode\NSxfer.dll && exit /b 2
-if not exist Release-mingw-x86-ansi\NSxfer.dll			echo ERROR: Missing Release-mingw-x86-ansi\NSxfer.dll      && exit /b 2
-if not exist Release-mingw-x86-unicode\NSxfer.dll		echo ERROR: Missing Release-mingw-x86-unicode\NSxfer.dll   && exit /b 2
+set packdir=build\package
+set packfile=%~dp0build\NSxfer.7z
+
+rmdir /S /Q %packdir% > nul 2> nul
+mkdir %packdir%\amd64-unicode
+mkdir %packdir%\x86-unicode
+mkdir %packdir%\x86-ansi
+
+echo on
+mklink /h %packdir%\amd64-unicode\NSxfer.dll        build\Release-mingw-amd64-unicode\NSxfer.dll || exit /b !errorlevel!
+mklink /h %packdir%\x86-unicode\NSxfer.dll          build\Release-mingw-x86-unicode\NSxfer.dll || exit /b !errorlevel!
+mklink /h %packdir%\x86-ansi\NSxfer.dll             build\Release-mingw-x86-ansi\NSxfer.dll || exit /b !errorlevel!
+mklink /h %packdir%\NSxfer.Readme.txt               NSxfer.Readme.txt || exit /b !errorlevel!
+mklink /h %packdir%\README.md                       README.md || exit /b !errorlevel!
+mklink /h %packdir%\LICENSE.md                      LICENSE.md || exit /b !errorlevel!
+@echo off
 
 set PATH=%PATH%;%PROGRAMFILES%\7-Zip
-
-REM :: Read version from the .rc file
-for /f usebackq^ tokens^=3^ delims^=^"^,^  %%f in (`type Resource.rc ^| findstr /r /c:"\s*\"FileVersion\"\s*"`) do set RCVER=%%f
-
-rmdir /S /Q _Package > nul 2> nul
-mkdir _Package
-mkdir _Package\amd64-unicode
-mkdir _Package\x86-unicode
-mkdir _Package\x86-ansi
-
-mklink /H _Package\amd64-unicode\NSxfer.dll			Release-mingw-amd64-unicode\NSxfer.dll
-mklink /H _Package\x86-unicode\NSxfer.dll			Release-mingw-x86-unicode\NSxfer.dll
-mklink /H _Package\x86-ansi\NSxfer.dll				Release-mingw-x86-ansi\NSxfer.dll
-mklink /H _Package\NSxfer.Readme.txt				NSxfer.Readme.txt
-mklink /H _Package\README.md						README.md
-mklink /H _Package\LICENSE.md						LICENSE.md
-
-pushd _Package
-7z a "..\NSxfer-%RCVER%.7z" * -r
+pushd "%packdir%"
+7z a "%packfile%" * -r
 popd
 
-echo.
 rem pause
-
-rmdir /S /Q _Package > nul 2> nul
