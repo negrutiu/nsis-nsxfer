@@ -56,4 +56,12 @@ jobs:
           mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=build\Release-mingw-x86-ansi -fMakefile.mingw clean all
 
       - name: Create package
-        run: _make_package.bat
+        run: |
+          rem | Collects all files in build\package
+          _make_package.bat
+
+      - name: Upload plugin package
+        uses: actions/upload-artifact@v4
+        with:
+          name: NSxfer
+          path: build/package/*
