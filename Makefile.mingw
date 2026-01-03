@@ -91,30 +91,31 @@ RCFLAGS += \
 .PHONY: clean all-before nsis-sdk all all-after
 
 clean:
-	@echo.
-	if exist $(OUTDIR) rd /S /Q $(OUTDIR)
+	rm -rf "$(OUTDIR)"
 
 all: all-before nsis-sdk $(_BIN) all-after
 
 all-before:
-	if not exist $(OUTDIR) mkdir $(OUTDIR)
+	mkdir -pv "$(OUTDIR)"
 
 nsis-sdk:
-	REM ----- NSIS SDK ------------------------------------------------------------
-	call py -3 _get_nsis_sdk.py
+	python _get_nsis_sdk.py
 
 # Link
 $(_BIN): $(_OBJ)
-	@echo.
+	@echo
 	gcc $(_OBJ) -o $(_BIN) $(LDFLAGS)
 
 # Compile .c
 $(OUTDIR)/%.o: %.c
+	@echo
 	gcc $(CFLAGS) -o $@ -c $<
 
 $(OUTDIR)/%.o: nsis/pluginapi.c
+	@echo
 	gcc $(CFLAGS) -o $@ -c $<
 
 # Compile .rc
 $(OUTDIR)/%.res: %.rc
+	@echo
 	windres -o $@ -i $< -O coff --input-format=rc $(RCFLAGS)

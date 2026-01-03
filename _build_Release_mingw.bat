@@ -10,6 +10,9 @@ for %%d in ("%MINGW32_INSTDIR%" %SYSTEMDRIVE%\mingw32 %SYSTEMDRIVE%\msys64\mingw
 for %%d in ("%MINGW64_INSTDIR%" %SYSTEMDRIVE%\mingw64 %SYSTEMDRIVE%\msys64\mingw64 "") do (
   if not exist "!MINGW64!\bin\gcc.exe" set MINGW64=%%~d
 )
+for %%d in (%SYSTEMDRIVE%\msys64\usr\bin %SYSTEMDRIVE%\cygwin64\bin "%PROGRAMFILES%\Git\usr\bin" "") do (
+  if not exist "!posix_shell!\grep.exe" set posix_shell=%%~d
+)
 
 set ORIGINAL_PATH=%PATH%
 
@@ -17,7 +20,7 @@ cd /d "%~dp0"
 
 :x86
 if not exist "%MINGW32%\bin\gcc.exe" echo ERROR: Missing "%MINGW32%" && pause && exit /b 2
-set PATH=%MINGW32%\bin;%ORIGINAL_PATH%
+set PATH=%MINGW32%\bin;%posix_shell%;%ORIGINAL_PATH%
 
 echo.
 echo -------------------------------------------------------------------
@@ -40,7 +43,7 @@ if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 :amd64
 if not exist "%MINGW64%\bin\gcc.exe" echo ERROR: Missing "%MINGW64%" && pause && exit /b 2
-set PATH=%MINGW64%\bin;%ORIGINAL_PATH%
+set PATH=%MINGW64%\bin;%posix_shell%;%ORIGINAL_PATH%
 
 echo.
 echo -------------------------------------------------------------------
