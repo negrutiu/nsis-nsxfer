@@ -23,6 +23,13 @@ jobs:
       version: ${{steps.version.outputs.version}}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------------------------------
+      # Versioning
+      # --------------------------------------------------------------------------------
+        
       - name: Version
         id: version
         shell: python
@@ -34,12 +41,13 @@ jobs:
             print(     f"version={date.year%100}.{date.month}.{date.day}.${{github.run_number}}")
             fout.write(f"version={date.year%100}.{date.month}.{date.day}.${{github.run_number}}\n")
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Replace version in resource file
         run: python _set_version.py --version=${{steps.version.outputs.version}}
 
+      # --------------------------------------------------------------------------------
+      # Build plugin
+      # --------------------------------------------------------------------------------
+        
       - name: Build amd64-unicode plugin
         run: |
           set PATH=C:\mingw64\bin;C:\msys64\usr\bin;%PATH%
@@ -66,6 +74,10 @@ jobs:
           name: NSxfer
           path: build/package/*
 
+      # --------------------------------------------------------------------------------
+      # Build plugin examples
+      # --------------------------------------------------------------------------------
+
       # Install an NSIS fork with amd64 support
       - name: Upgrade NSIS
         uses: negrutiu/nsis-install@v2
@@ -86,3 +98,47 @@ jobs:
           path: |
             Test/*.exe
             Test/NSxfer-Test.nsi
+
+      # --------------------------------------------------------------------------------
+      # GitHub release (draft)
+      # --------------------------------------------------------------------------------
+
+      - name: GitHub release notes
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
+        shell: python
+        run: |
+          lines = []
+          with open(".github/workflows/release-body.md") as fin:
+            line = fin.read()
+            line = line.replace('{url-workflow}', 'https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}')
+            lines.append(line)
+          with open(".github/workflows/release-body.md", "w") as fout:
+            for line in lines:
+              fout.write(line)
+  
+      # note: we're using dawidd6/action-download-artifact@v5 because of `skip_unpack`
+      - name: GitHub release artifacts
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          path: build/artifacts
+          name: ^NSxfer$|^NSxfer-Examples$
+          name_is_regexp: true
+          run_id: ${{github.run_id}}
+          skip_unpack: true
+
+      - name: GitHub release draft
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
+        uses: ncipollo/release-action@v1
+        with:
+          # note: `tag` is the release key
+          tag: release-candidate
+          name: v${{steps.version.outputs.version}}
+          artifacts: build/artifacts/*
+          bodyFile: .github/workflows/release-body.md
+          draft: true
+          makeLatest: true
+          allowUpdates: true
+          updateOnlyUnreleased: true
+          artifactErrorsFailBuild: true
+          removeArtifacts: true
