@@ -40,17 +40,17 @@ jobs:
       - name: Replace version in resource file
         run: python _set_version.py --version=${{steps.version.outputs.version}}
 
-      - name: Build amd64-unicode
+      - name: Build amd64-unicode plugin
         run: |
           set PATH=C:\mingw64\bin;C:\msys64\usr\bin;%PATH%
           mingw32-make.exe ARCH=X64 CHAR=Unicode OUTDIR=build\Release-mingw-amd64-unicode -fMakefile.mingw clean all
 
-      - name: Build x86-unicode
+      - name: Build x86-unicode plugin
         run: |
           set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH%
           mingw32-make.exe ARCH=X86 CHAR=Unicode OUTDIR=build\Release-mingw-x86-unicode -fMakefile.mingw clean all
 
-      - name: Build x86-ansi
+      - name: Build x86-ansi plugin
         run: |
           set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH%
           mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=build\Release-mingw-x86-ansi -fMakefile.mingw clean all
@@ -65,3 +65,24 @@ jobs:
         with:
           name: NSxfer
           path: build/package/*
+
+      # Install an NSIS fork with amd64 support
+      - name: Upgrade NSIS
+        uses: negrutiu/nsis-install@v2
+        
+      - name: Build amd64-unicode example
+        run: makensis.exe -V3 -DAMD64 Test\NSxfer-Test.nsi
+
+      - name: Build x86-unicode example
+        run: makensis.exe -V3 Test\NSxfer-Test.nsi
+
+      - name: Build x86-ansi example
+        run: makensis.exe -V3 -DANSI Test\NSxfer-Test.nsi
+
+      - name: Upload plugin examples
+        uses: actions/upload-artifact@v4
+        with:
+          name: NSxfer-Examples
+          path: |
+            Test/*.exe
+            Test/NSxfer-Test.nsi
