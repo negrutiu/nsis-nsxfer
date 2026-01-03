@@ -63,7 +63,7 @@ jobs:
           set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH%
           mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=build\Release-mingw-x86-ansi -fMakefile.mingw clean all
 
-      - name: Create package
+      - name: Create plugin package
         run: |
           rem | Collects all files in build\package
           _make_package.bat
@@ -103,7 +103,7 @@ jobs:
       # GitHub release (draft)
       # --------------------------------------------------------------------------------
 
-      - name: GitHub release notes
+      - name: GitHub release notes (master branch only)
         if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
         shell: python
         run: |
@@ -117,7 +117,7 @@ jobs:
               fout.write(line)
   
       # note: we're using dawidd6/action-download-artifact@v5 because of `skip_unpack`
-      - name: GitHub release artifacts
+      - name: GitHub release artifacts (master branch only)
         if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
         uses: dawidd6/action-download-artifact@v6
         with:
@@ -127,7 +127,7 @@ jobs:
           run_id: ${{github.run_id}}
           skip_unpack: true
 
-      - name: GitHub release draft
+      - name: GitHub release draft (master branch only)
         if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
         uses: ncipollo/release-action@v1
         with:
