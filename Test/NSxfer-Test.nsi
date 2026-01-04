@@ -26,17 +26,17 @@ ${StrTok}				; Declare in advance
 
 # NSxfer.dll development location
 !ifdef DEVEL
-!if ! /FileExists "..\build\Release-mingw-${_TARGET_}\NSxfer.dll"
-	!error "Missing \build\Release-mingw-${_TARGET_}\NSxfer.dll"
+!if ! /FileExists "../build/Release-mingw-${_TARGET_}/NSxfer.dll"
+	!error "Missing /build/Release-mingw-${_TARGET_}/NSxfer.dll"
 !endif
-!AddPluginDir /amd64-unicode "..\build\Release-mingw-amd64-unicode"
-!AddPluginDir /x86-unicode   "..\build\Release-mingw-x86-unicode"
-!AddPluginDir /x86-ansi      "..\build\Release-mingw-x86-ansi"
+!AddPluginDir /amd64-unicode "../build/Release-mingw-amd64-unicode"
+!AddPluginDir /x86-unicode   "../build/Release-mingw-x86-unicode"
+!AddPluginDir /x86-ansi      "../build/Release-mingw-x86-ansi"
 !endif
 
 # GUI settings
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\orange-install-nsis.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange-nsis.bmp"
+!define MUI_ICON "${NSISDIR}/Contrib/Graphics/Icons/orange-install-nsis.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}/Contrib/Graphics/Wizard/orange-nsis.bmp"
 
 # Welcome page
 ;!define MUI_WELCOMEPAGE_TITLE_3LINES
