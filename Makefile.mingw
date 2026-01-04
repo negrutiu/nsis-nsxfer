@@ -25,6 +25,10 @@ _BIN     = $(patsubst %,$(OUTDIR)/%,$(BIN))
 DEF      = $(OUTDIR)/lib$(PROJECT).def
 STATIC   = $(OUTDIR)/lib$(PROJECT).a
 
+override PYTHON ?= $(if $(filter Windows_NT,$(OS)),py -3,python3)
+
+# -------------------------------
+
 #
 # https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html
 # http://linux.die.net/man/1/gcc
@@ -99,7 +103,7 @@ all-before:
 	mkdir -pv "$(OUTDIR)"
 
 nsis-sdk:
-	python _get_nsis_sdk.py
+	$(PYTHON) _get_nsis_sdk.py
 
 # Link
 $(_BIN): $(_OBJ)
