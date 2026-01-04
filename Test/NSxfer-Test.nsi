@@ -26,8 +26,15 @@ ${StrTok}				; Declare in advance
 
 # NSxfer.dll development location
 !ifdef DEVEL
-!if ! /FileExists "../build/Release-mingw-${_TARGET_}/NSxfer.dll"
-	!error "Missing /build/Release-mingw-${_TARGET_}/NSxfer.dll"
+# note: `!if /FileExists` is sensitive to path delimiters (windows vs posix)
+!if /FileExists "/etc"
+	!if ! /FileExists "../build/Release-mingw-${_TARGET_}/NSxfer.dll"
+		!error "Missing ../build/Release-mingw-${_TARGET_}/NSxfer.dll"
+	!endif
+!else
+	!if ! /FileExists "..\build\Release-mingw-${_TARGET_}\NSxfer.dll"
+		!error "Missing ..\build\Release-mingw-${_TARGET_}\NSxfer.dll"
+	!endif
 !endif
 !AddPluginDir /amd64-unicode "../build/Release-mingw-amd64-unicode"
 !AddPluginDir /x86-unicode   "../build/Release-mingw-x86-unicode"

@@ -12,15 +12,64 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # we'll build on windows, linux and macos just for cross-checking, but only windows artifacts will get published
+          - os: windows-latest
+            python: python
+            make-x86: 'set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH% && mingw32-make.exe'
+            make-amd64: 'set PATH=C:\mingw64\bin;C:\msys64\usr\bin;%PATH% && mingw32-make.exe'
+            artifact-plugin: NSxfer
+            artifact-examples: NSxfer-Examples
+
+          - os: ubuntu-latest
+            python: python3
+            make-x86: 'make PREFIX=i686-w64-mingw32-'
+            make-amd64: 'make PREFIX=x86_64-w64-mingw32-'
+            artifact-plugin: NSxfer-ubuntu
+            artifact-examples: NSxfer-ubuntu-Examples
+
+          - os: macos-latest
+            python: python3
+            make-x86: 'make PREFIX=i686-w64-mingw32-'
+            make-amd64: 'make PREFIX=x86_64-w64-mingw32-'
+            artifact-plugin: NSxfer-macos
+            artifact-examples: NSxfer-macos-Examples
+
+    defaults:
+      run:
+        shell: ${{startsWith(matrix.os, 'windows') && 'cmd' || 'bash'}}
+
+    runs-on: ${{matrix.os}}
 
     outputs:
       # accessible from other jobs as ${{needs.build.outputs.version}}
       version: ${{steps.version.outputs.version}}
 
     steps:
-      - name: Install mingw-w64
+      - name: Install mingw-w64 (linux)
+        if: startsWith(matrix.os, 'ubuntu')
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mingw-w64
+
+      - name: Install mingw-w64 (macos)
+        if: startsWith(matrix.os, 'macos')
+        run: brew install mingw-w64
+
+      - name: Print mingw-w64 version
+        shell: python
+        run: |
+          import os
+          if os.name == 'nt':
+              os.environ['PATH'] = f"C:\\mingw32\\bin;C:\\msys64\\usr\\bin;{os.environ['PATH']}"
+              os.system('gcc --version')
+              os.environ['PATH'] = f"C:\\mingw64\\bin;C:\\msys64\\usr\\bin;{os.environ['PATH']}"
+              os.system('gcc --version')
+          else:
+              os.system('i686-w64-mingw32-gcc --version')
+              os.system('x86_64-w64-mingw32-gcc --version')
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,38 +90,49 @@ jobs:
             fout.write(f"version={date.year%100}.{date.month}.{date.day}.${{github.run_number}}\n")
 
       - name: Replace version in resource file
-        run: python3 _set_version.py --version=${{steps.version.outputs.version}}
+        run: ${{matrix.python}} _set_version.py --version=${{steps.version.outputs.version}}
 
       # --------------------------------------------------------------------------------
       # Build plugin
       # --------------------------------------------------------------------------------
-        
+
       - name: Build amd64-unicode plugin
-        run: make PREFIX=x86_64-w64-mingw32- ARCH=X64 CHAR=Unicode OUTDIR=build/Release-mingw-amd64-unicode -fMakefile.mingw clean all
+        run: ${{matrix.make-amd64}} ARCH=X64 CHAR=Unicode OUTDIR=build/Release-mingw-amd64-unicode -fMakefile.mingw clean all
 
       - name: Build x86-unicode plugin
-        run: make PREFIX=i686-w64-mingw32- ARCH=X86 CHAR=Unicode OUTDIR=build/Release-mingw-x86-unicode -fMakefile.mingw clean all
+        run: ${{matrix.make-x86}} ARCH=X86 CHAR=Unicode OUTDIR=build/Release-mingw-x86-unicode -fMakefile.mingw clean all
 
       - name: Build x86-ansi plugin
-        run: make PREFIX=i686-w64-mingw32- ARCH=X86 CHAR=ANSI OUTDIR=build/Release-mingw-x86-ansi -fMakefile.mingw clean all
+        run: ${{matrix.make-x86}} ARCH=X86 CHAR=ANSI OUTDIR=build/Release-mingw-x86-ansi -fMakefile.mingw clean all
 
       - name: Create plugin package
-        run: python3 _make_package.py
+        run: ${{matrix.python}} _make_package.py
 
       - name: Upload plugin package
         uses: actions/upload-artifact@v4
         with:
-          name: NSxfer
+          name: ${{matrix.artifact-plugin}}
           path: build/package/*
 
       # --------------------------------------------------------------------------------
       # Build plugin examples
       # --------------------------------------------------------------------------------
 
-      - name: Install NSIS
+      # Install an NSIS fork with amd64 support
+      - name: Install NSIS (windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: negrutiu/nsis-install@v2
+
+      - name: Install NSIS (linux)
+        if: startsWith(matrix.os, 'ubuntu')
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nsis
-        
+
+      - name: Install NSIS (macos)
+        if: startsWith(matrix.os, 'macos')
+        run: brew install makensis
+
       - name: Build amd64-unicode example
+        if: ${{!startsWith(matrix.os, 'macos')}}
         run: makensis -V3 -DAMD64 -DDEVEL Test/NSxfer-Test.nsi
 
       - name: Build x86-unicode example
@@ -84,7 +144,7 @@ jobs:
       - name: Upload plugin examples
         uses: actions/upload-artifact@v4
         with:
-          name: NSxfer-Examples
+          name: ${{matrix.artifact-examples}}
           path: |
             Test/*.exe
             Test/NSxfer-Test.nsi
@@ -93,42 +153,51 @@ jobs:
       # GitHub release (draft)
       # --------------------------------------------------------------------------------
 
-      # - name: GitHub release notes (master branch only)
-      #   if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
-      #   shell: python
-      #   run: |
-      #     lines = []
-      #     with open(".github/workflows/release-body.md") as fin:
-      #       line = fin.read()
-      #       line = line.replace('{url-workflow}', 'https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}')
-      #       lines.append(line)
-      #     with open(".github/workflows/release-body.md", "w") as fout:
-      #       for line in lines:
-      #         fout.write(line)
-  
-      # # note: we're using dawidd6/action-download-artifact@v5 because of `skip_unpack`
-      # - name: GitHub release artifacts (master branch only)
-      #   if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
-      #   uses: dawidd6/action-download-artifact@v6
-      #   with:
-      #     path: build/artifacts
-      #     name: ^NSxfer$|^NSxfer-Examples$
-      #     name_is_regexp: true
-      #     run_id: ${{github.run_id}}
-      #     skip_unpack: true
+  release:
+    name: Release Draft (master branch)
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # - name: GitHub release draft (master branch only)
-      #   if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/github/')
-      #   uses: ncipollo/release-action@v1
-      #   with:
-      #     # note: `tag` is the release key
-      #     tag: release-candidate
-      #     name: v${{steps.version.outputs.version}}
-      #     artifacts: build/artifacts/*
-      #     bodyFile: .github/workflows/release-body.md
-      #     draft: true
-      #     makeLatest: true
-      #     allowUpdates: true
-      #     updateOnlyUnreleased: true
-      #     artifactErrorsFailBuild: true
-      #     removeArtifacts: true
+      # we're using dawidd6/action-download-artifact@v5 because of `skip_unpack`
+      - name: Download artifacts
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          path: build/artifacts
+          name: ^NSxfer$|^NSxfer-Examples$
+          name_is_regexp: true
+          run_id: ${{github.run_id}}
+          skip_unpack: true
+
+      - name: Redact release notes
+        shell: python
+        run: |
+          lines = []
+          with open(".github/workflows/release-body.md") as fin:
+            line = fin.read()
+            line = line.replace('{url-workflow}', 'https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}')
+            lines.append(line)
+          with open(".github/workflows/release-body.md", "w") as fout:
+            for line in lines:
+              fout.write(line)
+  
+      - name: GitHub release draft
+        uses: ncipollo/release-action@v1
+        with:
+          # note: `tag` is the release key
+          tag: release-candidate
+          name: v${{needs.build.outputs.version}}
+          artifacts: build/artifacts/*
+          bodyFile: .github/workflows/release-body.md
+          draft: true
+          makeLatest: true
+          allowUpdates: true
+          updateOnlyUnreleased: true
+          artifactErrorsFailBuild: true
+          removeArtifacts: true
