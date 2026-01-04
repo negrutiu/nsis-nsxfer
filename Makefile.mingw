@@ -8,9 +8,10 @@
 # -------------------------------
 # Optional definitions
 # -------------------------------
-#   CUSTOM_CFLAGS
-#   CUSTOM_LDFLAGS
-#   CUSTOM_RCFLAGS
+#   PREFIX=
+#   CUSTOM_CFLAGS=
+#   CUSTOM_LDFLAGS=
+#   CUSTOM_RCFLAGS=
 
 
 PROJECT  = NSxfer
@@ -108,18 +109,18 @@ nsis-sdk:
 # Link
 $(_BIN): $(_OBJ)
 	@echo
-	gcc $(_OBJ) -o $(_BIN) $(LDFLAGS)
+	$(PREFIX)gcc $(_OBJ) -o $(_BIN) $(LDFLAGS)
 
 # Compile .c
 $(OUTDIR)/%.o: %.c
 	@echo
-	gcc $(CFLAGS) -o $@ -c $<
+	$(PREFIX)gcc $(CFLAGS) -o $@ -c $<
 
 $(OUTDIR)/%.o: nsis/pluginapi.c
 	@echo
-	gcc $(CFLAGS) -o $@ -c $<
+	$(PREFIX)gcc $(CFLAGS) -o $@ -c $<
 
 # Compile .rc
 $(OUTDIR)/%.res: %.rc
 	@echo
-	windres -o $@ -i $< -O coff --input-format=rc $(RCFLAGS)
+	$(PREFIX)windres -o $@ -i $< -O coff --input-format=rc $(RCFLAGS)
