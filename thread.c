@@ -594,7 +594,8 @@ BOOL ThreadDownload_RemoteConnect( _Inout_ PQUEUE_REQUEST pReq, _In_ BOOL bRecon
 							_send_request:
 
 								// Send the HTTP request
-								err = HttpSendRequest( pReq->hRequest, pReq->pszHeaders, -1, pReq->pData, pReq->iDataSize ) ? ERROR_SUCCESS : GetLastError();
+								// note: we'd normally use -1 for headers length, but that leads to crashes on Windows 2000 (and maybe others)
+								err = HttpSendRequest( pReq->hRequest, pReq->pszHeaders, (pReq->pszHeaders ? lstrlen(pReq->pszHeaders) : 0), pReq->pData, pReq->iDataSize ) ? ERROR_SUCCESS : GetLastError();
 								TRACE2( _T( "  Th:%s Id:%u HttpSendRequest( 0x%p, Headers:%s, Data:%hs ) == (0x%x) %d\n" ), pReq->pThread->szName, pReq->iId, pReq->hRequest, pReq->pszHeaders, (LPSTR)pReq->pData, err, err );
 								if (err == ERROR_SUCCESS) {
 
