@@ -25,7 +25,7 @@ libs = Split("""
 
 examples = Split("""
 	Test/NSxfer-Test.nsi
-	Test/NSxfer-Test-build.bat
+	Test/NSxfer-Test.bat
 """)
 
 docs = Split("""
