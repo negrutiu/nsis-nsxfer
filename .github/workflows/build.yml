@@ -133,13 +133,13 @@ jobs:
 
       - name: Build amd64-unicode example
         if: ${{!startsWith(matrix.os, 'macos')}}
-        run: makensis -V3 -DPLUGINDIR=build/Release-mingw-amd64-unicode -DTARGET=amd64-unicode Test/NSxfer-Test.nsi
+        run: makensis -V3 -DPLUGINDIR=../build/Release-mingw-amd64-unicode -DTARGET=amd64-unicode Test/NSxfer-Test.nsi
 
       - name: Build x86-unicode example
-        run: makensis -V3 -DPLUGINDIR=build/Release-mingw-x86-unicode -DTARGET=x86-unicode Test/NSxfer-Test.nsi
+        run: makensis -V3 -DPLUGINDIR=../build/Release-mingw-x86-unicode -DTARGET=x86-unicode Test/NSxfer-Test.nsi
 
       - name: Build x86-ansi example
-        run: makensis -V3 -DPLUGINDIR=build/Release-mingw-x86-ansi -DTARGET=x86-ansi Test/NSxfer-Test.nsi
+        run: makensis -V3 -DPLUGINDIR=../build/Release-mingw-x86-ansi -DTARGET=x86-ansi Test/NSxfer-Test.nsi
 
       - name: Upload plugin examples
         uses: actions/upload-artifact@v4
