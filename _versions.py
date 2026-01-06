@@ -55,15 +55,27 @@ def replace_resource_version(file, file_version=None, prod_version=None, update_
         print("resource file already up-to-date")
 
 
+def command_replace_resource(args):
+    replace_resource_version(file=args.file, file_version=args.version, prod_version=args.version)
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", type=str, default=os.path.join(scriptdir, "resource.rc"))
-    parser.add_argument("-v", "--version", type=str, default=None)
+    subparsers = parser.add_subparsers(help='available commands')
+
+    date = datetime.now(tz=timezone.utc)
+    default_version = f"{date.year}.{date.month}.{date.day}.0"
+    default_file = os.path.join(scriptdir, "resource.rc")
+
+    parser_replace_rc = subparsers.add_parser('replace-rc', help='replace version fields in resource file (*.rc)')
+    parser_replace_rc.add_argument("-f", "--file", type=str, default=default_file, help=f"resource file to update (default: {default_file})")
+    parser_replace_rc.add_argument("-v", "--version", type=str, default=default_version, help=f"version to set (default: {default_version})")
+    parser_replace_rc.set_defaults(func=command_replace_resource)
+
     args = parser.parse_args()
 
-    if not args.version:
-        date = datetime.now(tz=timezone.utc)
-        args.version = f"{date.year}.{date.month}.{date.day}.0"
-    
-    replace_resource_version(file=args.file, file_version=args.version, prod_version=args.version)
+    if hasattr(args, 'func'):
+        args.func(args)
+    else:
+        parser.print_help()

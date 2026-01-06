@@ -90,7 +90,7 @@ jobs:
             fout.write(f"version={date.year%100}.{date.month}.{date.day}.${{github.run_number}}\n")
 
       - name: Replace version in resource file
-        run: ${{matrix.python}} _set_version.py --version=${{steps.version.outputs.version}}
+        run: ${{matrix.python}} _versions.py replace-rc --version=${{steps.version.outputs.version}}
 
       # --------------------------------------------------------------------------------
       # Build plugin
