@@ -1,6 +1,10 @@
 
 # NSxfer demo
 # Marius Negrutiu - https://github.com/negrutiu/nsis-nsxfer#nsis-plugin-nsxfer
+#
+# Usage:
+#   NSxfer-Test.exe [/nsxfer <custom_nsxfer_dll>]
+#
 
 !ifdef TARGET
 	Target ${TARGET}                    ; x86-unicode, x86-ansi, amd64-unicode
@@ -15,6 +19,10 @@
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 !include "Sections.nsh"
+
+!include "FileFunc.nsh"
+!insertmacro GetOptions
+!insertmacro GetParameters
 
 !include "StrFunc.nsh"
 ${StrRep}				; Declare in advance
@@ -86,6 +94,29 @@ Function .onInit
 	; Language selection
 	!define MUI_LANGDLL_ALLLANGUAGES
 	!insertmacro MUI_LANGDLL_DISPLAY
+
+    ; look for `/nsxfer <path>` command line parameter
+    ; if specified, copy this file to $PLUGINSDIR to replace the built-in NSxfer.dll
+    ; this is a development feature and should not be included in production installers
+	${GetParameters} $R0
+	${GetOptions} $R0 "/nsxfer" $R1
+	${IfNot} ${Errors}
+        ; Try creating a hard link
+        System::Call 'kernel32::CreateHardLink(t "$PLUGINSDIR\NSxfer.dll", t r11, p ${NULL}) i.r0 ? e'
+        Pop $1
+        ${If} $0 = ${FALSE}
+        ${OrIf} $0 == "error"
+            ; Try copying the file
+            ClearErrors
+            CopyFiles /SILENT /FILESONLY $R1 "$PLUGINSDIR\NSxfer.dll"
+            ${If} ${Errors}
+                ; Everything failed
+                StrCmp $0 "error" +2 +1
+                    IntFmt $0 "0x%x" $1
+                MessageBox MB_ICONSTOP 'CreateHardLink("$R1" -> "$$PLUGINSDIR\NSxfer.dll") = $0$\nCopy("$R1" -> "$$PLUGINSDIR") failed$\n$\nUsing the built-in NSxfer.dll ...'
+            ${EndIf}
+        ${EndIf}
+	${EndIf}
 
 /*
 	; .onInit download demo
