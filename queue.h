@@ -8,7 +8,7 @@
 #define MEGABYTES(n)				((n) * 1024 * 1024)
 
 #define MIN_WORKER_THREADS			2
-#define MAX_WORKER_THREADS			20
+#define MAX_WORKER_THREADS			MAXIMUM_WAIT_OBJECTS
 #define INVALID_FILE_SIZE64			((ULONG64)-1)
 #define DEFAULT_VALUE				((ULONG)-1)
 #define DEFAULT_PRIORITY			1000
@@ -213,7 +213,7 @@ typedef struct _QUEUE {
 	ULONG iLastId;
 
 	// Worker threads
-	THREAD pThreads[MAX_WORKER_THREADS];
+	PTHREAD pThreads;
 	ULONG iThreadCount;					// Current thread count
 	volatile LONG iThreadBusyCount;		// Busy thread count
 	ULONG iThreadMaxCount;				// Maximum thread count
