@@ -31,6 +31,10 @@ ${StrTok}				; Declare in advance
 	!endif
 	!if /fileexists "${PLUGINDIR}${_/_}NSxfer.dll"
 		!AddPluginDir /${TARGET} "${PLUGINDIR}"
+		# look for NSxfer.pdb
+		!if /fileexists "${PLUGINDIR}${_/_}NSxfer.pdb"
+			!define PLUGINPDB "${PLUGINDIR}${_/_}NSxfer.pdb"
+		!endif
 	!else
 		!error "Missing ${PLUGINDIR}${_/_}NSxfer.dll"
 	!endif
@@ -75,6 +79,9 @@ Function .onInit
 
 	; Initializations
 	InitPluginsDir
+!ifdef PLUGINPDB
+	File /oname=$PLUGINSDIR/NSxfer.pdb ${PLUGINPDB}
+!endif
 
 	; Language selection
 	!define MUI_LANGDLL_ALLLANGUAGES

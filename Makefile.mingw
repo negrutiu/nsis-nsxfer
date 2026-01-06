@@ -101,7 +101,7 @@ RCFLAGS += \
 	$(CUSTOM_RCFLAGS)
 
 
-.PHONY: clean all-before nsis-sdk all all-after
+.PHONY: clean all-before nsis-sdk all pdb all-after
 
 clean:
 	rm -rf "$(OUTDIR)"
@@ -113,6 +113,13 @@ all-before:
 
 nsis-sdk:
 	$(PYTHON) _get_nsis_sdk.py
+
+pdb:
+# https://github.com/rainers/cv2pdb must be in PATH
+ifeq ($(OS), Windows_NT)
+	@echo
+	cv2pdb "$(_BIN)"
+endif
 
 # Link
 $(_BIN): $(_OBJ)
