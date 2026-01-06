@@ -1,9 +1,6 @@
 /build
 /nsis
 
-/Test/*.exe
-/Test/_*
-
 /NSxfer*.7z
 
 ipch
