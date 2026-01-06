@@ -64,12 +64,12 @@ jobs:
           import os
           if os.name == 'nt':
               os.environ['PATH'] = f"C:\\mingw32\\bin;C:\\msys64\\usr\\bin;{os.environ['PATH']}"
-              os.system('gcc --version')
+              os.system('gcc -v')
               os.environ['PATH'] = f"C:\\mingw64\\bin;C:\\msys64\\usr\\bin;{os.environ['PATH']}"
-              os.system('gcc --version')
+              os.system('gcc -v')
           else:
-              os.system('i686-w64-mingw32-gcc --version')
-              os.system('x86_64-w64-mingw32-gcc --version')
+              os.system('i686-w64-mingw32-gcc -v')
+              os.system('x86_64-w64-mingw32-gcc -v')
 
       - name: Checkout
         uses: actions/checkout@v4
