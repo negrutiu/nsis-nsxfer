@@ -1,4 +1,5 @@
 import subprocess
+from subprocess import Popen, PIPE
 from datetime import datetime, timezone
 import re
 import os
@@ -55,8 +56,42 @@ def replace_resource_version(file, file_version=None, prod_version=None, update_
         print("resource file already up-to-date")
 
 
+def get_gcc_version(gcc='gcc'):
+    """ Query `gcc` version """
+    process = Popen([gcc, "-v"], stdout=PIPE, stderr=PIPE)
+    (cout, cerr) = process.communicate()
+    exit_code = process.wait()
+
+    # possible examples:
+    # "gcc version 14.1.0 (Rev3, Built by MSYS2 project)"
+    # "gcc version 13.1.0 (MinGW-W64 x86_64-msvcrt-posix-seh, built by anonymous)"
+    # "gcc version 14.2.0 (MinGW-W64 i686-ucrt-posix-dwarf, built by Brecht Sanders, r3)"
+    # "gcc version 15.2.0 (i686-posix-dwarf-rev0, Built by MinGW-Builds project)"
+    # "gcc version 15.2.0 (GCC)"
+
+    if cerr != None:
+        for line in cerr.decode('utf-8').splitlines():
+            # print(f"cerr | {line}", flush=True)
+            if match := re.match(r'^gcc version (.+)\s\(', line):
+                version = match[1]
+                for revision in [r'\(Rev(\d+),', r'-rev(\d+),', r', r(\d+)\)']:
+                    if match := re.search(revision, line, re.IGNORECASE):
+                        version += ('-' + match[1]) if int(match[1]) != 0 else ''
+                        break
+                return version
+    return ""
+
+
 def command_replace_resource(args):
     replace_resource_version(file=args.file, file_version=args.version, prod_version=args.version)
+
+def command_gcc_version(args):
+    if os.path.isabs(args.prefix):
+        gcc = os.path.join(args.prefix, "gcc")
+    else:
+        gcc = args.prefix + "gcc"
+    if version := get_gcc_version(gcc):
+        print(version)
 
 
 if __name__ == '__main__':
@@ -72,6 +107,10 @@ if __name__ == '__main__':
     parser_replace_rc.add_argument("-f", "--file", type=str, default=default_file, help=f"resource file to update (default: {default_file})")
     parser_replace_rc.add_argument("-v", "--version", type=str, default=default_version, help=f"version to set (default: {default_version})")
     parser_replace_rc.set_defaults(func=command_replace_resource)
+
+    parser_gcc_version = subparsers.add_parser('gcc', help='get gcc version (e.g. "15.2.0-8")')
+    parser_gcc_version.add_argument("-p", "--prefix", type=str, default="", help='gcc prefix (e.g., "x86_64-w64-mingw32-", "C:\\mingw64\\bin")')
+    parser_gcc_version.set_defaults(func=command_gcc_version)
 
     args = parser.parse_args()
 

@@ -48,8 +48,12 @@ jobs:
     outputs:
       # accessible from other jobs as ${{needs.build.outputs.version}}
       version: ${{steps.version.outputs.version}}
+      version_gcc: ${{steps.version_gcc.outputs.version_gcc}}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install mingw-w64 (linux)
         if: startsWith(matrix.os, 'ubuntu')
         run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mingw-w64
@@ -58,21 +62,30 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: brew install mingw-w64
 
-      - name: Print mingw-w64 version
+      - name: Query mingw-w64 version
+        id: version_gcc
         shell: python
         run: |
-          import os
-          if os.name == 'nt':
-              os.environ['PATH'] = f"C:\\mingw32\\bin;C:\\msys64\\usr\\bin;{os.environ['PATH']}"
-              os.system('gcc -v')
-              os.environ['PATH'] = f"C:\\mingw64\\bin;C:\\msys64\\usr\\bin;{os.environ['PATH']}"
-              os.system('gcc -v')
-          else:
-              os.system('i686-w64-mingw32-gcc -v')
-              os.system('x86_64-w64-mingw32-gcc -v')
+          import os, sys
+          sys.path.insert(0, r'${{github.workspace}}')
+          from _versions import *   # _versions.py
 
-      - name: Checkout
-        uses: actions/checkout@v4
+          if os.name == 'nt':
+            version_gcc = get_gcc_version(r"C:\mingw32\bin\gcc.exe")
+            os.environ['PATH'] = fr"C:\mingw32\bin;C:\msys64\usr\bin;{os.environ['PATH']}"
+            os.system('gcc --version')
+            os.environ['PATH'] = fr"C:\mingw64\bin;C:\msys64\usr\bin;{os.environ['PATH']}"
+            os.system('gcc --version')
+          else:
+            version_gcc = get_gcc_version('i686-w64-mingw32-gcc')
+            os.system('i686-w64-mingw32-gcc --version')
+            os.system('x86_64-w64-mingw32-gcc --version')
+
+          print(f'version_gcc={version_gcc}', flush=True)
+          assert version_gcc, "empty gcc version"
+
+          with open(os.getenv('GITHUB_OUTPUT'), "a") as fout:
+            fout.write(f"version_gcc={version_gcc}\n")
 
       # --------------------------------------------------------------------------------
       # Versioning
@@ -183,6 +196,7 @@ jobs:
           with open(".github/workflows/release-body.md") as fin:
             line = fin.read()
             line = line.replace('{url-workflow}', 'https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}')
+            line = line.replace('{version-gcc}', '${{needs.build.outputs.version_gcc}}')
             lines.append(line)
           with open(".github/workflows/release-body.md", "w") as fout:
             for line in lines:
