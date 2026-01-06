@@ -148,6 +148,7 @@ jobs:
           path: |
             Test/*.exe
             Test/NSxfer-Test.nsi
+            Test/NSxfer-Test.bat
 
       # --------------------------------------------------------------------------------
       # GitHub release (draft)
