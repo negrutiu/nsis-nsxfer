@@ -80,10 +80,8 @@ VOID AllocErrorStr( _In_ DWORD dwErrCode, _Out_ TCHAR **ppszErrText );		/// Call
 	} \
 }
 
-#define MyZeroMemory(_ptr, _cnt) { \
-	LPBYTE p; \
-	for ( p = (LPBYTE)(_ptr) + (_cnt) - 1; p >= (LPBYTE)(_ptr); p-- ) *p = 0; \
-}
+#define MyZeroMemory(_ptr, _size) \
+	RtlSecureZeroMemory(_ptr, _size)
 
 typedef struct {
 	UINT64 AllocBytes;
