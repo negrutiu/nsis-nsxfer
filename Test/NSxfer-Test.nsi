@@ -1,6 +1,10 @@
 
 # NSxfer demo
 # Marius Negrutiu - https://github.com/negrutiu/nsis-nsxfer#nsis-plugin-nsxfer
+#
+# Usage:
+#   NSxfer-Test.exe [/nsxfer <custom_nsxfer_dll>]
+#
 
 !ifdef TARGET
 	Target ${TARGET}                    ; x86-unicode, x86-ansi, amd64-unicode
@@ -8,16 +12,25 @@
 	!define TARGET x86-unicode          ; Default
 !endif
 
+!if /fileexists "${NSISDIR}\Include\ModernXL.nsh"
+	!include "ModernXL.nsh"		    ; Available in the NSIS fork from https://github.com/negrutiu/nsis
+!endif
 !include "MUI2.nsh"
 !define LOGICLIB_STRCMP
 !include "LogicLib.nsh"
 !include "Sections.nsh"
+
+!include "FileFunc.nsh"
+!insertmacro GetOptions
+!insertmacro GetParameters
 
 !include "StrFunc.nsh"
 ${StrRep}				; Declare in advance
 ${StrTok}				; Declare in advance
 
 !define /ifndef NULL 0
+
+Var /global g_workdir
 
 # PLUGINDIR may specify the location of a custom NSxfer.dll
 !ifdef PLUGINDIR
@@ -28,6 +41,10 @@ ${StrTok}				; Declare in advance
 	!endif
 	!if /fileexists "${PLUGINDIR}${_/_}NSxfer.dll"
 		!AddPluginDir /${TARGET} "${PLUGINDIR}"
+		# look for NSxfer.pdb
+		!if /fileexists "${PLUGINDIR}${_/_}NSxfer.pdb"
+			!define PLUGINPDB "${PLUGINDIR}${_/_}NSxfer.pdb"
+		!endif
 	!else
 		!error "Missing ${PLUGINDIR}${_/_}NSxfer.dll"
 	!endif
@@ -35,8 +52,8 @@ ${StrTok}				; Declare in advance
 !endif
 
 # GUI settings
-!define MUI_ICON "${NSISDIR}/Contrib/Graphics/Icons/orange-install-nsis.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}/Contrib/Graphics/Wizard/orange-nsis.bmp"
+!define /ifndef MUI_ICON "${NSISDIR}/Contrib/Graphics/Icons/orange-install-nsis.ico"
+!define /ifndef MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}/Contrib/Graphics/Wizard/orange-nsis.bmp"
 
 # Welcome page
 ;!define MUI_WELCOMEPAGE_TITLE_3LINES
@@ -72,16 +89,52 @@ Function .onInit
 
 	; Initializations
 	InitPluginsDir
+!ifdef PLUGINPDB
+	File /oname=$PLUGINSDIR/NSxfer.pdb ${PLUGINPDB}
+!endif
 
 	; Language selection
 	!define MUI_LANGDLL_ALLLANGUAGES
 	!insertmacro MUI_LANGDLL_DISPLAY
 
+    ; look for `/nsxfer <path>` command line parameter
+    ; if specified, copy this file to $PLUGINSDIR to replace the built-in NSxfer.dll
+    ; this is a development feature and should not be included in production installers
+	${GetParameters} $R0
+	${GetOptions} $R0 "/nsxfer" $R1
+	${IfNot} ${Errors}
+        ; Try creating a hard link
+        System::Call 'kernel32::CreateHardLink(t "$PLUGINSDIR\NSxfer.dll", t r11, p ${NULL}) i.r0 ? e'
+        Pop $1
+        ${If} $0 = ${FALSE}
+        ${OrIf} $0 == "error"
+            ; Try copying the file
+            ClearErrors
+            CopyFiles /SILENT /FILESONLY $R1 "$PLUGINSDIR\NSxfer.dll"
+            ${If} ${Errors}
+                ; Everything failed
+                StrCmp $0 "error" +2 +1
+                    IntFmt $0 "0x%x" $1
+                MessageBox MB_ICONSTOP 'CreateHardLink("$R1" -> "$$PLUGINSDIR\NSxfer.dll") = $0$\nCopy("$R1" -> "$$PLUGINSDIR") failed$\n$\nUsing the built-in NSxfer.dll ...'
+            ${EndIf}
+        ${EndIf}
+	${EndIf}
+
+	; Working directory
+	; Use $EXEDIR if we've got write access, else fall back to $TEMP
+	StrCpy $g_workdir "$EXEDIR\NSxfer-Test-Files"
+	ClearErrors
+	CreateDirectory $g_workdir
+	${If} ${Errors}
+		StrCpy $g_workdir "$TEMP\NSxfer-Test-Files"
+		CreateDirectory $g_workdir
+	${EndIf}
+
 /*
 	; .onInit download demo
 	; NOTE: Transfers from .onInit can be either Silent or Popup (no Page!)
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
-	!define /redef FILE '$EXEDIR\_Post_onInit.json'
+	!define /redef FILE '$g_workdir\_Post_onInit.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /METHOD POST /MODE Popup /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
@@ -98,14 +151,7 @@ FunctionEnd
 
 Section "Cleanup test files"
 	SectionIn 1	2 ; All
-	FindFirst $0 $1 "$EXEDIR\_*.*"
-loop:
-	StrCmp $1 "" done
-	Delete "$EXEDIR\$1"
-	FindNext $0 $1
-	Goto loop
-done:
-	FindClose $0
+	RMDir /r $g_workdir
 SectionEnd
 
 
@@ -117,7 +163,7 @@ Section /o "HTTP GET (Page mode)"
 	DetailPrint '-----------------------------------------------'
 
 	!define /redef LINK 'https://download.sysinternals.com/files/SysinternalsSuite.zip'
-	!define /redef FILE '$EXEDIR\_SysinternalsSuite.zip'
+	!define /redef FILE '$g_workdir\_SysinternalsSuite.zip'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 30000 /END
 	Pop $0
@@ -134,7 +180,7 @@ Section /o "HTTP GET (Popup mode)"
 
 	; NOTE: github.com doesn't support Range headers
 	!define /redef LINK `https://github.com/cuckoobox/cuckoo/archive/master.zip`
-	!define /redef FILE "$EXEDIR\_CuckooBox_master.zip"
+	!define /redef FILE "$g_workdir\_CuckooBox_master.zip"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /Mode Popup /END
 	Pop $0
@@ -150,7 +196,7 @@ Section /o "HTTP GET (Silent mode)"
 	DetailPrint '-----------------------------------------------'
 
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
-	!define /redef FILE "$EXEDIR\_Firefox.exe"
+	!define /redef FILE "$g_workdir\_Firefox.exe"
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
 	Pop $0
@@ -213,21 +259,21 @@ Section /o "HTTP GET (Parallel transfers)"
 
 	; Request 1
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
-	!define /redef FILE "$EXEDIR\_Firefox(2).exe"
+	!define /redef FILE "$g_workdir\_Firefox(2).exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /Mode Silent /END
 	Pop $1
 
 	; Request 2
 	!define /redef LINK `https://download.mozilla.org/?product=firefox-stub&os=win&lang=en-US`
-	!define /redef FILE "$EXEDIR\_Firefox(3).exe"
+	!define /redef FILE "$g_workdir\_Firefox(3).exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 	Pop $2
 
 	; Request 3
 	!define /redef LINK `http://download.osmc.tv/installers/osmc-installer.exe`
-	!define /redef FILE "$EXEDIR\_osmc_installer.exe"
+	!define /redef FILE "$g_workdir\_osmc_installer.exe"
 	DetailPrint 'NSxfer::Request "${LINK}" "${FILE}"'
 	NSxfer::Request /URL "${LINK}" /LOCAL "${FILE}" /TIMEOUTCONNECT 15000 /END
 	Pop $3
@@ -252,7 +298,7 @@ Section /o "-HTTP GET (proxy)"
 	DetailPrint '-----------------------------------------------'
 
 	!define /redef LINK  "https://download.sysinternals.com/files/SysinternalsSuite.zip"
-	!define /redef FILE  "$EXEDIR\_SysinternalsSuiteLive_proxy.zip"
+	!define /redef FILE  "$g_workdir\_SysinternalsSuiteLive_proxy.zip"
 	!define /redef PROXY "http=54.36.139.108:8118 https=54.36.139.108:8118"			; France
 	DetailPrint 'NSxfer::Transfer /proxy ${PROXY} "${LINK}" "${FILE}"'
 	NSxfer::Transfer /PRIORITY 10 /URL "${LINK}" /LOCAL "${FILE}" /PROXY "${PROXY}" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /ABORT "Abort" "Are you sure?" /END
@@ -269,7 +315,7 @@ Section /o "HTTP POST (application/json)"
 	DetailPrint '-----------------------------------------------'
 
 	!define /redef LINK 'https://httpbin.org/post?param1=1&param2=2'
-	!define /redef FILE '$EXEDIR\_Post_json.json'
+	!define /redef FILE '$g_workdir\_Post_json.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /METHOD Post /URL "${LINK}" /LOCAL "${FILE}" /DATA '{"number_of_the_beast" : 666}' /HEADERS "Content-Type: application/json" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
@@ -285,7 +331,7 @@ Section /o "HTTP POST (application/x-www-form-urlencoded)"
 	DetailPrint '-----------------------------------------------'
 
 	!define /redef LINK 'http://httpbin.org/post?param1=1&param2=2'
-	!define /redef FILE '$EXEDIR\_Post_form.json'
+	!define /redef FILE '$g_workdir\_Post_form.json'
 	DetailPrint 'NSxfer::Transfer "${LINK}" "${FILE}"'
 	NSxfer::Transfer /METHOD POST /URL "${LINK}" /LOCAL "${FILE}" /DATA 'User=My+User&Pass=My+Pass' /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Dummy: Dummy" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "https://wikipedia.org" /END
 	Pop $0
@@ -296,7 +342,7 @@ SectionEnd
 !macro TEST_DEPENDENCY_REQUEST _Filename _DependsOn
 	!define /redef LINK `http://httpbin.org/post`
 	DetailPrint 'NSxfer::Request "${LINK}" "${_Filename}.txt"'
-	NSxfer::Request /PRIORITY 2000 /DEPEND ${_DependsOn} /METHOD POST /URL "${LINK}" /LOCAL "$EXEDIR\${_Filename}.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
+	NSxfer::Request /PRIORITY 2000 /DEPEND ${_DependsOn} /METHOD POST /URL "${LINK}" /LOCAL "$g_workdir\${_Filename}.txt" /HEADERS "Content-Type: application/x-www-form-urlencoded$\r$\nContent-Test: TEST" /DATA "user=My+User+Name&pass=My+Password" /TIMEOUTCONNECT 15000 /TIMEOUTRECONNECT 60000 /REFERER "${LINK}" /END
 	Pop $0	; Request ID
 !macroend
 

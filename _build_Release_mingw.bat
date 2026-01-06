@@ -1,8 +1,12 @@
 REM :: Marius Negrutiu (marius.negrutiu@protonmail.com)
 
 @echo off
-echo.
 setlocal EnableDelayedExpansion
+
+if "%config%" equ "" set config=%~1
+if "%config%" equ "" set config=Release
+
+set makemore=%~2
 
 for %%d in ("%MINGW32_INSTDIR%" %SYSTEMDRIVE%\mingw32 %SYSTEMDRIVE%\msys64\mingw32 "") do (
   if not exist "!MINGW32!\bin\gcc.exe" set MINGW32=%%~d
@@ -19,40 +23,35 @@ set ORIGINAL_PATH=%PATH%
 cd /d "%~dp0"
 
 :x86
-if not exist "%MINGW32%\bin\gcc.exe" echo ERROR: Missing "%MINGW32%" && pause && exit /b 2
 set PATH=%MINGW32%\bin;%posix_shell%;%ORIGINAL_PATH%
 
 echo.
 echo -------------------------------------------------------------------
-set OUTDIR=build\Release-mingw-x86-ansi
+set OUTDIR=build\%config%-mingw-x86-ansi
 echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
-mingw32-make.exe ARCH=X86 CHAR=ANSI OUTDIR=%OUTDIR% -fMakefile.mingw clean all
-if %errorlevel% neq 0 pause && exit /b %errorlevel%
+mingw32-make.exe ARCH=X86 CHAR=ANSI CONFIG=%config% OUTDIR=%OUTDIR% -fMakefile.mingw clean all %makemore% || pause && exit /b !errorlevel!
 
 echo.
 echo -------------------------------------------------------------------
-set OUTDIR=build\Release-mingw-x86-unicode
+set OUTDIR=build\%config%-mingw-x86-unicode
 echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
-mingw32-make.exe ARCH=X86 CHAR=Unicode OUTDIR=%OUTDIR% -fMakefile.mingw clean all
-if %errorlevel% neq 0 pause && exit /b %errorlevel%
+mingw32-make.exe ARCH=X86 CHAR=Unicode CONFIG=%config% OUTDIR=%OUTDIR% -fMakefile.mingw clean all %makemore% || pause && exit /b !errorlevel!
 
 
 :amd64
-if not exist "%MINGW64%\bin\gcc.exe" echo ERROR: Missing "%MINGW64%" && pause && exit /b 2
 set PATH=%MINGW64%\bin;%posix_shell%;%ORIGINAL_PATH%
 
 echo.
 echo -------------------------------------------------------------------
-set OUTDIR=build\Release-mingw-amd64-unicode
+set OUTDIR=build\%config%-mingw-amd64-unicode
 echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
-mingw32-make.exe ARCH=X64 CHAR=Unicode OUTDIR=%OUTDIR% -fMakefile.mingw clean all
-if %errorlevel% neq 0 pause && exit /b %errorlevel%
+mingw32-make.exe ARCH=X64 CHAR=Unicode CONFIG=%config% OUTDIR=%OUTDIR% -fMakefile.mingw clean all %makemore% || pause && exit /b !errorlevel!
 
 echo.
 REM pause

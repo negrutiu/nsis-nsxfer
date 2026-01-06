@@ -5,6 +5,7 @@
 #   ARCH=X86|x64
 #   CHAR=ANSI|Unicode
 #   OUTDIR=<output_directory>
+#   CONFIG=Debug|Release
 # -------------------------------
 # Optional definitions
 # -------------------------------
@@ -38,11 +39,11 @@ override PYTHON ?= $(if $(filter Windows_NT,$(OS)),py -3,python3)
 
 # ARCH
 ifeq ($(ARCH), X64)
-	CFLAGS  += -DNDEBUG
+	CFLAGS  +=
 	LDFLAGS += -Wl,--high-entropy-va -Wl,-e'DllMain'
 	RCFLAGS += -F pe-x86-64
 else
-	CFLAGS  += -march=pentium2 -DNDEBUG
+	CFLAGS  += -march=pentium2
 	LDFLAGS += -Wl,-e'_DllMain'
 	RCFLAGS += -F pe-i386
 endif
@@ -56,14 +57,21 @@ else
 	LDFLAGS +=
 endif
 
+# CONFIG
+ifeq ($(CONFIG), Debug)
+	CFLAGS  += -DDEBUG -D_DEBUG -g -O0
+	RCFLAGS += -DDEBUG -D_DEBUG
+else
+	CFLAGS  += -DNDEBUG -O3 -s
+	RCFLAGS += -DNDEBUG
+endif
+
 # https://sourceforge.net/p/mingw-w64/wiki2/gnu%20printf/
 CFLAGS += -D__USE_MINGW_ANSI_STDIO=0
 
 CFLAGS += \
 	-mdll \
 	-nostdlib \
-	-s \
-	-Os \
 	-fPIE \
 	-ffunction-sections \
 	-fdata-sections \
@@ -93,7 +101,7 @@ RCFLAGS += \
 	$(CUSTOM_RCFLAGS)
 
 
-.PHONY: clean all-before nsis-sdk all all-after
+.PHONY: clean all-before nsis-sdk all pdb all-after
 
 clean:
 	rm -rf "$(OUTDIR)"
@@ -105,6 +113,13 @@ all-before:
 
 nsis-sdk:
 	$(PYTHON) _get_nsis_sdk.py
+
+pdb:
+# https://github.com/rainers/cv2pdb must be in PATH
+ifeq ($(OS), Windows_NT)
+	@echo
+	cv2pdb "$(_BIN)"
+endif
 
 # Link
 $(_BIN): $(_OBJ)
