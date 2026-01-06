@@ -2,14 +2,10 @@
 # NSxfer demo
 # Marius Negrutiu - https://github.com/negrutiu/nsis-nsxfer#nsis-plugin-nsxfer
 
-!ifdef AMD64
-	!define _TARGET_ amd64-unicode
-	Target ${_TARGET_}
-!else ifdef ANSI
-	!define _TARGET_ x86-ansi
-	Target ${_TARGET_}
+!ifdef TARGET
+	Target ${TARGET}                    ; x86-unicode, x86-ansi, amd64-unicode
 !else
-	!define _TARGET_ x86-unicode		; Default
+	!define TARGET x86-unicode          ; Default
 !endif
 
 !include "MUI2.nsh"
@@ -23,20 +19,24 @@ ${StrTok}				; Declare in advance
 
 !define /ifndef NULL 0
 
-
-# NSxfer.dll development location
-!ifdef DEVEL
-!if ! /FileExists "..\Release-mingw-${_TARGET_}\NSxfer.dll"
-	!error "Missing \Release-mingw-${_TARGET_}\NSxfer.dll"
-!endif
-!AddPluginDir /amd64-unicode "..\Release-mingw-amd64-unicode"
-!AddPluginDir /x86-unicode   "..\Release-mingw-x86-unicode"
-!AddPluginDir /x86-ansi      "..\Release-mingw-x86-ansi"
+# PLUGINDIR may specify the location of a custom NSxfer.dll
+!ifdef PLUGINDIR
+	!ifdef NSIS_WIN32_MAKENSIS
+		!define _/_ "\"
+	!else
+		!define _/_ "/"		# posix (/fileexists is sensitive to path separators)
+	!endif
+	!if /fileexists "${PLUGINDIR}${_/_}NSxfer.dll"
+		!AddPluginDir /${TARGET} "${PLUGINDIR}"
+	!else
+		!error "Missing ${PLUGINDIR}${_/_}NSxfer.dll"
+	!endif
+	!undef _/_
 !endif
 
 # GUI settings
-!define MUI_ICON "${NSISDIR}\Contrib\Graphics\Icons\orange-install-nsis.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\orange-nsis.bmp"
+!define MUI_ICON "${NSISDIR}/Contrib/Graphics/Icons/orange-install-nsis.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}/Contrib/Graphics/Wizard/orange-nsis.bmp"
 
 # Welcome page
 ;!define MUI_WELCOMEPAGE_TITLE_3LINES
@@ -57,8 +57,8 @@ InstType "None"		; 2
 !insertmacro MUI_RESERVEFILE_LANGDLL
 
 # Installer details
-Name    "NSxfer-Test-${_TARGET_}"
-OutFile "NSxfer-Test-${_TARGET_}.exe"
+Name    "NSxfer-Test-${TARGET}"
+OutFile "NSxfer-Test-${TARGET}.exe"
 XPStyle on
 RequestExecutionLevel user		; Don't require UAC elevation
 ShowInstDetails show

@@ -24,7 +24,7 @@ set PATH=%MINGW32%\bin;%posix_shell%;%ORIGINAL_PATH%
 
 echo.
 echo -------------------------------------------------------------------
-set OUTDIR=Release-mingw-x86-ansi
+set OUTDIR=build\Release-mingw-x86-ansi
 echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
@@ -33,7 +33,7 @@ if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 echo.
 echo -------------------------------------------------------------------
-set OUTDIR=Release-mingw-x86-unicode
+set OUTDIR=build\Release-mingw-x86-unicode
 echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------
@@ -47,7 +47,7 @@ set PATH=%MINGW64%\bin;%posix_shell%;%ORIGINAL_PATH%
 
 echo.
 echo -------------------------------------------------------------------
-set OUTDIR=Release-mingw-amd64-unicode
+set OUTDIR=build\Release-mingw-amd64-unicode
 echo %OUTDIR%
 title %OUTDIR%
 echo -------------------------------------------------------------------

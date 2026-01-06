@@ -14,7 +14,7 @@ VOID QueueInitialize(
 {
 	assert( pQueue );
 	assert( szName && *szName );
-	assert( iThreadCount < MAX_WORKER_THREADS );
+	// assert( iThreadCount < MAX_WORKER_THREADS );
 
 	// Name
 	if ( szName && *szName ) {
@@ -29,7 +29,8 @@ VOID QueueInitialize(
 	pQueue->iLastId = 0;
 
 	// Worker threads
-	pQueue->iThreadMaxCount = __min( iThreadCount, MAX_WORKER_THREADS - 1 );
+	pQueue->pThreads = (PTHREAD)MyAlloc(MAX_WORKER_THREADS * sizeof(THREAD));
+	pQueue->iThreadMaxCount = __min( iThreadCount, MAX_WORKER_THREADS );
 	pQueue->iThreadCount = 0; // Don't create worker threads yet
 	pQueue->iThreadBusyCount = 0;
 	pQueue->hThreadTermEvent = CreateEvent( NULL, TRUE, FALSE, NULL );	/// Manual
@@ -47,7 +48,7 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 	// Worker threads
 	if ( pQueue->iThreadCount > 0 ) {
 
-		HANDLE pObj[MAX_WORKER_THREADS];
+		HANDLE* pObj = (HANDLE*)MyAlloc(MAX_WORKER_THREADS * sizeof(HANDLE));
 		ULONG i, iObjCnt = 0;
 		const ULONG QUEUE_WAIT_FOR_THREADS = 12000;
 
@@ -80,12 +81,15 @@ VOID QueueDestroy( _Inout_ PQUEUE pQueue )
 					TerminateThread( pObj[i], 666 );
 			}
 		}
+
+		MyFree(pObj);
 	}
 	CloseHandle( pQueue->hThreadTermEvent );
 	CloseHandle( pQueue->hThreadWakeEvent );
 	pQueue->hThreadTermEvent = NULL;
 	pQueue->hThreadWakeEvent = NULL;
 	pQueue->iThreadCount = 0;
+	MyFree(pQueue->pThreads);
 
 	// Queue
 	///QueueLock( pQueue );
