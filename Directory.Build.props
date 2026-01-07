@@ -1,0 +1,37 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)User.props" Condition="Exists('$(MSBuildThisFileDirectory)User.props')"/>
+
+  <PropertyGroup>
+    <NsisPlatform Condition="'$(Platform)'=='Win32'">x86</NsisPlatform>
+    <NsisPlatform Condition="'$(Platform)'=='x64'">amd64</NsisPlatform>
+
+    <CharacterSet Condition="'$(CharacterSet)'!=''">$(CharacterSet)</CharacterSet>
+    <CharacterSet Condition="'$(CharacterSet)'==''">Unicode</CharacterSet>
+
+    <NsisCharacterSet Condition="'$(CharacterSet)'=='MultiByte'">ansi</NsisCharacterSet>
+    <NsisCharacterSet Condition="'$(CharacterSet)'!='MultiByte'">unicode</NsisCharacterSet>
+
+    <OutDir>$(SolutionDir)build\$(Configuration)-msvc-$(NsisPlatform)-$(NsisCharacterSet)\</OutDir>
+    <IntDir>$(SolutionDir)build\$(Configuration)-msvc-$(NsisPlatform)-$(NsisCharacterSet)\IntDir\$(MSBuildProjectName)\</IntDir>
+
+    <LocalDebuggerCommand>$(SolutionDir)\Test\NSxfer-Test-$(NsisPlatform)-$(NsisCharacterSet).exe</LocalDebuggerCommand>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>/nsxfer "$(OutDir)$(MSBuildProjectName).dll"</LocalDebuggerCommandArguments>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup Condition="$(MSBuildProjectExtension) == '.vcxproj'">
+    <ClCompile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="$(Configuration.Contains('Debug')) and '$(MSBuildProjectExtension)' == '.vcxproj'">
+    <Link>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup Condition="$(Configuration.Contains('Release')) and '$(MSBuildProjectExtension)' == '.vcxproj'">
+    <Link>
+    </Link>
+  </ItemDefinitionGroup>
+
+</Project>

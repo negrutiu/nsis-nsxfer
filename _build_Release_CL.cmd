@@ -1,33 +1,34 @@
 REM :: Marius Negrutiu (marius.negrutiu@protonmail.com)
 
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 echo.
 
 :: This script builds the project by directly calling cl.exe
 :: The sln/vcxproj files are ignored
 
-:CHDIR
 cd /d "%~dp0"
 
-:DEFINITIONS
-for /f "delims=*" %%i in ('dir /B /OD *.sln 2^> nul') do set BUILD_SOLUTION=%%~fi
-if "%BUILD_CONFIG%" equ "" set BUILD_CONFIG=%~1
-if "%BUILD_CONFIG%" equ "" set BUILD_CONFIG=Release
-set BUILD_VERBOSITY=normal
+if "%config%" equ "" set config=%~1
+if "%config%" equ "" set config=Release
 
-:COMPILER
+for /f "delims=*" %%i in ('dir /b /od *.sln 2^> nul') do set solution=%%~fi
+
+rem | ------------------------------------------------------------
+
 if not exist "%PF%" set PF=%PROGRAMFILES(X86)%
 if not exist "%PF%" set PF=%PROGRAMFILES%
 set VSWHERE=%PF%\Microsoft Visual Studio\Installer\vswhere.exe
-if not exist "%VCVARSALL%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 17 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v143
-if not exist "%VCVARSALL%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 16 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v142
-if not exist "%VCVARSALL%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set VCVARSALL=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v141
-if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 14.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v140
-if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 12.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v120
-if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 11.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v110
-if not exist "%VCVARSALL%" set VCVARSALL=%PF%\Microsoft Visual Studio 10.0\VC\VcVarsAll.bat&& set BUILD_PLATFORMTOOLSET=v100
-if not exist "%VCVARSALL%" echo ERROR: Can't find Visual Studio 2010-2022 && pause && exit /b 2
+if not exist "%vcvarsall%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 17 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set vcvarsall=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set toolset=v143
+if not exist "%vcvarsall%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 16 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set vcvarsall=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set toolset=v142
+if not exist "%vcvarsall%" for /f "tokens=1* delims=: " %%i in ('"%VSWHERE%" -version 15 -requires Microsoft.Component.MSBuild 2^> NUL') do if /i "%%i"=="installationPath" set vcvarsall=%%j\VC\Auxiliary\Build\VCVarsAll.bat&& set toolset=v141
+if not exist "%vcvarsall%" set vcvarsall=%PF%\Microsoft Visual Studio 14.0\VC\VcVarsAll.bat&& set toolset=v140
+if not exist "%vcvarsall%" set vcvarsall=%PF%\Microsoft Visual Studio 12.0\VC\VcVarsAll.bat&& set toolset=v120
+if not exist "%vcvarsall%" set vcvarsall=%PF%\Microsoft Visual Studio 11.0\VC\VcVarsAll.bat&& set toolset=v110
+if not exist "%vcvarsall%" set vcvarsall=%PF%\Microsoft Visual Studio 10.0\VC\VcVarsAll.bat&& set toolset=v100
+if not exist "%vcvarsall%" echo ERROR: Can't find Visual Studio 2010-2022 && pause && exit /b 2
+
+rem | ------------------------------------------------------------
 
 :pluginapi
 call py -3 _get_nsis_sdk.py || exit /b !errorlevel!
@@ -37,8 +38,8 @@ set OUTNAME=NSxfer
 set RCNAME=resource
 
 :BUILD
-pushd "%CD%"
-call "%VCVARSALL%" x86
+pushd "%cd%"
+call "%vcvarsall%" x86
 popd
 
 echo -----------------------------------
@@ -63,8 +64,8 @@ call :BUILD_CL
 if %errorlevel% neq 0 pause && exit /b %errorlevel%
 
 :BUILD64
-pushd "%CD%"
-call "%VCVARSALL%" amd64
+pushd "%cd%"
+call "%vcvarsall%" amd64
 popd
 
 echo -----------------------------------

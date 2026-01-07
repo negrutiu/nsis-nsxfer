@@ -1,35 +1,31 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36811.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NSxfer", "NSxfer.vcxproj", "{FE51110F-82BE-423E-800C-F5951C998D22}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug-x86-ansi|Win32 = Debug-x86-ansi|Win32
-		Debug-x86-unicode|Win32 = Debug-x86-unicode|Win32
-		Release-nocrt-x86-ansi|Win32 = Release-nocrt-x86-ansi|Win32
-		Release-staticcrt-x86-ansi|Win32 = Release-staticcrt-x86-ansi|Win32
-		Release-nocrt-x86-unicode|Win32 = Release-nocrt-x86-unicode|Win32
-		Release-staticcrt-x86-unicode|Win32 = Release-staticcrt-x86-unicode|Win32
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-ansi|Win32.ActiveCfg = Debug-x86-ansi|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-ansi|Win32.Build.0 = Debug-x86-ansi|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-unicode|Win32.ActiveCfg = Debug-x86-unicode|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug-x86-unicode|Win32.Build.0 = Debug-x86-unicode|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-ansi|Win32.ActiveCfg = Release-nocrt-x86-ansi|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-ansi|Win32.Build.0 = Release-nocrt-x86-ansi|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-ansi|Win32.ActiveCfg = Release-staticcrt-x86-ansi|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-ansi|Win32.Build.0 = Release-staticcrt-x86-ansi|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-unicode|Win32.ActiveCfg = Release-nocrt-x86-unicode|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-unicode|Win32.Build.0 = Release-nocrt-x86-unicode|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-nocrt-x86-unicode|Win32.Deploy.0 = Release-nocrt-x86-unicode|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-unicode|Win32.ActiveCfg = Release-staticcrt-x86-unicode|Win32
-		{FE51110F-82BE-423E-800C-F5951C998D22}.Release-staticcrt-x86-unicode|Win32.Build.0 = Release-staticcrt-x86-unicode|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug|Win32.Build.0 = Debug|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug|x64.ActiveCfg = Debug|x64
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Debug|x64.Build.0 = Debug|x64
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release|Win32.ActiveCfg = Release|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release|Win32.Build.0 = Release|Win32
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release|x64.ActiveCfg = Release|x64
+		{FE51110F-82BE-423E-800C-F5951C998D22}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C1F7FEF4-4F4C-48F6-BE25-B2235C2F6D09}
 	EndGlobalSection
 EndGlobal
