@@ -20,6 +20,10 @@ NSxfer gives you the means to perform complex HTTP/HTTPS transfers from a NSIS s
 - Works well in **64-bit** [NSIS builds](https://github.com/negrutiu/nsis)
 - Many more... Check out the included [readme file](NSxfer.Readme.txt)
 
+> [!TIP]
+> - A [GitHub Action](https://github.com/marketplace/actions/install-nsis-plugin) is available to install/upgrade __NSIS plugins__ (including `NSxfer`) on Windows runners
+> - A [GitHub Action](https://github.com/marketplace/actions/install-nsis-compiler) is available to install/upgrade __NSIS compiler__ on Windows, Linux or macOS runners
+
 ### Basic usage:
 - HTTP GET example:
 ```
