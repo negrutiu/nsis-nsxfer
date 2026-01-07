@@ -22,22 +22,17 @@ jobs:
             python: python
             make-x86: 'set PATH=C:\mingw32\bin;C:\msys64\usr\bin;%PATH% && mingw32-make.exe'
             make-amd64: 'set PATH=C:\mingw64\bin;C:\msys64\usr\bin;%PATH% && mingw32-make.exe'
-            artifact-plugin: NSxfer
-            artifact-examples: NSxfer-Examples
+            publish: true
 
           - os: ubuntu-latest
             python: python3
             make-x86: 'make PREFIX=i686-w64-mingw32-'
             make-amd64: 'make PREFIX=x86_64-w64-mingw32-'
-            artifact-plugin: NSxfer-ubuntu
-            artifact-examples: NSxfer-ubuntu-Examples
 
           - os: macos-latest
             python: python3
             make-x86: 'make PREFIX=i686-w64-mingw32-'
             make-amd64: 'make PREFIX=x86_64-w64-mingw32-'
-            artifact-plugin: NSxfer-macos
-            artifact-examples: NSxfer-macos-Examples
 
     defaults:
       run:
@@ -84,8 +79,9 @@ jobs:
           print(f'version_gcc={version_gcc}', flush=True)
           assert version_gcc, "empty gcc version"
 
-          with open(os.getenv('GITHUB_OUTPUT'), "a") as fout:
-            fout.write(f"version_gcc={version_gcc}\n")
+          if r'${{matrix.publish}}'.lower() == 'true':
+            with open(os.getenv('GITHUB_OUTPUT'), "a") as fout:
+              fout.write(f"version_gcc={version_gcc}\n")
 
       # --------------------------------------------------------------------------------
       # Versioning
@@ -124,7 +120,7 @@ jobs:
       - name: Upload plugin package
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.artifact-plugin}}
+          name: ${{matrix.publish && 'NSxfer' || format('NSxfer-{0}', matrix.os)}}
           path: build/package/*
 
       # --------------------------------------------------------------------------------
@@ -157,7 +153,7 @@ jobs:
       - name: Upload plugin examples
         uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.artifact-examples}}
+          name: ${{matrix.publish && 'NSxfer-Examples' || format('NSxfer-Examples-{0}', matrix.os)}}
           path: |
             Test/*.exe
             Test/NSxfer-Test.nsi
