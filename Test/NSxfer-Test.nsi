@@ -90,7 +90,7 @@ Function .onInit
 	; Initializations
 	InitPluginsDir
 !ifdef PLUGINPDB
-	File /oname=$PLUGINSDIR/NSxfer.pdb ${PLUGINPDB}
+	File /oname=$PLUGINSDIR\NSxfer.pdb ${PLUGINPDB}
 !endif
 
 	; Language selection
